@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"testing"
 )
@@ -15,7 +14,6 @@ func TestFexist(t *testing.T) {
 
 func TestFile(t *testing.T) {
 	fmt.Println(os.Open("/tmp/kkgg"))
-	log.New(nil, "", 0).Println("ss")
 }
 
 func TestFTouch(t *testing.T) {

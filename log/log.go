@@ -41,20 +41,41 @@ func SetLevel(level LogLevel) {
 	dlog.SetLevel(level)
 }
 
-func D(v ...interface{}) {
-	dlog.D(v...)
+func SetSLevel(level string) {
+	var dlev LogLevel
+	switch level {
+	case "DEBUG":
+		dlev = DEBUG
+		break
+	case "INFO":
+		dlev = INFO
+		break
+	case "WARNING":
+		dlev = WARNING
+		break
+	case "ERROR":
+		dlev = ERROR
+		break
+	default:
+		panic("unknow log level")
+	}
+	SetLevel(dlev)
 }
 
-func I(v ...interface{}) {
-	dlog.I(v...)
+func D(format string, v ...interface{}) {
+	dlog.log(DEBUG, "[D] %s", fmt.Sprintf(format, v...))
 }
 
-func W(v ...interface{}) {
-	dlog.W(v...)
+func I(format string, v ...interface{}) {
+	dlog.log(INFO, "[I] %s", fmt.Sprintf(format, v...))
 }
 
-func E(v ...interface{}) {
-	dlog.E(v...)
+func W(format string, v ...interface{}) {
+	dlog.log(WARNING, "[W] %s", fmt.Sprintf(format, v...))
+}
+
+func E(format string, v ...interface{}) {
+	dlog.log(ERROR, "[E] %s", fmt.Sprintf(format, v...))
 }
 func NewDefaultLog(w io.Writer) Log {
 	l := Log{}
@@ -72,25 +93,25 @@ func NewLog(w io.Writer, prefix string, flag int) Log {
 func (t *Log) SetLevel(l LogLevel) {
 	t.level = l
 }
-func (t *Log) D(v ...interface{}) {
-	t.log(DEBUG, "[D]", fmt.Sprint(v...))
+func (t *Log) D(format string, v ...interface{}) {
+	t.log(DEBUG, "[D] %s", fmt.Sprintf(format, v...))
 }
 
-func (t *Log) I(v ...interface{}) {
-	t.log(INFO, "[I]", fmt.Sprint(v...))
+func (t *Log) I(format string, v ...interface{}) {
+	t.log(INFO, "[I] %s", fmt.Sprintf(format, v...))
 }
 
-func (t *Log) W(v ...interface{}) {
-	t.log(WARNING, "[W]", fmt.Sprint(v...))
+func (t *Log) W(format string, v ...interface{}) {
+	t.log(WARNING, "[W] %s", fmt.Sprintf(format, v...))
 }
 
-func (t *Log) E(v ...interface{}) {
-	t.log(ERROR, "[E]", fmt.Sprint(v...))
+func (t *Log) E(format string, v ...interface{}) {
+	t.log(ERROR, "[E] %s", fmt.Sprintf(format, v...))
 }
 
-func (t *Log) log(l LogLevel, v ...interface{}) {
+func (t *Log) log(l LogLevel, format string, v ...interface{}) {
 	if l < t.level {
 		return
 	}
-	t.Output(3, fmt.Sprintln(v...))
+	t.Output(3, fmt.Sprintf(format, v...)+"\n")
 }

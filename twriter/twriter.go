@@ -8,7 +8,10 @@ import (
 	"time"
 )
 
+//bytes
 const FLOG_BUF_SIZE int = 1024000
+
+//millisecond
 const FLOG_CLOCK_DELAY time.Duration = 10000
 
 var wg *sync.WaitGroup = &sync.WaitGroup{}
@@ -55,5 +58,6 @@ func (t *TimeWriter) Writer() *bufio.Writer {
 	return t.w
 }
 func Wait() {
+	log.D("Waiting all TimeWriter stop")
 	wg.Wait()
 }

@@ -67,3 +67,8 @@ func TestDLog(t *testing.T) {
 	W("WARNING")
 	E("ERROR")
 }
+
+func TestFmt(t *testing.T) {
+	SetLevel(DEBUG)
+	D("%s---%d", "abc", 1000)
+}
