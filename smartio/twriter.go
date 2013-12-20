@@ -2,7 +2,6 @@ package smartio
 
 import (
 	"bufio"
-	// "fmt"
 	"io"
 	"sync"
 	"time"
@@ -50,6 +49,7 @@ func (t *TimeFlushWriter) runClock() {
 		if ttime >= t.cdelay || t.Available() > t.bsize {
 			t.Flush()
 		}
+		ttime += t.rdelay
 		time.Sleep(t.rdelay * time.Millisecond)
 	}
 	wg.Done()

@@ -1,52 +1,53 @@
 package smartio
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
-	"github.com/Centny/Cny4go/util"
-	"os"
 	"testing"
 	"time"
 )
 
-func TestNewTimeWriter(t *testing.T) {
-	os.RemoveAll("/tmp/kk")
-	path := "/tmp/kka/a.log"
-	util.FTouch(path)
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, os.ModePerm)
-	fmt.Println(f, err)
-	tw := NewTWriter(f)
-	tw.WriteString("sfsdfsdfsdfsdfsdfs\n")
-	tw.WriteString("sfsdfsdfsdfsdfsdfs\n")
-	tw.WriteString("sfsdfsdfsdfsdfsdfs\n")
-	tw.WriteString("sfsdfsdfsdfsdfsdfs\n")
-	tw.WriteString("sfsdfsdfsdfsdfsdfs\n")
-	time.Sleep(1000 * time.Millisecond)
+func TestTwAutoFlush(t *testing.T) {
+	b := bytes.NewBuffer([]byte{})
+	tw := NewTimeWriter(b, 100000, 1000)
+	tw.WriteString("12345\n")
+	//wait for auto flush.
+	time.Sleep(1500 * time.Millisecond)
+	if b.Len() != 6 {
+		t.Error("Auto flush error")
+	}
 	tw.Stop()
 	TimeWriterWait()
-	fmt.Println("exit")
+	fmt.Println("Test auto flush success")
 }
-func TestNewTimeWriter2(t *testing.T) {
+
+func TestTwBuffer(t *testing.T) {
+	b := bytes.NewBuffer([]byte{})
+	tw := NewTimeWriter(b, 100, 10000)
+	for i := 0; i < 11; i++ {
+		tw.WriteString("123456789\n")
+	}
+	//wait for auto buffer flush.
+	time.Sleep(300 * time.Millisecond)
+	if b.Len() != 100 {
+		t.Error("Auto buffer flush error")
+	}
+	tw.Stop()
+	if b.Len() != 110 {
+		t.Error("Auto buffer flush error")
+	}
 	TimeWriterWait()
-}
-func TestWriteFile(t *testing.T) {
-	path := "/tmp/kka/a.log"
-	// util.FTouch(path)
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, os.ModePerm)
-	fmt.Println(f, err)
-	w := bufio.NewWriterSize(f, 1000)
-	w.WriteString("9999999999999")
-	w.Flush()
-	f.Close()
-}
-func TestMemoryWriter(t *testing.T) {
-
+	fmt.Println("Test auto buffer flush success")
 }
 
-// func TestFile(t *testing.T) {
-// f, err := os.Create("/tmp/tt")
-// }
-
-// func TestMkdir(t *testing.T) {
-// os.MkdirAll("/tmp/lll", os.ModePerm)
-// }
+func TestDwNormal(t *testing.T) {
+	dw := NewDateSwitchWriter("/tmp")
+	dw.Write([]byte{'1', '1', '1', '\n'})
+	dw.Write([]byte{'1', '1', '1', '\n'})
+	dw.cfn = "lll.log"
+	dw.Write([]byte{'1', '1', '1', '\n'})
+	dw.Write([]byte{'1', '1', '1', '\n'})
+	dw.Close()
+	//
+	NewDateSwitchWriter("/tmp").Close()
+}
