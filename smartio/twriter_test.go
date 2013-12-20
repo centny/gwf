@@ -1,4 +1,4 @@
-package twriter
+package smartio
 
 import (
 	"bufio"
@@ -16,15 +16,18 @@ func TestNewTimeWriter(t *testing.T) {
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, os.ModePerm)
 	fmt.Println(f, err)
 	tw := NewTWriter(f)
-	tw.Writer().WriteString("sfsdfsdfsdfsdfsdfs\n")
-	tw.Writer().WriteString("sfsdfsdfsdfsdfsdfs\n")
-	tw.Writer().WriteString("sfsdfsdfsdfsdfsdfs\n")
-	tw.Writer().WriteString("sfsdfsdfsdfsdfsdfs\n")
-	tw.Writer().WriteString("sfsdfsdfsdfsdfsdfs\n")
+	tw.WriteString("sfsdfsdfsdfsdfsdfs\n")
+	tw.WriteString("sfsdfsdfsdfsdfsdfs\n")
+	tw.WriteString("sfsdfsdfsdfsdfsdfs\n")
+	tw.WriteString("sfsdfsdfsdfsdfsdfs\n")
+	tw.WriteString("sfsdfsdfsdfsdfsdfs\n")
 	time.Sleep(1000 * time.Millisecond)
 	tw.Stop()
-	Wait()
+	TimeWriterWait()
 	fmt.Println("exit")
+}
+func TestNewTimeWriter2(t *testing.T) {
+	TimeWriterWait()
 }
 func TestWriteFile(t *testing.T) {
 	path := "/tmp/kka/a.log"
