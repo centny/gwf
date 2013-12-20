@@ -45,7 +45,7 @@ func FTouch(path string) error {
 	return nil
 }
 
-func ReadLine(r bufio.Reader, limit int, end bool) ([]byte, error) {
+func ReadLine(r *bufio.Reader, limit int, end bool) ([]byte, error) {
 	var isPrefix bool = true
 	var bys []byte
 	var tmp []byte

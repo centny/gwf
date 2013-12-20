@@ -1,6 +1,8 @@
 package util
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
@@ -23,4 +25,17 @@ func TestFTouch(t *testing.T) {
 	fmt.Println(FTouch("/tmp/kkk/abc.log"))
 	fmt.Println(FTouch("/tmp/kkk/abc.log"))
 	fmt.Println(FTouch("/tmp/kkk"))
+}
+
+func TestReadLine(t *testing.T) {
+	bf := bytes.NewBufferString("abc\ndef\nghi\n")
+	r := bufio.NewReader(bf)
+	for {
+		bys, err := ReadLine(r, 10000, false)
+		// bys, isp, err := r.ReadLine()
+		fmt.Println(string(bys), err)
+		if err != nil {
+			break
+		}
+	}
 }

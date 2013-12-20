@@ -36,6 +36,9 @@ func TestWriteFile(t *testing.T) {
 	w.Flush()
 	f.Close()
 }
+func TestMemoryWriter(t *testing.T) {
+
+}
 
 // func TestFile(t *testing.T) {
 // f, err := os.Create("/tmp/tt")
