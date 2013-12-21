@@ -25,17 +25,30 @@ func TestFTouch(t *testing.T) {
 	fmt.Println(FTouch("/tmp/kkk/abc.log"))
 	fmt.Println(FTouch("/tmp/kkk/abc.log"))
 	fmt.Println(FTouch("/tmp/kkk"))
+	fmt.Println(FTouch("/var/libbb"))
+	//
 }
 
+// func TestFTouch2(t *testing.T) {
+// 	fmt.Println(exec.Command("mkdir", "/tmp/fcg_dir").Run())
+// 	fmt.Println(exec.Command("chmod", "000", "/tmp/fcg_dir").Run())
+// 	fmt.Println(FTouch("/tmp/fcg_dir/aaa/a.log"))
+// 	fmt.Println(exec.Command("rm", "-rf", "/tmp/fcg_dir").Run())
+// }
+
 func TestReadLine(t *testing.T) {
-	bf := bytes.NewBufferString("abc\ndef\nghi\n")
-	r := bufio.NewReader(bf)
-	for {
-		bys, err := ReadLine(r, 10000, false)
-		// bys, isp, err := r.ReadLine()
-		fmt.Println(string(bys), err)
-		if err != nil {
-			break
+	f := func(end bool) {
+		bf := bytes.NewBufferString("abc\ndef\nghi\n")
+		r := bufio.NewReader(bf)
+		for {
+			bys, err := ReadLine(r, 10000, end)
+			// bys, isp, err := r.ReadLine()
+			fmt.Println(string(bys), err)
+			if err != nil {
+				break
+			}
 		}
 	}
+	f(true)
+	f(false)
 }

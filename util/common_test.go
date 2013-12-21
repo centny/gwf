@@ -18,5 +18,6 @@ func TestArray(t *testing.T) {
 		ary.Del(0)
 		fmt.Println("len:", ary.Ary())
 	}
+	fmt.Println("len:", CreateArray(10).Len())
 	time.Sleep(2 * time.Second)
 }

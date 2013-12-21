@@ -12,10 +12,7 @@ func Fexists(path string) bool {
 	if err == nil {
 		return true
 	}
-	if os.IsNotExist(err) {
-		return false
-	}
-	return false
+	return !os.IsNotExist(err)
 }
 
 func FTouch(path string) error {

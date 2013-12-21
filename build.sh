@@ -17,11 +17,12 @@ echo "Running Test"
 pkgs="\
  github.com/Centny/Cny4go/smartio\
  github.com/Centny/Cny4go/log\
+ github.com/Centny/Cny4go/util\
 "
 echo "mode: set" > a.out
 for p in $pkgs;
 do
- go test --coverprofile=c.out $p
+ go test -v --coverprofile=c.out $p
  cat c.out | grep -v "mode" >>a.out
 done
 gocov convert a.out > coverage.json

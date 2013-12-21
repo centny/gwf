@@ -2,9 +2,9 @@ package util
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
-	"io"
+	"fmt"
+	"math"
 	"os"
 	"regexp"
 	"strconv"
@@ -29,11 +29,11 @@ func (f *Fcfg) Val(key string) string {
 //get the int value by key.
 func (f *Fcfg) IntVal(key string) int {
 	if !f.Exist(key) {
-		return 0
+		return math.MaxInt8
 	}
 	val, err := strconv.Atoi(f.Val(key))
 	if err != nil {
-		panic(err)
+		return math.MaxInt8
 	}
 	return val
 }
@@ -41,11 +41,11 @@ func (f *Fcfg) IntVal(key string) int {
 //get the float value by key.
 func (f *Fcfg) FloatVal(key string) float64 {
 	if !f.Exist(key) {
-		return 0
+		return math.MaxFloat64
 	}
 	val, err := strconv.ParseFloat(f.Val(key), 64)
 	if err != nil {
-		panic(err)
+		return math.MaxFloat64
 	}
 	return val
 }
@@ -84,25 +84,14 @@ func (f *Fcfg) InitWithFilePath(fp string) error {
 //initial the configure by .properties file.
 func (f *Fcfg) InitWithFile(tfile *os.File) error {
 	reader := bufio.NewReader(tfile)
-	buf := bytes.NewBuffer(make([]byte, 0, 10240))
 	for {
 		//read one line
-		buf.Reset()
-		for {
-			pair, isPrefix, err := reader.ReadLine()
-			if err == io.EOF {
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-			buf.Write(pair)
-			if !isPrefix {
-				break
-			}
+		bys, err := ReadLine(reader, 10000, false)
+		if err != nil {
+			break
 		}
 		//
-		line := buf.String()
+		line := string(bys)
 		line = strings.Trim(line, " ")
 		if len(line) < 1 {
 			continue
@@ -114,6 +103,7 @@ func (f *Fcfg) InitWithFile(tfile *os.File) error {
 		line = ps[0]
 		ps = strings.Split(line, "=")
 		if len(ps) < 2 {
+			fmt.Println(os.Stderr, "found not value key:", ps[0])
 			continue
 		}
 		key := f.EnvReplace(strings.Trim(ps[0], " "))
@@ -125,10 +115,7 @@ func (f *Fcfg) InitWithFile(tfile *os.File) error {
 
 //replace tartget patter by ${key} with value in configure map or system environment value.
 func (f *Fcfg) EnvReplace(val string) string {
-	reg, err := regexp.Compile("\\$\\{[^\\}]*\\}")
-	if err != nil {
-		panic(err)
-	}
+	reg, _ := regexp.Compile("\\$\\{[^\\}]*\\}")
 	var rval string = ""
 	mhs := reg.FindAll([]byte(val), -1)
 	for i := 0; i < len(mhs); i++ {
