@@ -1,0 +1,8 @@
+
+*.out
+
+coverage.html
+
+coverage.xml
+
+coverage.json
