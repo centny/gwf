@@ -3,6 +3,7 @@ package smartio
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 )
@@ -50,4 +51,13 @@ func TestDwNormal(t *testing.T) {
 	dw.Close()
 	//
 	NewDateSwitchWriter("/tmp").Close()
+}
+
+func TestNtw(t *testing.T) {
+	fw := NewTWriter(os.Stderr)
+	fw.WriteString("loging \n")
+	fw.WriteString("loging \n")
+	fw.Flush()
+	fw.Stop()
+	fmt.Println("test new TWriter end ...")
 }

@@ -57,7 +57,9 @@ func SetSLevel(level string) {
 		dlev = ERROR
 		break
 	default:
-		panic("unknow log level")
+		dlev = INFO
+		fmt.Errorf("unknow log level")
+		break
 	}
 	SetLevel(dlev)
 }

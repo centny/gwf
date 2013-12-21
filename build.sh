@@ -7,7 +7,10 @@ export PATH=$PATH:$GOPATH/bin:$HOME/bin:$GOROOT/bin
 ##############################
 ######Install Dependence######
 echo "Installing Dependence"
-go get -u github.com/Centny/Cny4go
+if [ "$1" = "-u" ];then
+  echo "updating github.com/Centny/Cny4go code..."
+  go get -u github.com/Centny/Cny4go
+fi
 ##############################
 #########Running Test#########
 echo "Running Test"

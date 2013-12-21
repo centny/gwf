@@ -72,3 +72,39 @@ func TestFmt(t *testing.T) {
 	SetLevel(DEBUG)
 	D("%s---%d", "abc", 1000)
 }
+
+func TestSetSLevel(t *testing.T) {
+	SetSLevel("DEBUG")
+	if dlev != DEBUG {
+		t.Error("level is not DEBUG")
+	}
+	SetSLevel("INFO")
+	if dlev != INFO {
+		t.Error("level is not INFO")
+	}
+	SetSLevel("WARNING")
+	if dlev != WARNING {
+		t.Error("level is not WARNING")
+	}
+	SetSLevel("ERROR")
+	if dlev != ERROR {
+		t.Error("level is not ERROR")
+	}
+	SetSLevel("ERRORR")
+	if dlev != INFO {
+		t.Error("level is not INFO")
+	}
+	fmt.Println("test set level end...")
+}
+
+func TestNewLog(t *testing.T) {
+	l := NewLog(os.Stderr, "NL ", D_LOG_FLAGS)
+	l.D("show debug")
+}
+
+func TestSetWriter(t *testing.T) {
+	SetWriterFlag(os.Stderr, "LL ", D_LOG_FLAGS)
+	D("show debug")
+	SetWriter(os.Stdout)
+	D("show debug 2")
+}
