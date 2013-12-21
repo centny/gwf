@@ -3,8 +3,7 @@
 #####Setting Environments#####
 echo "Setting Environments"
 set -e
-export PATH=$PATH:$GOPATH/bin:$HOME/bin
-
+export PATH=$PATH:$GOPATH/bin:$HOME/bin:$GOROOT/bin
 ##############################
 ######Install Dependence######
 echo "Installing Dependence"
