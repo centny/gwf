@@ -43,8 +43,12 @@ func TestTwBuffer(t *testing.T) {
 
 func TestDwNormal(t *testing.T) {
 	dw := NewDateSwitchWriter("/tmp")
+	if dw.FilePath() != "" {
+		t.Error("file path error")
+	}
 	dw.Write([]byte{'1', '1', '1', '\n'})
 	dw.Write([]byte{'1', '1', '1', '\n'})
+	fmt.Println(dw.FilePath())
 	dw.cfn = "lll.log"
 	dw.Write([]byte{'1', '1', '1', '\n'})
 	dw.Write([]byte{'1', '1', '1', '\n'})

@@ -1,6 +1,7 @@
 package smartio
 
 import (
+	"fmt"
 	"github.com/Centny/Cny4go/util"
 	"io"
 	"os"
@@ -11,7 +12,7 @@ import (
 type DateSwitchWriter struct {
 	ws  string
 	cfn string
-	fw  *os.File
+	F   *os.File
 	io.Writer
 }
 
@@ -19,20 +20,20 @@ func NewDateSwitchWriter(ws string) *DateSwitchWriter {
 	dsw := &DateSwitchWriter{}
 	dsw.ws = ws
 	dsw.cfn = ""
-	dsw.fw = nil
+	dsw.F = nil
 	return dsw
 }
 
 func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
 	fname := time.Now().Format("2006-1-2.log")
 	if d.cfn != fname {
-		if d.fw != nil {
-			d.fw.Close()
+		if d.F != nil {
+			d.F.Close()
 		}
-		d.fw = nil
+		d.F = nil
 	}
 	//create new log writer
-	if d.fw == nil {
+	if d.F == nil {
 		fpath := filepath.Join(d.ws, fname)
 		err := util.FTouch(fpath)
 		if err != nil {
@@ -42,13 +43,22 @@ func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
 		if err != nil {
 			return 0, err
 		}
-		d.fw = f
+		d.cfn = fname
+		d.F = f
+		fmt.Println("open file:" + fpath)
 	}
-	return d.fw.Write(p)
+	return d.F.Write(p)
 }
 func (d *DateSwitchWriter) Close() {
-	if d.fw != nil {
-		d.fw.Close()
-		d.fw = nil
+	if d.F != nil {
+		fmt.Println("close file:", d.FilePath())
+		d.F.Close()
+		d.F = nil
 	}
+}
+func (d *DateSwitchWriter) FilePath() string {
+	if d.cfn == "" {
+		return ""
+	}
+	return filepath.Join(d.ws, d.cfn)
 }
