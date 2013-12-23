@@ -82,8 +82,7 @@ func (f *Fcfg) InitWithFilePath(fp string) error {
 }
 
 //initial the configure by .properties file.
-func (f *Fcfg) InitWithFile(tfile *os.File) error {
-	reader := bufio.NewReader(tfile)
+func (f *Fcfg) InitWithReader(reader *bufio.Reader) error {
 	for {
 		//read one line
 		bys, err := ReadLine(reader, 10000, false)
@@ -111,6 +110,10 @@ func (f *Fcfg) InitWithFile(tfile *os.File) error {
 		(*f)[key] = val
 	}
 	return nil
+}
+func (f *Fcfg) InitWithFile(tfile *os.File) error {
+	reader := bufio.NewReader(tfile)
+	return f.InitWithReader(reader)
 }
 
 //replace tartget patter by ${key} with value in configure map or system environment value.
