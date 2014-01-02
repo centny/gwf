@@ -108,3 +108,18 @@ func TestSetWriter(t *testing.T) {
 	SetWriter(os.Stdout)
 	D("show debug 2")
 }
+
+type MWriter struct {
+}
+
+func (m *MWriter) Write(p []byte) (n int, err error) {
+	fmt.Println("mw:" + string(p))
+	return len(p), nil
+}
+
+func TestCWriter(t *testing.T) {
+	SetWriterFlag(&MWriter{}, "LL ", D_LOG_FLAGS)
+	D("show debug")
+	SetWriter(os.Stdout)
+	D("show debug 2")
+}
