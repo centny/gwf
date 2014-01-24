@@ -9,6 +9,7 @@ import (
 )
 
 func TestTwAutoFlush(t *testing.T) {
+	SetFMode(0755)
 	b := bytes.NewBuffer([]byte{})
 	tw := NewTimeWriter(b, 100000, 1000)
 	tw.WriteString("12345\n")

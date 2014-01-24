@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+var fs_fmod int = 0755
+
+func SetFMode(fmod int) {
+	fs_fmod = fmod
+}
+
 type DateSwitchWriter struct {
 	ws  string
 	cfn string
@@ -45,6 +51,7 @@ func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
 		}
 		d.cfn = fname
 		d.F = f
+		os.Chmod(fpath, os.FileMode(fs_fmod))
 		fmt.Println("open file:" + fpath)
 	}
 	return d.F.Write(p)
