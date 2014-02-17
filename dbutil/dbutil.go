@@ -4,15 +4,14 @@ package dbutil
 
 import (
 	"database/sql"
+	"github.com/Centny/Cny4go/util"
 	"reflect"
 	"time"
 )
 
-type Map map[string]interface{}
-
 //convert the sql.Rows to map array.
-func DbRow2Map(rows *sql.Rows) []Map {
-	res := []Map{}
+func DbRow2Map(rows *sql.Rows) []util.Map {
+	res := []util.Map{}
 	fields, _ := rows.Columns()
 	//fmt.Println(fields)
 	fieldslen := len(fields)
@@ -27,7 +26,7 @@ func DbRow2Map(rows *sql.Rows) []Map {
 		rows.Scan(sary...)
 		//
 		//convert array to map.
-		mm := Map{}
+		mm := util.Map{}
 		for idx, field := range fields {
 			rawValue := reflect.Indirect(reflect.ValueOf(sary[idx]))
 			if rawValue.Interface() == nil { //if database data is null.
@@ -59,7 +58,7 @@ func DbRow2Map(rows *sql.Rows) []Map {
 }
 
 //query the map result by query string and arguments.
-func DbQuery(db *sql.DB, query string, args ...interface{}) ([]Map, error) {
+func DbQuery(db *sql.DB, query string, args ...interface{}) ([]util.Map, error) {
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
