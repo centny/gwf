@@ -8,9 +8,11 @@ import (
 	"time"
 )
 
+type Map map[string]interface{}
+
 //convert the sql.Rows to map array.
-func DbRow2Map(rows *sql.Rows) []map[string]interface{} {
-	res := []map[string]interface{}{}
+func DbRow2Map(rows *sql.Rows) []Map {
+	res := []Map{}
 	fields, _ := rows.Columns()
 	//fmt.Println(fields)
 	fieldslen := len(fields)
@@ -25,7 +27,7 @@ func DbRow2Map(rows *sql.Rows) []map[string]interface{} {
 		rows.Scan(sary...)
 		//
 		//convert array to map.
-		mm := map[string]interface{}{}
+		mm := Map{}
 		for idx, field := range fields {
 			rawValue := reflect.Indirect(reflect.ValueOf(sary[idx]))
 			if rawValue.Interface() == nil { //if database data is null.
@@ -57,7 +59,7 @@ func DbRow2Map(rows *sql.Rows) []map[string]interface{} {
 }
 
 //query the map result by query string and arguments.
-func DbQuery(db *sql.DB, query string, args ...interface{}) ([]map[string]interface{}, error) {
+func DbQuery(db *sql.DB, query string, args ...interface{}) ([]Map, error) {
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
