@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestFexist(t *testing.T) {
@@ -51,4 +52,17 @@ func TestReadLine(t *testing.T) {
 	}
 	f(true)
 	f(false)
+}
+
+func TestTimestamp(t *testing.T) {
+	tt := Timestamp(time.Now())
+	bt := Time(tt)
+	t2 := Timestamp(bt)
+	fmt.Println(1392636938688)
+	fmt.Println(tt)
+	fmt.Println(t2)
+	if tt != t2 {
+		t.Error("convert invalid")
+		return
+	}
 }

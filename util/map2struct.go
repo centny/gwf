@@ -1,11 +1,17 @@
 package util
 
 import (
+	"fmt"
+	"os"
 	"reflect"
+	"time"
 )
 
 //type define to map[string]interface{}
 type Map map[string]interface{}
+
+//default date format.
+const D_DATEFORMAT string = "2006-01-02 15:04:05"
 
 //map to struct.
 func M2S(m Map, dest interface{}) {
@@ -23,7 +29,32 @@ func M2S(m Map, dest interface{}) {
 			key = f.Name
 		}
 		if v, ok := m[key]; ok {
-			pval.Field(i).Set(reflect.ValueOf(v))
+			if f.Type.Name() == "Time" {
+				switch reflect.TypeOf(v).Name() {
+				case "string":
+					df := f.Tag.Get("tf")
+					if len(df) < 1 {
+						df = D_DATEFORMAT
+					}
+					t, err := time.Parse(df, v.(string))
+					if err == nil {
+						pval.Field(i).Set(reflect.ValueOf(t))
+					} else {
+						fmt.Fprintln(os.Stderr, err.Error())
+					}
+				case "Time":
+					pval.Field(i).Set(reflect.ValueOf(v))
+				case "int64":
+					pval.Field(i).Set(reflect.ValueOf(Time(v.(int64))))
+				case "int":
+					pval.Field(i).Set(reflect.ValueOf(Time(int64(v.(int)))))
+				case "int32":
+					pval.Field(i).Set(reflect.ValueOf(Time(int64(v.(int32)))))
+				}
+
+			} else {
+				pval.Field(i).Set(reflect.ValueOf(v))
+			}
 		}
 	}
 }

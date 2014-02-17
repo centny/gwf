@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func Fexists(path string) bool {
@@ -58,4 +59,11 @@ func ReadLine(r *bufio.Reader, limit int, end bool) ([]byte, error) {
 		bys = append(bys, '\n')
 	}
 	return bys, nil
+}
+
+func Timestamp(t time.Time) int64 {
+	return t.UnixNano() / 1e6
+}
+func Time(timestamp int64) time.Time {
+	return time.Unix(0, timestamp*1e6)
 }

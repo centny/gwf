@@ -18,6 +18,7 @@ pkgs="\
  github.com/Centny/Cny4go/smartio\
  github.com/Centny/Cny4go/log\
  github.com/Centny/Cny4go/util\
+ github.com/Centny/Cny4go/dbutil\
 "
 echo "mode: set" > a.out
 for p in $pkgs;
