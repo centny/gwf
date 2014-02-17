@@ -20,6 +20,7 @@ type DateSwitchWriter struct {
 	cfn string
 	F   *os.File
 	io.Writer
+	FMODE os.FileMode
 }
 
 func NewDateSwitchWriter(ws string) *DateSwitchWriter {
@@ -27,6 +28,7 @@ func NewDateSwitchWriter(ws string) *DateSwitchWriter {
 	dsw.ws = ws
 	dsw.cfn = ""
 	dsw.F = nil
+	dsw.FMODE = 0666
 	return dsw
 }
 
@@ -45,7 +47,7 @@ func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
 		if err != nil {
 			return 0, err
 		}
-		f, err := os.OpenFile(fpath, os.O_RDWR|os.O_APPEND, os.ModePerm)
+		f, err := os.OpenFile(fpath, os.O_RDWR|os.O_APPEND, d.FMODE)
 		if err != nil {
 			return 0, err
 		}
