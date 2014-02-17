@@ -53,7 +53,9 @@ func M2S(m Map, dest interface{}) {
 				}
 
 			} else {
-				pval.Field(i).Set(reflect.ValueOf(v))
+				if v != nil {
+					pval.Field(i).Set(reflect.ValueOf(v))
+				}
 			}
 		}
 	}

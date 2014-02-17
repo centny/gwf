@@ -17,6 +17,7 @@ type S1 struct {
 	G  time.Time `m2s:"GT"`
 	H  time.Time `m2s:"HT"`
 	I  time.Time `m2s:"IT"`
+	J  string    `m2s:"JV"`
 }
 
 func TestM2S(t *testing.T) {
@@ -29,6 +30,7 @@ func TestM2S(t *testing.T) {
 	m["GT"] = time.Now()
 	m["HT"] = int32(tt)
 	m["IT"] = int64(tt)
+	m["JV"] = nil
 	m1 := make(map[string]interface{})
 	m1["VA"] = "S3_A"
 	m1["VB"] = "S4_B"

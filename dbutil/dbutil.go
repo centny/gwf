@@ -4,6 +4,7 @@ package dbutil
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/Centny/Cny4go/util"
 	"reflect"
 	"time"
@@ -59,6 +60,9 @@ func DbRow2Map(rows *sql.Rows) []util.Map {
 
 //query the map result by query string and arguments.
 func DbQuery(db *sql.DB, query string, args ...interface{}) ([]util.Map, error) {
+	if db == nil {
+		return nil, errors.New("db is nil")
+	}
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
@@ -70,4 +74,14 @@ func DbQuery(db *sql.DB, query string, args ...interface{}) ([]util.Map, error) 
 	}
 	defer rows.Close()
 	return DbRow2Map(rows), nil
+}
+
+//query the struct result by query string and arguments.
+func DbQueryS(db *sql.DB, res interface{}, query string, args ...interface{}) error {
+	mres, err := DbQuery(db, query, args...)
+	if err != nil {
+		return err
+	}
+	util.Ms2Ss(mres, res)
+	return nil
 }
