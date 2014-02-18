@@ -8,10 +8,6 @@ export PATH=$PATH:$GOPATH/bin:$HOME/bin:$GOROOT/bin
 ######Install Dependence######
 echo "Installing Dependence"
 go get github.com/go-sql-driver/mysql
-if [ "$1" = "-u" ];then
-  echo "updating github.com/Centny/Cny4go code..."
-  go get -u github.com/Centny/Cny4go
-fi
 ##############################
 #########Running Test#########
 echo "Running Test"
@@ -24,6 +20,9 @@ pkgs="\
 echo "mode: set" > a.out
 for p in $pkgs;
 do
+ if [ "$1" = "-u" ];then
+  go get -u $p
+ fi
  go test -v --coverprofile=c.out $p
  cat c.out | grep -v "mode" >>a.out
 done
