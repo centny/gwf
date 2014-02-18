@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"time"
 )
 
@@ -66,4 +67,18 @@ func Timestamp(t time.Time) int64 {
 }
 func Time(timestamp int64) time.Time {
 	return time.Unix(0, timestamp*1e6)
+}
+func AryExist(ary interface{}, obj interface{}) bool {
+	switch reflect.TypeOf(ary).Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(ary)
+		for i := 0; i < s.Len(); i++ {
+			if obj == s.Index(i).Interface() {
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
 }

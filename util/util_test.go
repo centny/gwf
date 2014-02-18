@@ -66,3 +66,35 @@ func TestTimestamp(t *testing.T) {
 		return
 	}
 }
+
+func TestAryExist(t *testing.T) {
+	iary := []int{1, 2, 3, 4, 5, 6}
+	if !AryExist(iary, 2) {
+		t.Error("value exis in array.")
+		return
+	}
+	if AryExist(iary, 8) {
+		t.Error("value not exis in array.")
+		return
+	}
+	//
+	fary := []float32{1.0, 2.0, 3.0, 4.0, 5.0}
+	if !AryExist(fary, float32(1.0)) {
+		t.Error("value exis in array.")
+		return
+	}
+	if AryExist(fary, float32(8.0)) {
+		t.Error("value not exis in array.")
+		return
+	}
+	//
+	sary := []string{"a", "b", "c", "d", "e", "f"}
+	if !AryExist(sary, "c") {
+		t.Error("value exis in array.")
+		return
+	}
+	if AryExist(sary, "g") {
+		t.Error("value not exis in array.")
+		return
+	}
+}
