@@ -7,6 +7,7 @@ export PATH=$PATH:$GOPATH/bin:$HOME/bin:$GOROOT/bin
 ##############################
 ######Install Dependence######
 echo "Installing Dependence"
+go get github.com/go-sql-driver/mysql
 if [ "$1" = "-u" ];then
   echo "updating github.com/Centny/Cny4go code..."
   go get -u github.com/Centny/Cny4go
