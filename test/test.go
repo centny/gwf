@@ -1,3 +1,3 @@
 package test
 
-const TDbCon string = "cny:sco@unix(/tmp/mysql.sock)/cny"
+const TDbCon string = "cny:sco@tcp(127.0.0.1:3306)/cny?charset=utf8"
