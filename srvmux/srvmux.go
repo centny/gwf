@@ -29,7 +29,7 @@ func (s *SrvMux) HandleFunc(pattern string, handler func(http.ResponseWriter, *h
 
 func (s *SrvMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	url := strings.TrimPrefix(r.URL.String(), s.pre)
-	if len(url) == len(r.URL.String()) {
+	if len(url) == len(r.URL.String()) || !strings.HasPrefix(url, "/") {
 		http.NotFound(w, r)
 		return
 	}
@@ -69,7 +69,7 @@ func (s *RegMux) HandleFunc(pattern string, handler func(http.ResponseWriter, *h
 
 func (s *RegMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	url := strings.TrimPrefix(r.URL.String(), s.pre)
-	if len(url) == len(r.URL.String()) {
+	if len(url) == len(r.URL.String()) || !strings.HasPrefix(url, "/") {
 		http.NotFound(w, r)
 		return
 	}
