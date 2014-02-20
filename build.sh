@@ -16,6 +16,7 @@ pkgs="\
  github.com/Centny/Cny4go/log\
  github.com/Centny/Cny4go/util\
  github.com/Centny/Cny4go/dbutil\
+ github.com/Centny/Cny4go/srvmux\
 "
 echo "mode: set" > a.out
 for p in $pkgs;
