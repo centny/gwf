@@ -38,8 +38,8 @@ func DbRow2Map(rows *sql.Rows) []util.Map {
 			switch aa.Kind() { //check the value type ant convert.
 			case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				mm[field] = vv.Int()
-			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				mm[field] = vv.Uint()
+			// case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			// 	mm[field] = vv.Uint()
 			case reflect.Float32, reflect.Float64:
 				mm[field] = vv.Float()
 			case reflect.Slice:

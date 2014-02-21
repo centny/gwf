@@ -9,7 +9,7 @@ create table TTABLE
    STATUS               varchar(255),
    TIME                 timestamp,
    FVAL					float,
-   UIVAL				int unsigned,
+   UIVAL				integer unsigned,
    ADD1                 varchar(255),
    ADD2                 varchar(255),
    primary key (TID)
