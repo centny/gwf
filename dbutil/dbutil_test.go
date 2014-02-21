@@ -63,4 +63,9 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	err = DbQueryS(nil, nil, "select * from ttable where tid>?", 1)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 }
