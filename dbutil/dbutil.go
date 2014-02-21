@@ -7,7 +7,6 @@ import (
 	"errors"
 	"github.com/Centny/Cny4go/util"
 	"reflect"
-	"time"
 )
 
 //convert the sql.Rows to map array.
