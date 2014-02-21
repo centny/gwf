@@ -45,12 +45,12 @@ func DbRow2Map(rows *sql.Rows) []util.Map {
 				mm[field] = vv.Float()
 			case reflect.Slice:
 				mm[field] = string(rawValue.Interface().([]byte))
-			case reflect.String:
-				mm[field] = vv.String()
-			case reflect.Struct:
-				mm[field] = rawValue.Interface().(time.Time)
-			case reflect.Bool:
-				mm[field] = vv.Bool()
+				// case reflect.String:
+				// 	mm[field] = vv.String()
+				// case reflect.Struct:
+				// 	mm[field] = rawValue.Interface().(time.Time)
+				// case reflect.Bool:
+				// 	mm[field] = vv.Bool()
 			}
 		}
 		res = append(res, mm)

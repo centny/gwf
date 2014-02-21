@@ -17,6 +17,8 @@ type TSt struct {
 	Tval   string    `m2s:"TVAL"`
 	Status string    `m2s:"STATUS"`
 	Time   time.Time `m2s:"TIME"`
+	Fval   float64   `m2s:"FVAL"`
+	Uival  int64     `m2s:"UIVAL"`
 	Add1   string    `m2s:"ADD1"`
 	Add2   string    `m2s:"Add2"`
 }
