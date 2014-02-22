@@ -2,9 +2,11 @@ package dbutil
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"github.com/Centny/Cny4go/test"
+	"github.com/Centny/TDb"
 	_ "github.com/go-sql-driver/mysql"
 	"testing"
 	"time"
@@ -70,4 +72,39 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+}
+func Map2Val2(columns []string, row map[string]interface{}, dest []driver.Value) {
+	for i, c := range columns {
+		if v, ok := row[c]; ok {
+			switch c {
+			case "INT":
+				dest[i] = int(v.(float64))
+			case "UINT":
+				dest[i] = uint32(v.(float64))
+			case "FLOAT":
+				dest[i] = float32(v.(float64))
+			case "SLICE":
+				dest[i] = []byte(v.(string))
+			case "STRING":
+				dest[i] = v.(string)
+			case "STRUCT":
+				dest[i] = time.Now()
+			case "BOOL":
+				dest[i] = true
+			}
+		} else {
+			dest[i] = nil
+		}
+	}
+}
+func TestDbUtil2(t *testing.T) {
+	TDb.Map2Val = Map2Val2
+	db, _ := sql.Open("TDb", "td@tdata.json")
+	defer db.Close()
+	res, err := DbQuery(db, "SELECT * FROM TESTING WHERE INT=? AND STRING=?", 1, "cny")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(res)
 }

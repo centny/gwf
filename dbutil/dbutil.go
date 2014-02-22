@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/Centny/Cny4go/util"
 	"reflect"
+	"time"
 )
 
 //convert the sql.Rows to map array.
@@ -36,20 +37,20 @@ func DbRow2Map(rows *sql.Rows) []util.Map {
 			aa := reflect.TypeOf(rawValue.Interface())
 			vv := reflect.ValueOf(rawValue.Interface())
 			switch aa.Kind() { //check the value type ant convert.
-			case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 				mm[field] = vv.Int()
-			// case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			// 	mm[field] = vv.Uint()
+			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+				mm[field] = vv.Uint()
 			case reflect.Float32, reflect.Float64:
 				mm[field] = vv.Float()
 			case reflect.Slice:
 				mm[field] = string(rawValue.Interface().([]byte))
-				// case reflect.String:
-				// 	mm[field] = vv.String()
-				// case reflect.Struct:
-				// 	mm[field] = rawValue.Interface().(time.Time)
-				// case reflect.Bool:
-				// 	mm[field] = vv.Bool()
+			case reflect.String:
+				mm[field] = vv.String()
+			case reflect.Struct:
+				mm[field] = rawValue.Interface().(time.Time)
+			case reflect.Bool:
+				mm[field] = vv.Bool()
 			}
 		}
 		res = append(res, mm)

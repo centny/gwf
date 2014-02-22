@@ -97,4 +97,9 @@ func TestAryExist(t *testing.T) {
 		t.Error("value not exis in array.")
 		return
 	}
+	ab := ""
+	if AryExist(ab, 8) {
+		t.Error("value exis in array.")
+		return
+	}
 }

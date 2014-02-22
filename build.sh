@@ -8,6 +8,7 @@ export PATH=$PATH:$GOPATH/bin:$HOME/bin:$GOROOT/bin
 ######Install Dependence######
 echo "Installing Dependence"
 go get github.com/go-sql-driver/mysql
+go get github.com/Centny/TDb
 ##############################
 #########Running Test#########
 echo "Running Test"

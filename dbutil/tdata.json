@@ -1,0 +1,17 @@
+{
+	"SELECT * FROM TESTING WHERE INT=? AND STRING=?": {
+		"[1 cny]": [
+			{
+				"INT": 1,
+				"UINT": 1,
+				"FLOAT": 2,
+				"SLICE": "value abc",
+				"STRING": "value abc",
+				"STRUCT": 100000,
+				"BOOL": 1
+			}
+		],
+		"V_COUNTS": 2,
+		"V_COLUMN": "INT,UINT,FLOAT,SLICE,STRING,STRUCT,BOOL"
+	}
+}
