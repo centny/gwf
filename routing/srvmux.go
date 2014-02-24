@@ -1,4 +1,4 @@
-package srvmux
+package routing
 
 import (
 	"net/http"
