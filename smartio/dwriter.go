@@ -47,10 +47,7 @@ func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
 		if err != nil {
 			return 0, err
 		}
-		f, err := os.OpenFile(fpath, os.O_RDWR|os.O_APPEND, d.FMODE)
-		if err != nil {
-			return 0, err
-		}
+		f, _ := os.OpenFile(fpath, os.O_RDWR|os.O_APPEND, d.FMODE)
 		d.cfn = fname
 		d.F = f
 		os.Chmod(fpath, os.FileMode(fs_fmod))

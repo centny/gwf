@@ -11,10 +11,7 @@ import (
 
 func Fexists(path string) bool {
 	_, err := os.Stat(path)
-	if err == nil {
-		return true
-	}
-	return !os.IsNotExist(err)
+	return err == nil
 }
 
 func FTouch(path string) error {
@@ -34,10 +31,7 @@ func FTouch(path string) error {
 		return err
 	}
 	defer f.Close()
-	fi, err := f.Stat()
-	if err != nil {
-		return err
-	}
+	fi, _ := f.Stat()
 	if fi.IsDir() {
 		return errors.New("can't touch path")
 	}

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -27,7 +28,14 @@ func TestFTouch(t *testing.T) {
 	fmt.Println(FTouch("/tmp/kkk/abc.log"))
 	fmt.Println(FTouch("/tmp/kkk"))
 	fmt.Println(FTouch("/var/libbb"))
+	fmt.Println(Fexists(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm', '/', 'a'})))
+	fmt.Println(FTouch(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm', '/', 'a'})))
 	//
+}
+func TestBytePtrFromString(t *testing.T) {
+	bys, err := syscall.BytePtrFromString(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm'}))
+	fmt.Println(bys, err)
+	fmt.Println(os.MkdirAll(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm'}), os.ModePerm))
 }
 
 // func TestFTouch2(t *testing.T) {

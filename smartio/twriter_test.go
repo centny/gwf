@@ -55,6 +55,8 @@ func TestDwNormal(t *testing.T) {
 	dw.Write([]byte{'1', '1', '1', '\n'})
 	dw.Close()
 	//
+	dw = NewDateSwitchWriter(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm', '/', 'a'}))
+	dw.Write([]byte{'1', '1', '1', '\n'})
 	NewDateSwitchWriter("/tmp").Close()
 }
 
