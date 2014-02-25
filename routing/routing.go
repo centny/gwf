@@ -3,6 +3,7 @@ package routing
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"regexp"
 	"strings"
 )
@@ -31,6 +32,80 @@ type HTTPSession struct {
 	W http.ResponseWriter
 	R *http.Request
 	S Session
+}
+
+func (h *HTTPSession) SetVal(key string, val interface{}) {
+	h.S.Set(key, val)
+}
+func (h *HTTPSession) UintVal(key string) uint64 {
+	v := h.S.Val(key)
+	if v == nil {
+		return 0
+	}
+	ty := reflect.TypeOf(v)
+	switch ty.Kind() {
+	case reflect.Uint:
+		return uint64(v.(uint))
+	case reflect.Uint8:
+		return uint64(v.(uint8))
+	case reflect.Uint16:
+		return uint64(v.(uint16))
+	case reflect.Uint32:
+		return uint64(v.(uint32))
+	case reflect.Uint64:
+		return v.(uint64)
+	default:
+		return 0
+	}
+}
+func (h *HTTPSession) IntVal(key string) int64 {
+	v := h.S.Val(key)
+	if v == nil {
+		return 0
+	}
+	ty := reflect.TypeOf(v)
+	switch ty.Kind() {
+	case reflect.Int:
+		return int64(v.(int))
+	case reflect.Int8:
+		return int64(v.(int8))
+	case reflect.Int16:
+		return int64(v.(int16))
+	case reflect.Int32:
+		return int64(v.(int32))
+	case reflect.Int64:
+		return v.(int64)
+	default:
+		return 0
+	}
+}
+func (h *HTTPSession) FloatVal(key string) float64 {
+	v := h.S.Val(key)
+	if v == nil {
+		return 0
+	}
+	ty := reflect.TypeOf(v)
+	switch ty.Kind() {
+	case reflect.Float32:
+		return float64(v.(float32))
+	case reflect.Float64:
+		return v.(float64)
+	default:
+		return 0
+	}
+}
+func (h *HTTPSession) StrVal(key string) string {
+	v := h.S.Val(key)
+	if v == nil {
+		return ""
+	}
+	ty := reflect.TypeOf(v)
+	switch ty.Kind() {
+	case reflect.String:
+		return v.(string)
+	default:
+		return ""
+	}
 }
 
 type SessionMux struct {
