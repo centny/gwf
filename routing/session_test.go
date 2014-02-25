@@ -79,6 +79,12 @@ func TestSessionMux(t *testing.T) {
 		fmt.Println(sb.Session(hs.S.(*SrvSession).Token()))
 		return HRES_CONTINUE
 	})
+	mux.HFilterFunc("^/redirect(\\?.*)?$", func(hs *HTTPSession) HResult {
+		// count = count + 1
+		hs.Redirect("http://www.baidu.com")
+		// fmt.Println(sb.Session(hs.S.(*SrvSession).Token()))
+		return HRES_CONTINUE
+	})
 	mux.HFilter("^/r1(\\?.*)?$", &csrv2)
 	mux.HFilterFunc("^/r2(\\?.*)?$", func(hs *HTTPSession) HResult {
 		count = count + 1
@@ -112,6 +118,7 @@ func TestSessionMux(t *testing.T) {
 	c := http.Client{Jar: jar}
 	c.Get("http://127.0.0.1:2789/t/a")
 	c.Get("http://127.0.0.1:2789/t/b")
+	c.Get("http://127.0.0.1:2789/t/redirect")
 	c.Get("http://127.0.0.1:2789/t2/b")
 	fmt.Println(ssrv1.Count, csrv1.Count, count)
 	if ssrv1.Count != 1 || csrv1.Count != 2 || count != 3 {

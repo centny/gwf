@@ -34,6 +34,9 @@ type HTTPSession struct {
 	S Session
 }
 
+func (h *HTTPSession) Redirect(url string) {
+	http.Redirect(h.W, h.R, url, http.StatusMovedPermanently)
+}
 func (h *HTTPSession) SetVal(key string, val interface{}) {
 	h.S.Set(key, val)
 }
