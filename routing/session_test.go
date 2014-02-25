@@ -63,6 +63,7 @@ func TestSessionMux(t *testing.T) {
 	//
 	http.Handle("/t/", mux)
 	http.Handle("/t2/", mux)
+	http.Handle("/abc/", mux)
 	go http.ListenAndServe(":2789", nil)
 	options := cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
@@ -88,6 +89,7 @@ func TestSessionMux(t *testing.T) {
 	c.Get("http://127.0.0.1:2789/t/r2")
 	c.Get("http://127.0.0.1:2789/t/r3")
 	c.Get("http://127.0.0.1:2789/t/r4")
+	c.Get("http://127.0.0.1:2789/abc/a")
 	//
 	if mux.RSession(nil) != nil {
 		t.Error("not nil")

@@ -99,10 +99,13 @@ func (s *SessionMux) HandleFunc(pattern string, h http.HandlerFunc) {
 
 //
 func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	url := strings.TrimPrefix(r.URL.String(), s.Pre)
-	if len(url) == len(r.URL.String()) || !strings.HasPrefix(url, "/") {
-		http.NotFound(w, r)
-		return
+	var url string = r.URL.String()
+	if len(s.Pre) > 0 {
+		url = strings.TrimPrefix(r.URL.String(), s.Pre)
+		if len(url) == len(r.URL.String()) {
+			http.NotFound(w, r)
+			return
+		}
 	}
 	session := s.Sb.FindSession(w, r)
 

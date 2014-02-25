@@ -1,6 +1,13 @@
 package routing
 
 // import (
+// 	"fmt"
+// 	"net/http"
+// 	"net/http/httptest"
+// 	"testing"
+// )
+
+// import (
 // 	"code.google.com/p/go-uuid/uuid"
 // 	"code.google.com/p/go.net/publicsuffix"
 // 	"fmt"
@@ -219,4 +226,13 @@ package routing
 // 		s.ks_lck.RUnlock()
 // 		time.Sleep(s.CDelay * time.Millisecond)
 // 	}
+// }
+
+// func TestTesting(t *testing.T) {
+// 	sb := NewSrvSessionBuilder("", "/", 2000, 500)
+// 	mux := NewSessionMux("/t", sb)
+// 	ts, _ := httptest.NewServer(func(w http.ResponseWriter, r *http.Request) {
+// 		mux.ServeHTTP(w, r)
+// 	})
+// 	http.Get(fmt.Sprintf("%s", ...))
 // }
