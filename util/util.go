@@ -3,6 +3,9 @@ package util
 import (
 	"bufio"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -75,4 +78,16 @@ func AryExist(ary interface{}, obj interface{}) bool {
 	default:
 		return false
 	}
+}
+
+func HTTPGet(ufmt string, args ...interface{}) string {
+	res, err := http.Get(fmt.Sprintf(ufmt, args...))
+	if err != nil {
+		return ""
+	}
+	bys, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return ""
+	}
+	return string(bys)
 }

@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"reflect"
 	"syscall"
 	"testing"
 	"time"
@@ -110,4 +113,40 @@ func TestAryExist(t *testing.T) {
 		t.Error("value exis in array.")
 		return
 	}
+}
+
+func TestHTTPGet(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for i := 0; i < 5; i++ {
+			if i == 3 {
+				panic("ss")
+			}
+			w.Write([]byte("kkkkkkkk"))
+			fmt.Println("writing ...")
+			time.Sleep(1000 * time.Millisecond)
+			fmt.Println(reflect.TypeOf(w))
+		}
+	}))
+	ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("kkkkkkkk"))
+	}))
+	res := HTTPGet("kkkk")
+	if len(res) > 0 {
+		t.Error("testing data not empty")
+		return
+	}
+	res = HTTPGet(ts2.URL)
+	if len(res) < 1 {
+		t.Error("testing data is empty")
+		return
+	}
+	go func() {
+		res = HTTPGet(ts.URL)
+		if len(res) > 0 {
+			t.Error("testing data not empty", res)
+			return
+		}
+		fmt.Println("..........", res)
+	}()
+	time.Sleep(5000 * time.Millisecond)
 }
