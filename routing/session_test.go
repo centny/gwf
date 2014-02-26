@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -54,7 +55,9 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 	fmt.Println(hs.FloatVal("float64"))
 	fmt.Println(hs.FloatVal("floss"))
 	fmt.Println(hs.StrVal("abc"))
+	fmt.Println(hs.CheckVal("abc"))
 	fmt.Println(hs.StrVal("abcss"))
+	fmt.Println(hs.CheckVal("abcss"))
 	hs.S.Set("kkk", nil)
 	return s.Res
 }
@@ -82,6 +85,12 @@ func TestSessionMux(t *testing.T) {
 	mux.HFilterFunc("^/redirect(\\?.*)?$", func(hs *HTTPSession) HResult {
 		// count = count + 1
 		hs.Redirect("http://www.baidu.com")
+		// fmt.Println(sb.Session(hs.S.(*SrvSession).Token()))
+		return HRES_CONTINUE
+	})
+	mux.HFilterFunc("^/abc(\\?.*)?$", func(hs *HTTPSession) HResult {
+		// count = count + 1
+		fmt.Println(hs.CheckVal("ttv"))
 		// fmt.Println(sb.Session(hs.S.(*SrvSession).Token()))
 		return HRES_CONTINUE
 	})
@@ -133,6 +142,8 @@ func TestSessionMux(t *testing.T) {
 	c.Get("http://127.0.0.1:2789/t/r3")
 	c.Get("http://127.0.0.1:2789/t/r4")
 	c.Get("http://127.0.0.1:2789/abc/a")
+	c.Get("http://127.0.0.1:2789/t/abc?ttv=1111")
+	c.PostForm("http://127.0.0.1:2789/t/abc", url.Values{"ttv": {"1111"}})
 	//
 	if mux.RSession(nil) != nil {
 		t.Error("not nil")

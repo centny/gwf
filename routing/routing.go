@@ -110,6 +110,18 @@ func (h *HTTPSession) StrVal(key string) string {
 		return ""
 	}
 }
+func (h *HTTPSession) CheckVal(key string) string {
+	v := h.StrVal(key)
+	if len(v) > 0 {
+		return v
+	}
+	v = h.R.FormValue(key)
+	if len(v) > 0 {
+		return v
+	}
+	v = h.R.PostFormValue(key)
+	return v
+}
 
 type SessionMux struct {
 	Pre string
