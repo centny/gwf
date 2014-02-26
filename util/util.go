@@ -103,12 +103,12 @@ func HTTPGet(ufmt string, args ...interface{}) string {
 	return readAllStr(res.Body)
 }
 
-func HTTPGet2(ufmt string, args ...interface{}) map[string]interface{} {
+func HTTPGet2(ufmt string, args ...interface{}) Map {
 	data := HTTPGet(ufmt, args...)
 	if len(data) < 1 {
 		return nil
 	}
-	md := map[string]interface{}{}
+	md := Map{}
 	d := json.NewDecoder(strings.NewReader(data))
 	err := d.Decode(&md)
 	if err != nil {
