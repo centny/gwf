@@ -10,6 +10,73 @@ import (
 //type define to map[string]interface{}
 type Map map[string]interface{}
 
+func (m Map) UintVal(key string) uint64 {
+	if v, ok := m[key]; ok {
+		switch reflect.TypeOf(v).Kind() {
+		case reflect.Uint:
+			return uint64(v.(uint))
+		case reflect.Uint8:
+			return uint64(v.(uint8))
+		case reflect.Uint16:
+			return uint64(v.(uint16))
+		case reflect.Uint32:
+			return uint64(v.(uint32))
+		case reflect.Uint64:
+			return v.(uint64)
+		default:
+			return 0
+		}
+	} else {
+		return 0
+	}
+}
+func (m Map) IntVal(key string) int64 {
+	if v, ok := m[key]; ok {
+		switch reflect.TypeOf(v).Kind() {
+		case reflect.Int:
+			return int64(v.(int))
+		case reflect.Int8:
+			return int64(v.(int8))
+		case reflect.Int16:
+			return int64(v.(int16))
+		case reflect.Int32:
+			return int64(v.(int32))
+		case reflect.Int64:
+			return v.(int64)
+		default:
+			return 0
+		}
+	} else {
+		return 0
+	}
+}
+func (m Map) FloatVal(key string) float64 {
+	if v, ok := m[key]; ok {
+		switch reflect.TypeOf(v).Kind() {
+		case reflect.Float32:
+			return float64(v.(float32))
+		case reflect.Float64:
+			return float64(v.(float64))
+		default:
+			return 0
+		}
+	} else {
+		return 0
+	}
+}
+func (m Map) StrVal(key string) string {
+	if v, ok := m[key]; ok {
+		switch reflect.TypeOf(v).Kind() {
+		case reflect.String:
+			return v.(string)
+		default:
+			return ""
+		}
+	} else {
+		return ""
+	}
+}
+
 //default date format.
 const D_DATEFORMAT string = "2006-01-02 15:04:05"
 
