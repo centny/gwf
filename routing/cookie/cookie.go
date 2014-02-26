@@ -47,6 +47,7 @@ func (c *CookieSession) Flush() error {
 	cookie.Value = val
 	cookie.MaxAge = 0
 	http.SetCookie(c.W, cookie)
+	c.updated = false
 	return nil
 }
 func (c *CookieSession) Crypto() (string, error) {

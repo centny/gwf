@@ -92,8 +92,11 @@ func readAllStr(r io.Reader) string {
 	}
 	return string(bys)
 }
+
+var HTTPClient http.Client
+
 func HTTPGet(ufmt string, args ...interface{}) string {
-	res, err := http.Get(fmt.Sprintf(ufmt, args...))
+	res, err := HTTPClient.Get(fmt.Sprintf(ufmt, args...))
 	if err != nil {
 		return ""
 	}

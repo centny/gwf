@@ -29,9 +29,10 @@ type Handler interface {
 }
 
 type HTTPSession struct {
-	W http.ResponseWriter
-	R *http.Request
-	S Session
+	W   http.ResponseWriter
+	R   *http.Request
+	S   Session
+	Mux *SessionMux
 }
 
 func (h *HTTPSession) Redirect(url string) {
@@ -135,6 +136,8 @@ type SessionMux struct {
 	NHandlers    map[*regexp.Regexp]http.Handler
 	NHandlerFunc map[*regexp.Regexp]http.HandlerFunc
 	rs           map[*http.Request]*HTTPSession //request to session
+	//
+	Kvs map[string]interface{}
 }
 
 func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
@@ -152,6 +155,7 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	mux.HandlerFunc = map[*regexp.Regexp]HandleFunc{}
 	mux.NHandlerFunc = map[*regexp.Regexp]http.HandlerFunc{}
 	mux.rs = map[*http.Request]*HTTPSession{}
+	mux.Kvs = map[string]interface{}{}
 	return &mux
 }
 
@@ -189,20 +193,14 @@ func (s *SessionMux) HandleFunc(pattern string, h http.HandlerFunc) {
 
 //
 func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var url string = r.URL.String()
-	if len(s.Pre) > 0 {
-		url = strings.TrimPrefix(r.URL.String(), s.Pre)
-		if len(url) == len(r.URL.String()) {
-			http.NotFound(w, r)
-			return
-		}
-	}
+	r.URL.Path = strings.TrimPrefix(r.URL.Path, s.Pre)
+	url := r.URL.Path
 	session := s.Sb.FindSession(w, r)
-
 	hs := &HTTPSession{
-		W: w,
-		R: r,
-		S: session,
+		W:   w,
+		R:   r,
+		S:   session,
+		Mux: s,
 	}
 	s.rs[r] = hs
 	defer delete(s.rs, r) //remove the http session object.
@@ -256,9 +254,7 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	//
-	if matched { //if not matched
-		session.Flush()
-	} else {
+	if !matched { //if not matched
 		http.NotFound(w, r)
 	}
 }

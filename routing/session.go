@@ -84,7 +84,9 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 	if _, ok := s.ks[c.Value]; !ok { //if not found,reset cookie
 		ncookie()
 	}
-	return s.ks[c.Value]
+	ss := s.ks[c.Value]
+	ss.Flush()
+	return ss
 }
 
 func (s *SrvSessionBuilder) Session(token string) Session {

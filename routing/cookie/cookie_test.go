@@ -16,11 +16,13 @@ type Abc struct {
 }
 
 func TestSessionMux(t *testing.T) {
-	sb := NewCookieSessionBuilder("", "/")
+	sb := NewCookieSessionBuilder("", "/t")
 	mux := routing.NewSessionMux("/t", sb)
 	//
 	mux.HFilterFunc("^/a(\\?.*)?$", func(hs *routing.HTTPSession) routing.HResult {
 		hs.S.Set("testing", "abc")
+		hs.S.Flush()
+		hs.S.Flush()
 		return routing.HRES_CONTINUE
 	})
 	mux.HFilterFunc("^/c(\\?.*)?$", func(hs *routing.HTTPSession) routing.HResult {
@@ -45,11 +47,12 @@ func TestSessionMux(t *testing.T) {
 	})
 	http.Handle("/t/", mux)
 	//
-	esb := NewCookieSessionBuilder("", "/")
+	esb := NewCookieSessionBuilder("", "/e")
 	emux := routing.NewSessionMux("/e", esb)
 	//
 	emux.HFilterFunc("^/a(\\?.*)?$", func(hs *routing.HTTPSession) routing.HResult {
 		hs.S.Set("testing", "abc")
+		fmt.Println(hs.S.Flush())
 		return routing.HRES_CONTINUE
 	})
 	emux.HFilterFunc("^/b(\\?.*)?$", func(hs *routing.HTTPSession) routing.HResult {
@@ -60,6 +63,7 @@ func TestSessionMux(t *testing.T) {
 	})
 	emux.HFilterFunc("^/c(\\?.*)?$", func(hs *routing.HTTPSession) routing.HResult {
 		hs.S.Set("testing", "abc")
+		hs.S.Flush()
 		return routing.HRES_CONTINUE
 	})
 	emux.HFilterFunc("^/d/[^\\?/]*(\\?.*)?$", func(hs *routing.HTTPSession) routing.HResult {

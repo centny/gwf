@@ -1,11 +1,25 @@
 package routing
 
-// import (
-// 	"fmt"
-// 	"net/http"
-// 	"net/http/httptest"
-// 	"testing"
-// )
+import (
+	"fmt"
+	"github.com/Centny/Cny4go/util"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestRouting(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.URL.Path)
+		fmt.Println(r.URL.String())
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/t")
+		fmt.Println(r.URL.Path)
+		fmt.Println(r.URL.String())
+	}))
+	util.HTTPGet("%s/t/b/c", ts.URL)
+
+}
 
 // import (
 // 	"code.google.com/p/go-uuid/uuid"
