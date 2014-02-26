@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"reflect"
 	"time"
@@ -24,10 +25,10 @@ func (m Map) UintVal(key string) uint64 {
 		case reflect.Uint64:
 			return v.(uint64)
 		default:
-			return 0
+			return math.MaxUint64
 		}
 	} else {
-		return 0
+		return math.MaxUint64
 	}
 }
 func (m Map) IntVal(key string) int64 {
@@ -44,10 +45,10 @@ func (m Map) IntVal(key string) int64 {
 		case reflect.Int64:
 			return v.(int64)
 		default:
-			return 0
+			return math.MaxInt64
 		}
 	} else {
-		return 0
+		return math.MaxInt64
 	}
 }
 func (m Map) FloatVal(key string) float64 {
@@ -58,10 +59,10 @@ func (m Map) FloatVal(key string) float64 {
 		case reflect.Float64:
 			return float64(v.(float64))
 		default:
-			return 0
+			return math.MaxFloat64
 		}
 	} else {
-		return 0
+		return math.MaxFloat64
 	}
 }
 func (m Map) StrVal(key string) string {
