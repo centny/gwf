@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"syscall"
 	"testing"
 	"time"
@@ -151,21 +150,19 @@ func TestHTTPGet(t *testing.T) {
 	time.Sleep(5000 * time.Millisecond)
 }
 
-// func TestHTTPGetErr(t *testing.T) {
-// 	cmd := exec.Command("go", "run", "src/github.com/Centny/Cny4go/test/main/main.go", "HTTPGet", ":23321")
-// 	cmd.Stdout = os.Stdout
-// 	go cmd.Run()
-// 	time.Sleep(3 * time.Second)
-// 	fmt.Println("1")
-// 	go fmt.Println(HTTPGet("http://127.0.0.1:23321/w"))
-// 	time.Sleep(1000 * time.Millisecond)
-// 	fmt.Println(cmd.Process.Kill())
-// 	time.Sleep(1000 * time.Millisecond)
-// 	fmt.Println("2")
-// 	go HTTPGet("http://127.0.0.1:23321/e")
-// 	cmd.Wait()
-// 	time.Sleep(10 * time.Second)
-// }
+func TestReadAllStr(t *testing.T) {
+	res := readAllStr(nil)
+	if len(res) > 0 {
+		t.Error("not empty")
+		return
+	}
+	r, _ := os.Open("name")
+	res = readAllStr(r)
+	if len(res) > 0 {
+		t.Error("not empty")
+		return
+	}
+}
 
 func TestHTTPGet2(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

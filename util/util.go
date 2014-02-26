@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -81,17 +82,22 @@ func AryExist(ary interface{}, obj interface{}) bool {
 		return false
 	}
 }
-
+func readAllStr(r io.Reader) string {
+	if r == nil {
+		return ""
+	}
+	bys, err := ioutil.ReadAll(r)
+	if err != nil {
+		return ""
+	}
+	return string(bys)
+}
 func HTTPGet(ufmt string, args ...interface{}) string {
 	res, err := http.Get(fmt.Sprintf(ufmt, args...))
 	if err != nil {
 		return ""
 	}
-	bys, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return ""
-	}
-	return string(bys)
+	return readAllStr(res.Body)
 }
 
 func HTTPGet2(ufmt string, args ...interface{}) map[string]interface{} {
