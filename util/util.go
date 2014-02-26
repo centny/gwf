@@ -2,6 +2,7 @@ package util
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -90,4 +92,18 @@ func HTTPGet(ufmt string, args ...interface{}) string {
 		return ""
 	}
 	return string(bys)
+}
+
+func HTTPGet2(ufmt string, args ...interface{}) map[string]interface{} {
+	data := HTTPGet(ufmt, args...)
+	if len(data) < 1 {
+		return nil
+	}
+	md := map[string]interface{}{}
+	d := json.NewDecoder(strings.NewReader(data))
+	err := d.Decode(&md)
+	if err != nil {
+		return nil
+	}
+	return md
 }

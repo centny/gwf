@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"reflect"
+	"os/exec"
 	"syscall"
 	"testing"
 	"time"
@@ -117,15 +117,15 @@ func TestAryExist(t *testing.T) {
 
 func TestHTTPGet(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for i := 0; i < 5; i++ {
-			if i == 3 {
-				panic("ss")
-			}
-			w.Write([]byte("kkkkkkkk"))
-			fmt.Println("writing ...")
-			time.Sleep(1000 * time.Millisecond)
-			fmt.Println(reflect.TypeOf(w))
-		}
+		// for i := 0; i < 5; i++ {
+		// 	if i == 3 {
+		// 		panic("ss")
+		// 	}
+		// 	w.Write([]byte("kkkkkkkk"))
+		// 	fmt.Println("writing ...")
+		// 	time.Sleep(1000 * time.Millisecond)
+		// 	fmt.Println(reflect.TypeOf(w))
+		// }
 	}))
 	ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("kkkkkkkk"))
@@ -149,4 +149,37 @@ func TestHTTPGet(t *testing.T) {
 		fmt.Println("..........", res)
 	}()
 	time.Sleep(5000 * time.Millisecond)
+}
+
+// func TestHTTPGetErr(t *testing.T) {
+// 	cmd := exec.Command("go", "run", "src/github.com/Centny/Cny4go/test/main/main.go", "HTTPGet", ":23321")
+// 	cmd.Stdout = os.Stdout
+// 	go cmd.Run()
+// 	time.Sleep(3 * time.Second)
+// 	fmt.Println("1")
+// 	go fmt.Println(HTTPGet("http://127.0.0.1:23321/w"))
+// 	time.Sleep(1000 * time.Millisecond)
+// 	fmt.Println(cmd.Process.Kill())
+// 	time.Sleep(1000 * time.Millisecond)
+// 	fmt.Println("2")
+// 	go HTTPGet("http://127.0.0.1:23321/e")
+// 	cmd.Wait()
+// 	time.Sleep(10 * time.Second)
+// }
+
+func TestHTTPGet2(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("{\"code\":1}"))
+	}))
+	ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("{\"code:1}"))
+	}))
+	ts3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	res := HTTPGet2(ts.URL)
+	fmt.Println(res)
+	res = HTTPGet2(ts2.URL)
+	fmt.Println(res)
+	res = HTTPGet2(ts3.URL)
+	fmt.Println(res)
 }
