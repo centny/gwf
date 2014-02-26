@@ -41,7 +41,7 @@ func (c *CookieSession) Flush() error {
 		return err
 	}
 	cookie := &http.Cookie{}
-	cookie.Name = "C"
+	cookie.Name = c.Sb.CName
 	cookie.Domain = c.Sb.Domain
 	cookie.Path = c.Sb.Path
 	cookie.Value = val
@@ -95,6 +95,7 @@ type CookieSessionBuilder struct {
 	//
 	Domain   string
 	Path     string
+	CName    string
 	Crypto   CookieCryptoFunc
 	UnCrypto CookieCryptoFunc
 }
@@ -103,6 +104,7 @@ func NewCookieSessionBuilder(domain string, path string) *CookieSessionBuilder {
 	sb := CookieSessionBuilder{}
 	sb.Domain = domain
 	sb.Path = path
+	sb.CName = "C"
 	sb.Crypto = func(bys []byte) ([]byte, error) {
 		return bys, nil
 	}
@@ -112,7 +114,7 @@ func NewCookieSessionBuilder(domain string, path string) *CookieSessionBuilder {
 	return &sb
 }
 func (s *CookieSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) routing.Session {
-	c, err := r.Cookie("C")
+	c, err := r.Cookie(s.CName)
 	cs := &CookieSession{
 		W:       w,
 		R:       r,
