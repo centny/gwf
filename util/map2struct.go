@@ -24,6 +24,10 @@ func (m Map) UintVal(key string) uint64 {
 			return uint64(v.(uint32))
 		case reflect.Uint64:
 			return v.(uint64)
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return uint64(m.IntVal(key))
+		case reflect.Float32, reflect.Float64:
+			return uint64(m.FloatVal(key))
 		default:
 			return math.MaxUint64
 		}
@@ -44,6 +48,10 @@ func (m Map) IntVal(key string) int64 {
 			return int64(v.(int32))
 		case reflect.Int64:
 			return v.(int64)
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return int64(m.UintVal(key))
+		case reflect.Float32, reflect.Float64:
+			return int64(m.FloatVal(key))
 		default:
 			return math.MaxInt64
 		}
@@ -58,6 +66,10 @@ func (m Map) FloatVal(key string) float64 {
 			return float64(v.(float32))
 		case reflect.Float64:
 			return float64(v.(float64))
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return float64(m.UintVal(key))
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return float64(m.IntVal(key))
 		default:
 			return math.MaxFloat64
 		}
@@ -71,7 +83,7 @@ func (m Map) StrVal(key string) string {
 		case reflect.String:
 			return v.(string)
 		default:
-			return ""
+			return fmt.Sprintf("%v", v)
 		}
 	} else {
 		return ""

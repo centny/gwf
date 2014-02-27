@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"math"
 	"testing"
 	"time"
 )
@@ -106,15 +107,24 @@ func TestMap(t *testing.T) {
 	//
 	m["abc"] = "123"
 	m["abc2"] = int(1)
-	fmt.Println(m.StrVal("abc"))
-	fmt.Println(m.StrVal("abc2"))
-	fmt.Println(m.StrVal("nf"))
-	//
+	m["float32"] = float32(1)
+	m["float64"] = float64(1)
 	m["int"] = int(1)
 	m["int8"] = int8(1)
 	m["int16"] = int16(1)
 	m["int32"] = int32(1)
 	m["int64"] = int64(1)
+	m["uint"] = uint(1)
+	m["uint8"] = uint8(1)
+	m["uint16"] = uint16(1)
+	m["uint32"] = uint32(1)
+	m["uint64"] = uint64(1)
+
+	fmt.Println(m.StrVal("abc"))
+	fmt.Println(m.StrVal("abc2"))
+	fmt.Println(m.StrVal("nf"))
+	fmt.Println(m.StrVal("int"))
+	//
 	fmt.Println(m.IntVal("int"))
 	fmt.Println(m.IntVal("int8"))
 	fmt.Println(m.IntVal("int16"))
@@ -123,12 +133,9 @@ func TestMap(t *testing.T) {
 	fmt.Println(m.IntVal("uint64"))
 	fmt.Println(m.IntVal("nf"))
 	fmt.Println(m.IntVal("abc"))
+	fmt.Println(m.IntVal("float32"))
+	fmt.Println(m.IntVal("uint64"))
 	//
-	m["uint"] = uint(1)
-	m["uint8"] = uint8(1)
-	m["uint16"] = uint16(1)
-	m["uint32"] = uint32(1)
-	m["uint64"] = uint64(1)
 	fmt.Println(m.UintVal("uint"))
 	fmt.Println(m.UintVal("uint8"))
 	fmt.Println(m.UintVal("uint16"))
@@ -137,13 +144,30 @@ func TestMap(t *testing.T) {
 	fmt.Println(m.UintVal("float64"))
 	fmt.Println(m.UintVal("nf"))
 	fmt.Println(m.UintVal("abc"))
+	fmt.Println(m.UintVal("float32"))
+	fmt.Println(m.UintVal("int64"))
 	//
-	m["float32"] = float32(1)
-	m["float64"] = float64(1)
 	fmt.Println(m.FloatVal("float32"))
 	fmt.Println(m.FloatVal("float64"))
 	fmt.Println(m.FloatVal("int64"))
 	fmt.Println(m.FloatVal("nf"))
 	fmt.Println(m.FloatVal("abc"))
+	fmt.Println(m.FloatVal("int64"))
+	fmt.Println(m.FloatVal("uint64"))
 	//
+}
+
+func TestC(t *testing.T) {
+	fv := math.MaxFloat64
+	iv := math.MaxInt64
+	var uv uint64 = math.MaxUint64
+	fmt.Println(uint64(fv))
+	fmt.Println(uint64(iv))
+	fmt.Println(int64(uv))
+	fmt.Println(int64(fv))
+	fmt.Println(float64(uv))
+	fmt.Println(float64(iv))
+	// fmt.Println(int64(fv))
+	// fmt.Println(int64(math.MaxFloat64 / 2e8))
+	// fmt.Println(int64(math.MaxUint64 / 2))
 }
