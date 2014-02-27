@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -104,13 +105,23 @@ func M2S(m Map, dest interface{}) {
 	pval := reflect.ValueOf(dest).Elem()
 	for i := 0; i < ptype.NumField(); i++ {
 		f := ptype.Field(i)
-		var key string = f.Tag.Get("m2s") //get the m2s tag.
-		if len(key) < 1 {                 //if not m2s tag,using field name.
-			key = f.Name
+		var m2s string = f.Tag.Get("m2s") //get the m2s tag.
+		if len(m2s) < 1 {                 //if not m2s tag,using field name.
+			m2s = f.Name
 		}
-		if v, ok := m[key]; ok {
+		keys := strings.Split(m2s, ",")
+		for _, key := range keys {
+			v, ok := m[key]
+			if !ok || v == nil {
+				continue
+			}
+			vty := reflect.TypeOf(v)
+			if f.Type.Kind() == vty.Kind() {
+				pval.Field(i).Set(reflect.ValueOf(v))
+				continue
+			}
 			if f.Type.Name() == "Time" {
-				switch reflect.TypeOf(v).Name() {
+				switch vty.Name() {
 				case "string":
 					df := f.Tag.Get("tf")
 					if len(df) < 1 {
@@ -122,20 +133,57 @@ func M2S(m Map, dest interface{}) {
 					} else {
 						fmt.Fprintln(os.Stderr, err.Error())
 					}
-				case "Time":
-					pval.Field(i).Set(reflect.ValueOf(v))
-				case "int64":
-					pval.Field(i).Set(reflect.ValueOf(Time(v.(int64))))
-				case "int":
-					pval.Field(i).Set(reflect.ValueOf(Time(int64(v.(int)))))
-				case "int32":
-					pval.Field(i).Set(reflect.ValueOf(Time(int64(v.(int32)))))
-				}
+				default:
+					iv := m.IntVal(key)
+					if iv < math.MaxInt64 {
 
-			} else {
-				if v != nil {
-					pval.Field(i).Set(reflect.ValueOf(v))
+					}
+					pval.Field(i).Set(reflect.ValueOf(Time(iv)))
 				}
+				continue
+			}
+			iv := m.IntVal(key)
+			uv := m.UintVal(key)
+			fv := m.FloatVal(key)
+			var val reflect.Value
+			if iv < math.MaxInt64 {
+				switch f.Type.Kind() {
+				case reflect.Int:
+					val = reflect.ValueOf(int(iv))
+				case reflect.Int8:
+					val = reflect.ValueOf(int8(iv))
+				case reflect.Int16:
+					val = reflect.ValueOf(int16(iv))
+				case reflect.Int32:
+					val = reflect.ValueOf(int32(iv))
+				case reflect.Int64:
+					val = reflect.ValueOf(int64(iv))
+				}
+			}
+			if uv < math.MaxUint64 {
+				switch f.Type.Kind() {
+				case reflect.Uint:
+					val = reflect.ValueOf(uint(uv))
+				case reflect.Uint8:
+					val = reflect.ValueOf(uint8(uv))
+				case reflect.Uint16:
+					val = reflect.ValueOf(uint16(uv))
+				case reflect.Uint32:
+					val = reflect.ValueOf(uint32(uv))
+				case reflect.Uint64:
+					val = reflect.ValueOf(uint64(uv))
+				}
+			}
+			if fv < math.MaxFloat64 {
+				switch f.Type.Kind() {
+				case reflect.Float32:
+					val = reflect.ValueOf(float32(fv))
+				case reflect.Float64:
+					val = reflect.ValueOf(float64(fv))
+				}
+			}
+			if val.IsValid() {
+				pval.Field(i).Set(val)
 			}
 		}
 	}

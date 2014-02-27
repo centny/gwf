@@ -127,6 +127,7 @@ func TestSessionMux(t *testing.T) {
 	c := http.Client{Jar: jar}
 	c.Get("http://127.0.0.1:2789/t/a")
 	c.Get("http://127.0.0.1:2789/t/b")
+	mux.ShowLog = true
 	c.Get("http://127.0.0.1:2789/t/redirect")
 	c.Get("http://127.0.0.1:2789/t2/b")
 	fmt.Println(ssrv1.Count, csrv1.Count, count)

@@ -70,6 +70,50 @@ func TestM2S(t *testing.T) {
 	fmt.Println(dests2)
 }
 
+type S2 struct {
+	A1 int   `m2s:"B1"`
+	A2 int8  `m2s:"B2"`
+	A3 int16 `m2s:"B3"`
+	A4 int32 `m2s:"B4"`
+	A5 int64 `m2s:"B5"`
+	A6 int64 `m2s:"C1"`
+	A7 int64 `m2s:"C2"`
+	//
+	B1 uint   `m2s:"A1"`
+	B2 uint8  `m2s:"A2"`
+	B3 uint16 `m2s:"A3"`
+	B4 uint32 `m2s:"A4"`
+	B5 uint64 `m2s:"A4"`
+	B6 uint64 `m2s:"C1"`
+	B7 uint64 `m2s:"C2"`
+	//
+	C1 float32 `m2s:"A1"`
+	C2 float64 `m2s:"A2"`
+	C3 float64 `m2s:"B1"`
+	C4 float64 `m2s:"B2"`
+}
+
+func TestM2S2(t *testing.T) {
+	m := make(map[string]interface{})
+	m["A1"] = int(1)
+	m["A2"] = int8(2)
+	m["A3"] = int16(3)
+	m["A4"] = int32(4)
+	m["A5"] = int64(5)
+	//
+	m["B1"] = uint(6)
+	m["B2"] = uint8(7)
+	m["B3"] = uint16(8)
+	m["B4"] = uint32(9)
+	m["B5"] = uint64(10)
+	//
+	m["C1"] = float32(11)
+	m["C2"] = float64(12)
+	//
+	var dest S2
+	M2S(m, &dest)
+	fmt.Println(dest)
+}
 func TestM2SErr(t *testing.T) {
 	m := make(map[string]interface{})
 	m["VA"] = "S1_A"

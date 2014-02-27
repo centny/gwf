@@ -2,6 +2,7 @@ package routing
 
 import (
 	"fmt"
+	"github.com/Centny/Cny4go/log"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -136,8 +137,8 @@ type SessionMux struct {
 	NHandlers    map[*regexp.Regexp]http.Handler
 	NHandlerFunc map[*regexp.Regexp]http.HandlerFunc
 	rs           map[*http.Request]*HTTPSession //request to session
-	//
-	Kvs map[string]interface{}
+	Kvs          map[string]interface{}
+	ShowLog      bool
 }
 
 func NewSessionMux2(pre string) *SessionMux {
@@ -160,6 +161,7 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	mux.NHandlerFunc = map[*regexp.Regexp]http.HandlerFunc{}
 	mux.rs = map[*http.Request]*HTTPSession{}
 	mux.Kvs = map[string]interface{}{}
+	mux.ShowLog = false
 	return &mux
 }
 
@@ -210,6 +212,15 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer delete(s.rs, r) //remove the http session object.
 	//
 	var matched bool = false
+	//
+	defer func() {
+		if !matched { //if not matched
+			http.NotFound(w, r)
+		}
+		if s.ShowLog {
+			log.D("URL(%s),found(%v)", r.URL.String(), matched)
+		}
+	}()
 	//match filter.
 	for k, v := range s.Filters {
 		if k.MatchString(url) {
@@ -256,9 +267,5 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			matched = true
 			v(w, r)
 		}
-	}
-	//
-	if !matched { //if not matched
-		http.NotFound(w, r)
 	}
 }
