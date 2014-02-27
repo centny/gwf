@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -113,6 +114,11 @@ func TestM2S2(t *testing.T) {
 	var dest S2
 	M2S(m, &dest)
 	fmt.Println(dest)
+	ms := []Map{Map(m)}
+	ms2 := []map[string]interface{}{m}
+	var dests []S2
+	Ms2Ss(ms, &dests)
+	Ms2Ss(ms2, &dests)
 }
 func TestM2SErr(t *testing.T) {
 	m := make(map[string]interface{})
@@ -138,6 +144,7 @@ func TestM2SErr(t *testing.T) {
 	Ms2Ss(nil, &dests)
 	Ms2Ss(mary, nil)
 	Ms2Ss(mary2, &dests)
+	Ms2Ss(S1{}, &dests)
 }
 
 func TestTime(t *testing.T) {
@@ -214,4 +221,10 @@ func TestC(t *testing.T) {
 	// fmt.Println(int64(fv))
 	// fmt.Println(int64(math.MaxFloat64 / 2e8))
 	// fmt.Println(int64(math.MaxUint64 / 2))
+}
+func TestReflect(t *testing.T) {
+	var mm map[string]interface{}
+	fmt.Println(reflect.TypeOf(mm).Name())
+	var m2 Map
+	fmt.Println(reflect.TypeOf(m2).Name())
 }

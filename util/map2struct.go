@@ -190,8 +190,11 @@ func M2S(m Map, dest interface{}) {
 }
 
 //map array to struct array.
-func Ms2Ss(ms []Map, dest interface{}) {
-	if ms == nil || dest == nil || len(ms) < 1 {
+func Ms2Ss(ms interface{}, dest interface{}) {
+	if ms == nil || dest == nil {
+		return
+	}
+	if reflect.TypeOf(ms).Kind() != reflect.Slice {
 		return
 	}
 	//get the reflect value.
@@ -199,7 +202,16 @@ func Ms2Ss(ms []Map, dest interface{}) {
 	rval := reflect.Indirect(reflect.ValueOf(dest))
 	//get the reflect type.
 	ptype := reflect.TypeOf(rval.Interface()).Elem()
-	for _, mv := range ms {
+	mss := reflect.ValueOf(ms)
+	for i := 0; i < mss.Len(); i++ {
+		var mv Map
+		msv := mss.Index(i).Interface()
+		switch reflect.TypeOf(msv).Name() {
+		case "Map":
+			mv = msv.(Map)
+		default:
+			mv = Map(msv.(map[string]interface{}))
+		}
 		if len(mv) < 1 {
 			continue
 		}
