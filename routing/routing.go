@@ -140,6 +140,10 @@ type SessionMux struct {
 	Kvs map[string]interface{}
 }
 
+func NewSessionMux2(pre string) *SessionMux {
+	return NewSessionMux(pre, NewDefaultSessionBuilder())
+}
+
 func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	if sb == nil {
 		fmt.Println("session builder is nil")
