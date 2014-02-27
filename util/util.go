@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -82,37 +83,54 @@ func AryExist(ary interface{}, obj interface{}) bool {
 		return false
 	}
 }
-func readAllStr(r io.Reader) string {
+func readAllStr(r io.Reader) (string, error) {
 	if r == nil {
-		return ""
+		return "", nil
 	}
 	bys, err := ioutil.ReadAll(r)
 	if err != nil {
-		return ""
+		return "", nil
 	}
-	return string(bys)
+	return string(bys), nil
 }
 
 var HTTPClient http.Client
 
-func HTTPGet(ufmt string, args ...interface{}) string {
+func HGet(ufmt string, args ...interface{}) (string, error) {
 	res, err := HTTPClient.Get(fmt.Sprintf(ufmt, args...))
 	if err != nil {
-		return ""
+		return "", err
 	}
 	return readAllStr(res.Body)
 }
-
-func HTTPGet2(ufmt string, args ...interface{}) Map {
-	data := HTTPGet(ufmt, args...)
-	if len(data) < 1 {
-		return nil
+func HGet2(ufmt string, args ...interface{}) (Map, error) {
+	data, err := HGet(ufmt, args...)
+	if len(data) < 1 || err != nil {
+		return nil, err
 	}
 	md := Map{}
 	d := json.NewDecoder(strings.NewReader(data))
-	err := d.Decode(&md)
+	err = d.Decode(&md)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return md
+	return md, nil
+}
+
+func HTTPGet(ufmt string, args ...interface{}) string {
+	res, _ := HGet(ufmt, args...)
+	return res
+}
+
+func HTTPGet2(ufmt string, args ...interface{}) Map {
+	res, _ := HGet2(ufmt, args...)
+	return res
+}
+
+func Map2Query(m Map) string {
+	vs := url.Values{}
+	for k, v := range m {
+		vs.Add(k, v.(string))
+	}
+	return vs.Encode()
 }

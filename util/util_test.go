@@ -151,13 +151,13 @@ func TestHTTPGet(t *testing.T) {
 }
 
 func TestReadAllStr(t *testing.T) {
-	res := readAllStr(nil)
+	res, _ := readAllStr(nil)
 	if len(res) > 0 {
 		t.Error("not empty")
 		return
 	}
 	r, _ := os.Open("name")
-	res = readAllStr(r)
+	res, _ = readAllStr(r)
 	if len(res) > 0 {
 		t.Error("not empty")
 		return
@@ -179,4 +179,11 @@ func TestHTTPGet2(t *testing.T) {
 	fmt.Println(res)
 	res = HTTPGet2(ts3.URL)
 	fmt.Println(res)
+}
+
+func TestMap2Query(t *testing.T) {
+	mv := map[string]interface{}{}
+	mv["abc"] = "123"
+	mv["dd"] = "ee"
+	fmt.Println(Map2Query(mv))
 }
