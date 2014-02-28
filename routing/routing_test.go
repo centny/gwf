@@ -250,3 +250,16 @@ func TestRouting(t *testing.T) {
 // 	})
 // 	http.Get(fmt.Sprintf("%s", ...))
 // }
+type S3 struct {
+	A string
+}
+
+func TestOrder(t *testing.T) {
+	mv := map[*S3]string{}
+	mv[&S3{A: "3"}] = "abc"
+	mv[&S3{A: "1"}] = "abc"
+	mv[&S3{A: "2"}] = "abc"
+	for k, v := range mv {
+		fmt.Println(k.A, v)
+	}
+}
