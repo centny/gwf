@@ -100,7 +100,7 @@ func (f *Fcfg) InitWithReader(reader *bufio.Reader) error {
 			continue
 		}
 		line = ps[0]
-		ps = strings.Split(line, "=")
+		ps = strings.SplitN(line, "=", 2)
 		if len(ps) < 2 {
 			fmt.Println(os.Stderr, "found not value key:", ps[0])
 			continue
