@@ -113,11 +113,11 @@ func (h *HTTPSession) StrVal(key string) string {
 	}
 }
 func (h *HTTPSession) CheckVal(key string) string {
-	v := h.StrVal(key)
+	v := h.RVal(key)
 	if len(v) > 0 {
 		return v
 	}
-	return h.RVal(key)
+	return h.StrVal(key)
 }
 func (h *HTTPSession) RVal(key string) string {
 	v := h.R.FormValue(key)

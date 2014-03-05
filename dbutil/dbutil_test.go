@@ -56,8 +56,37 @@ func TestDbUtil(t *testing.T) {
 	}
 	fmt.Println(mres, mres[0].Add1)
 	//
-
+	ivs, err := DbQueryInt(db, "select * from ttable where tid")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(ivs) < 1 {
+		t.Error("not data")
+		return
+	}
+	//
+	svs, err := DbQueryString(db, "select tname from ttable")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(svs) < 1 {
+		t.Error("not data")
+		return
+	}
+	//
 	_, err = DbQuery(db, "selectt * from ttable where tid>?", 1)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryInt(db, "selectt * from ttable where tid>?", 1)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryString(db, "selectt * from ttable where tid>?", 1)
 	if err == nil {
 		t.Error("not error")
 		return
@@ -67,11 +96,23 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	_, err = DbQueryInt(db, "select * from ttable where tid>?", 1, 2)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryString(db, "select * from ttable where tid>?", 1, 2)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 	err = DbQueryS(nil, nil, "select * from ttable where tid>?", 1)
 	if err == nil {
 		t.Error("not error")
 		return
 	}
+	DbQueryInt(nil, "select * from ttable where tid>?", 1, 2)
+	DbQueryString(nil, "select * from ttable where tid>?", 1, 2)
 }
 func Map2Val2(columns []string, row map[string]interface{}, dest []driver.Value) {
 	for i, c := range columns {

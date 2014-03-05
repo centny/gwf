@@ -85,3 +85,48 @@ func DbQueryS(db *sql.DB, res interface{}, query string, args ...interface{}) er
 	util.Ms2Ss(mres, res)
 	return nil
 }
+
+func DbQueryInt(db *sql.DB, query string, args ...interface{}) ([]int64, error) {
+	if db == nil {
+		return nil, errors.New("db is nil")
+	}
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query(args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	rv := []int64{}
+	for rows.Next() {
+		var iv int64
+		rows.Scan(&iv)
+		rv = append(rv, iv)
+	}
+	return rv, nil
+}
+func DbQueryString(db *sql.DB, query string, args ...interface{}) ([]string, error) {
+	if db == nil {
+		return nil, errors.New("db is nil")
+	}
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query(args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	rv := []string{}
+	for rows.Next() {
+		var sv string
+		rows.Scan(&sv)
+		rv = append(rv, sv)
+	}
+	return rv, nil
+}
