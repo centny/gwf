@@ -146,7 +146,37 @@ func DbInsert(db *sql.DB, query string, args ...interface{}) (int64, error) {
 	}
 	return res.LastInsertId()
 }
+func DbInsert2(db *sql.Tx, query string, args ...interface{}) (int64, error) {
+	if db == nil {
+		return 0, errors.New("db is nil")
+	}
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+	res, err := stmt.Exec(args...)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
+}
 func DbUpdate(db *sql.DB, query string, args ...interface{}) (int64, error) {
+	if db == nil {
+		return 0, errors.New("db is nil")
+	}
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+	res, err := stmt.Exec(args...)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+func DbUpdate2(db *sql.Tx, query string, args ...interface{}) (int64, error) {
 	if db == nil {
 		return 0, errors.New("db is nil")
 	}
