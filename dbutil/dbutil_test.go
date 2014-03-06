@@ -76,6 +76,20 @@ func TestDbUtil(t *testing.T) {
 		return
 	}
 	//
+	iid, err := DbInsert(db, "insert into ttable(tname,titem,tval,status,time) values('name','item','val','N',now())")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(iid)
+	//
+	erow, err := DbUpdate(db, "delete from ttable where tid=?", iid)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(erow)
+	//
 	_, err = DbQuery(db, "selectt * from ttable where tid>?", 1)
 	if err == nil {
 		t.Error("not error")
@@ -87,6 +101,16 @@ func TestDbUtil(t *testing.T) {
 		return
 	}
 	_, err = DbQueryString(db, "selectt * from ttable where tid>?", 1)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbInsert(db, "selectt * from ttable where tid>?", 1)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbUpdate(db, "selectt * from ttable where tid>?", 1)
 	if err == nil {
 		t.Error("not error")
 		return
@@ -106,6 +130,16 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	_, err = DbInsert(db, "select * from ttable where tid>?", 1, 2)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbUpdate(db, "select * from ttable where tid>?", 1, 2)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 	err = DbQueryS(nil, nil, "select * from ttable where tid>?", 1)
 	if err == nil {
 		t.Error("not error")
@@ -113,6 +147,8 @@ func TestDbUtil(t *testing.T) {
 	}
 	DbQueryInt(nil, "select * from ttable where tid>?", 1, 2)
 	DbQueryString(nil, "select * from ttable where tid>?", 1, 2)
+	DbInsert(nil, "select * from ttable where tid>?", 1, 2)
+	DbUpdate(nil, "select * from ttable where tid>?", 1, 2)
 }
 func Map2Val2(columns []string, row map[string]interface{}, dest []driver.Value) {
 	for i, c := range columns {
