@@ -170,11 +170,29 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	//
+	tx, _ = db.Begin()
+	_, err = DbInsert2(tx, "select * from ttable where tid>?", 1, 2)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	tx.Rollback()
+	//
 	_, err = DbUpdate(db, "select * from ttable where tid>?", 1, 2)
 	if err == nil {
 		t.Error("not error")
 		return
 	}
+	//
+	tx, _ = db.Begin()
+	_, err = DbUpdate2(tx, "select * from ttable where tid>?", 1, 2)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	tx.Rollback()
+	//
 	err = DbQueryS(nil, nil, "select * from ttable where tid>?", 1)
 	if err == nil {
 		t.Error("not error")
