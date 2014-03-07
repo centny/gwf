@@ -34,6 +34,7 @@ type HTTPSession struct {
 	R   *http.Request
 	S   Session
 	Mux *SessionMux
+	Kvs map[string]interface{}
 }
 
 func (h *HTTPSession) Redirect(url string) {
@@ -139,6 +140,8 @@ type SessionMux struct {
 	HandlerFunc  map[*regexp.Regexp]HandleFunc
 	NHandlers    map[*regexp.Regexp]http.Handler
 	NHandlerFunc map[*regexp.Regexp]http.HandlerFunc
+	regex_f      map[*regexp.Regexp]int
+	regex_h      map[*regexp.Regexp]int
 	rs           map[*http.Request]*HTTPSession //request to session
 	Kvs          map[string]interface{}
 	ShowLog      bool
@@ -162,6 +165,8 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	mux.FilterFunc = map[*regexp.Regexp]HandleFunc{}
 	mux.HandlerFunc = map[*regexp.Regexp]HandleFunc{}
 	mux.NHandlerFunc = map[*regexp.Regexp]http.HandlerFunc{}
+	mux.regex_f = map[*regexp.Regexp]int{}
+	mux.regex_h = map[*regexp.Regexp]int{}
 	mux.rs = map[*http.Request]*HTTPSession{}
 	mux.Kvs = map[string]interface{}{}
 	mux.ShowLog = false
@@ -178,26 +183,32 @@ func (s *SessionMux) RSession(r *http.Request) *HTTPSession {
 func (s *SessionMux) HFilter(pattern string, h Handler) {
 	reg := regexp.MustCompile(pattern)
 	s.Filters[reg] = h
+	s.regex_f[reg] = 1
 }
 func (s *SessionMux) HFilterFunc(pattern string, h HandleFunc) {
 	reg := regexp.MustCompile(pattern)
 	s.FilterFunc[reg] = h
+	s.regex_f[reg] = 2
 }
 func (s *SessionMux) H(pattern string, h Handler) {
 	reg := regexp.MustCompile(pattern)
 	s.Handlers[reg] = h
+	s.regex_h[reg] = 1
 }
 func (s *SessionMux) HFunc(pattern string, h HandleFunc) {
 	reg := regexp.MustCompile(pattern)
 	s.HandlerFunc[reg] = h
+	s.regex_h[reg] = 2
 }
 func (s *SessionMux) Handler(pattern string, h http.Handler) {
 	reg := regexp.MustCompile(pattern)
 	s.NHandlers[reg] = h
+	s.regex_h[reg] = 3
 }
 func (s *SessionMux) HandleFunc(pattern string, h http.HandlerFunc) {
 	reg := regexp.MustCompile(pattern)
 	s.NHandlerFunc[reg] = h
+	s.regex_h[reg] = 4
 }
 
 //
@@ -210,6 +221,7 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		R:   r,
 		S:   session,
 		Mux: s,
+		Kvs: map[string]interface{}{},
 	}
 	s.rs[r] = hs
 	defer delete(s.rs, r) //remove the http session object.
@@ -225,50 +237,45 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	//match filter.
-	for k, v := range s.Filters {
+	for k, v := range s.regex_f {
 		if k.MatchString(url) {
 			matched = true
-			if v.SrvHTTP(hs) == HRES_RETURN {
-				return
-			}
-		}
-	}
-	for k, v := range s.FilterFunc {
-		if k.MatchString(url) {
-			matched = true
-			if v(hs) == HRES_RETURN {
-				return
+			switch v {
+			case 1:
+				rv := s.Filters[k]
+				if rv.SrvHTTP(hs) == HRES_RETURN {
+					return
+				}
+			case 2:
+				rv := s.FilterFunc[k]
+				if rv(hs) == HRES_RETURN {
+					return
+				}
 			}
 		}
 	}
 	//match handle
-	for k, v := range s.Handlers {
+	for k, v := range s.regex_h {
 		if k.MatchString(url) {
 			matched = true
-			if v.SrvHTTP(hs) == HRES_RETURN {
-				return
+			switch v {
+			case 1:
+				rv := s.Handlers[k]
+				if rv.SrvHTTP(hs) == HRES_RETURN {
+					return
+				}
+			case 2:
+				rv := s.HandlerFunc[k]
+				if rv(hs) == HRES_RETURN {
+					return
+				}
+			case 3:
+				rv := s.NHandlers[k]
+				rv.ServeHTTP(w, r)
+			case 4:
+				rv := s.NHandlerFunc[k]
+				rv(w, r)
 			}
-		}
-	}
-	for k, v := range s.HandlerFunc {
-		if k.MatchString(url) {
-			matched = true
-			if v(hs) == HRES_RETURN {
-				return
-			}
-		}
-	}
-	//match normal handle
-	for k, v := range s.NHandlers {
-		if k.MatchString(url) {
-			matched = true
-			v.ServeHTTP(w, r)
-		}
-	}
-	for k, v := range s.NHandlerFunc {
-		if k.MatchString(url) {
-			matched = true
-			v(w, r)
 		}
 	}
 }
