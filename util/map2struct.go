@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -29,6 +30,12 @@ func (m Map) UintVal(key string) uint64 {
 			return uint64(m.IntVal(key))
 		case reflect.Float32, reflect.Float64:
 			return uint64(m.FloatVal(key))
+		case reflect.String:
+			if fv, err := strconv.ParseUint(v.(string), 10, 64); err == nil {
+				return fv
+			} else {
+				return math.MaxInt64
+			}
 		default:
 			return math.MaxUint64
 		}
@@ -53,6 +60,12 @@ func (m Map) IntVal(key string) int64 {
 			return int64(m.UintVal(key))
 		case reflect.Float32, reflect.Float64:
 			return int64(m.FloatVal(key))
+		case reflect.String:
+			if fv, err := strconv.ParseInt(v.(string), 10, 64); err == nil {
+				return fv
+			} else {
+				return math.MaxInt64
+			}
 		default:
 			return math.MaxInt64
 		}
@@ -71,6 +84,12 @@ func (m Map) FloatVal(key string) float64 {
 			return float64(m.UintVal(key))
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			return float64(m.IntVal(key))
+		case reflect.String:
+			if fv, err := strconv.ParseFloat(v.(string), 64); err == nil {
+				return fv
+			} else {
+				return math.MaxFloat64
+			}
 		default:
 			return math.MaxFloat64
 		}

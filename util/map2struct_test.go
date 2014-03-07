@@ -157,6 +157,8 @@ func TestMap(t *testing.T) {
 	m := Map{}
 	//
 	m["abc"] = "123"
+	m["abd"] = "a123"
+	m["abe"] = []byte("akkkk")
 	m["abc2"] = int(1)
 	m["float32"] = float32(1)
 	m["float64"] = float64(1)
@@ -184,6 +186,8 @@ func TestMap(t *testing.T) {
 	fmt.Println(m.IntVal("uint64"))
 	fmt.Println(m.IntVal("nf"))
 	fmt.Println(m.IntVal("abc"))
+	fmt.Println(m.IntVal("abd"))
+	fmt.Println(m.IntVal("abe"))
 	fmt.Println(m.IntVal("float32"))
 	fmt.Println(m.IntVal("uint64"))
 	//
@@ -195,6 +199,8 @@ func TestMap(t *testing.T) {
 	fmt.Println(m.UintVal("float64"))
 	fmt.Println(m.UintVal("nf"))
 	fmt.Println(m.UintVal("abc"))
+	fmt.Println(m.UintVal("abd"))
+	fmt.Println(m.UintVal("abe"))
 	fmt.Println(m.UintVal("float32"))
 	fmt.Println(m.UintVal("int64"))
 	//
@@ -203,6 +209,8 @@ func TestMap(t *testing.T) {
 	fmt.Println(m.FloatVal("int64"))
 	fmt.Println(m.FloatVal("nf"))
 	fmt.Println(m.FloatVal("abc"))
+	fmt.Println(m.FloatVal("abd"))
+	fmt.Println(m.FloatVal("abe"))
 	fmt.Println(m.FloatVal("int64"))
 	fmt.Println(m.FloatVal("uint64"))
 	//
