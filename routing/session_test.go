@@ -142,6 +142,16 @@ func TestSessionMux(t *testing.T) {
 	c.Get("http://127.0.0.1:2789/t/r2")
 	c.Get("http://127.0.0.1:2789/t/r3")
 	c.Get("http://127.0.0.1:2789/t/r4")
+	//
+	mux.FilterEnable = false
+	mux.HandleEnable = false
+	c.Get("http://127.0.0.1:2789/t/r1")
+	c.Get("http://127.0.0.1:2789/t/r2")
+	c.Get("http://127.0.0.1:2789/t/r3")
+	c.Get("http://127.0.0.1:2789/t/r4")
+	mux.FilterEnable = true
+	mux.HandleEnable = true
+	//
 	c.Get("http://127.0.0.1:2789/abc/a")
 	c.Get("http://127.0.0.1:2789/t/abc?ttv=1111")
 	c.PostForm("http://127.0.0.1:2789/t/abc", url.Values{"ttv": {"1111"}})

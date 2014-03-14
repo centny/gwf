@@ -144,6 +144,8 @@ type SessionMux struct {
 	regex_h      map[*regexp.Regexp]int
 	rs           map[*http.Request]*HTTPSession //request to session
 	Kvs          map[string]interface{}
+	FilterEnable bool
+	HandleEnable bool
 	ShowLog      bool
 }
 
@@ -169,6 +171,8 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	mux.regex_h = map[*regexp.Regexp]int{}
 	mux.rs = map[*http.Request]*HTTPSession{}
 	mux.Kvs = map[string]interface{}{}
+	mux.FilterEnable = true
+	mux.HandleEnable = true
 	mux.ShowLog = false
 	return &mux
 }
@@ -237,44 +241,48 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	//match filter.
-	for k, v := range s.regex_f {
-		if k.MatchString(url) {
-			matched = true
-			switch v {
-			case 1:
-				rv := s.Filters[k]
-				if rv.SrvHTTP(hs) == HRES_RETURN {
-					return
-				}
-			case 2:
-				rv := s.FilterFunc[k]
-				if rv(hs) == HRES_RETURN {
-					return
+	if s.FilterEnable {
+		for k, v := range s.regex_f {
+			if k.MatchString(url) {
+				matched = true
+				switch v {
+				case 1:
+					rv := s.Filters[k]
+					if rv.SrvHTTP(hs) == HRES_RETURN {
+						return
+					}
+				case 2:
+					rv := s.FilterFunc[k]
+					if rv(hs) == HRES_RETURN {
+						return
+					}
 				}
 			}
 		}
 	}
 	//match handle
-	for k, v := range s.regex_h {
-		if k.MatchString(url) {
-			matched = true
-			switch v {
-			case 1:
-				rv := s.Handlers[k]
-				if rv.SrvHTTP(hs) == HRES_RETURN {
-					return
+	if s.HandleEnable {
+		for k, v := range s.regex_h {
+			if k.MatchString(url) {
+				matched = true
+				switch v {
+				case 1:
+					rv := s.Handlers[k]
+					if rv.SrvHTTP(hs) == HRES_RETURN {
+						return
+					}
+				case 2:
+					rv := s.HandlerFunc[k]
+					if rv(hs) == HRES_RETURN {
+						return
+					}
+				case 3:
+					rv := s.NHandlers[k]
+					rv.ServeHTTP(w, r)
+				case 4:
+					rv := s.NHandlerFunc[k]
+					rv(w, r)
 				}
-			case 2:
-				rv := s.HandlerFunc[k]
-				if rv(hs) == HRES_RETURN {
-					return
-				}
-			case 3:
-				rv := s.NHandlers[k]
-				rv.ServeHTTP(w, r)
-			case 4:
-				rv := s.NHandlerFunc[k]
-				rv(w, r)
 			}
 		}
 	}
