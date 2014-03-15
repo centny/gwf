@@ -140,7 +140,9 @@ type SessionMux struct {
 	HandlerFunc  map[*regexp.Regexp]HandleFunc
 	NHandlers    map[*regexp.Regexp]http.Handler
 	NHandlerFunc map[*regexp.Regexp]http.HandlerFunc
+	regex_f_ary  []*regexp.Regexp
 	regex_f      map[*regexp.Regexp]int
+	regex_h_ary  []*regexp.Regexp
 	regex_h      map[*regexp.Regexp]int
 	rs           map[*http.Request]*HTTPSession //request to session
 	Kvs          map[string]interface{}
@@ -168,7 +170,9 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	mux.HandlerFunc = map[*regexp.Regexp]HandleFunc{}
 	mux.NHandlerFunc = map[*regexp.Regexp]http.HandlerFunc{}
 	mux.regex_f = map[*regexp.Regexp]int{}
+	mux.regex_f_ary = []*regexp.Regexp{}
 	mux.regex_h = map[*regexp.Regexp]int{}
+	mux.regex_h_ary = []*regexp.Regexp{}
 	mux.rs = map[*http.Request]*HTTPSession{}
 	mux.Kvs = map[string]interface{}{}
 	mux.FilterEnable = true
@@ -188,31 +192,37 @@ func (s *SessionMux) HFilter(pattern string, h Handler) {
 	reg := regexp.MustCompile(pattern)
 	s.Filters[reg] = h
 	s.regex_f[reg] = 1
+	s.regex_f_ary = append(s.regex_f_ary, reg)
 }
 func (s *SessionMux) HFilterFunc(pattern string, h HandleFunc) {
 	reg := regexp.MustCompile(pattern)
 	s.FilterFunc[reg] = h
 	s.regex_f[reg] = 2
+	s.regex_f_ary = append(s.regex_f_ary, reg)
 }
 func (s *SessionMux) H(pattern string, h Handler) {
 	reg := regexp.MustCompile(pattern)
 	s.Handlers[reg] = h
 	s.regex_h[reg] = 1
+	s.regex_h_ary = append(s.regex_h_ary, reg)
 }
 func (s *SessionMux) HFunc(pattern string, h HandleFunc) {
 	reg := regexp.MustCompile(pattern)
 	s.HandlerFunc[reg] = h
 	s.regex_h[reg] = 2
+	s.regex_h_ary = append(s.regex_h_ary, reg)
 }
 func (s *SessionMux) Handler(pattern string, h http.Handler) {
 	reg := regexp.MustCompile(pattern)
 	s.NHandlers[reg] = h
 	s.regex_h[reg] = 3
+	s.regex_h_ary = append(s.regex_h_ary, reg)
 }
 func (s *SessionMux) HandleFunc(pattern string, h http.HandlerFunc) {
 	reg := regexp.MustCompile(pattern)
 	s.NHandlerFunc[reg] = h
 	s.regex_h[reg] = 4
+	s.regex_h_ary = append(s.regex_h_ary, reg)
 }
 
 //
@@ -242,10 +252,10 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 	//match filter.
 	if s.FilterEnable {
-		for k, v := range s.regex_f {
+		for _, k := range s.regex_f_ary {
 			if k.MatchString(url) {
 				matched = true
-				switch v {
+				switch s.regex_f[k] {
 				case 1:
 					rv := s.Filters[k]
 					if rv.SrvHTTP(hs) == HRES_RETURN {
@@ -262,10 +272,10 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	//match handle
 	if s.HandleEnable {
-		for k, v := range s.regex_h {
+		for _, k := range s.regex_h_ary {
 			if k.MatchString(url) {
 				matched = true
-				switch v {
+				switch s.regex_h[k] {
 				case 1:
 					rv := s.Handlers[k]
 					if rv.SrvHTTP(hs) == HRES_RETURN {
