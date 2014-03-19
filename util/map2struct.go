@@ -169,7 +169,7 @@ func M2S(m Map, dest interface{}) {
 			var iv int64
 			var uv uint64
 			var fv float64
-			if it == "Y" {
+			if it == "Y" && vty.Name() == "string" {
 				df := f.Tag.Get("tf")
 				if len(df) < 1 {
 					df = D_DATEFORMAT
