@@ -140,7 +140,6 @@ func M2S(m Map, dest interface{}) {
 				continue
 			}
 			vty := reflect.TypeOf(v)
-			fmt.Println(key, vty)
 			if f.Type.Kind() == vty.Kind() {
 				pval.Field(i).Set(reflect.ValueOf(v))
 				continue
