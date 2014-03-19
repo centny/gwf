@@ -12,8 +12,11 @@ type S1 struct {
 	VB string
 	A  string    `m2s:"VA"`
 	B  string    `m2s:"VB"`
-	C  time.Time `m2s:"T" tf:"2006-01-02 15:04:05`
+	C  time.Time `m2s:"T" tf:"2006-01-02 15:04:05"`
 	D  time.Time `m2s:"T"`
+	D1 int64     `m2s:"T" it:"Y"`
+	D2 int64     `m2s:"T" it:"Y" tf:"2006-01-02 15:04:05"`
+	D3 int64     `m2s:"T" it:"Y" tf:"2004:05"`
 	E  time.Time `m2s:"T_L"`
 	F  time.Time `m2s:"VA"`
 	G  time.Time `m2s:"GT"`
@@ -172,6 +175,7 @@ func TestMap(t *testing.T) {
 	m["uint16"] = uint16(1)
 	m["uint32"] = uint32(1)
 	m["uint64"] = uint64(1)
+	m["time"] = time.Now()
 
 	fmt.Println(m.StrVal("abc"))
 	fmt.Println(m.StrVal("abc2"))
@@ -214,6 +218,7 @@ func TestMap(t *testing.T) {
 	fmt.Println(m.FloatVal("int64"))
 	fmt.Println(m.FloatVal("uint64"))
 	//
+	fmt.Println(m.IntVal("time"))
 }
 
 func TestC(t *testing.T) {

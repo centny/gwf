@@ -45,7 +45,12 @@ func (m Map) UintVal(key string) uint64 {
 }
 func (m Map) IntVal(key string) int64 {
 	if v, ok := m[key]; ok {
-		switch reflect.TypeOf(v).Kind() {
+		k := reflect.TypeOf(v)
+		if k.Name() == "Time" {
+			t := v.(time.Time)
+			return Timestamp(t)
+		}
+		switch k.Kind() {
 		case reflect.Int:
 			return int64(v.(int))
 		case reflect.Int8:
@@ -135,6 +140,7 @@ func M2S(m Map, dest interface{}) {
 				continue
 			}
 			vty := reflect.TypeOf(v)
+			fmt.Println(key, vty)
 			if f.Type.Kind() == vty.Kind() {
 				pval.Field(i).Set(reflect.ValueOf(v))
 				continue
@@ -155,15 +161,34 @@ func M2S(m Map, dest interface{}) {
 				default:
 					iv := m.IntVal(key)
 					if iv < math.MaxInt64 {
-
+						pval.Field(i).Set(reflect.ValueOf(Time(iv)))
 					}
-					pval.Field(i).Set(reflect.ValueOf(Time(iv)))
 				}
 				continue
 			}
-			iv := m.IntVal(key)
-			uv := m.UintVal(key)
-			fv := m.FloatVal(key)
+			it := f.Tag.Get("it")
+			var iv int64
+			var uv uint64
+			var fv float64
+			if it == "Y" {
+				df := f.Tag.Get("tf")
+				if len(df) < 1 {
+					df = D_DATEFORMAT
+				}
+				t, err := time.Parse(df, v.(string))
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err.Error())
+					continue
+				}
+				ts := Timestamp(t)
+				iv = ts
+				uv = uint64(ts)
+				fv = float64(ts)
+			} else {
+				iv = m.IntVal(key)
+				uv = m.UintVal(key)
+				fv = m.FloatVal(key)
+			}
 			var val reflect.Value
 			if iv < math.MaxInt64 {
 				switch f.Type.Kind() {

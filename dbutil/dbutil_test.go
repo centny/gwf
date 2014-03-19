@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Centny/Cny4go/test"
+	"github.com/Centny/Cny4go/util"
 	"github.com/Centny/TDb"
 	_ "github.com/go-sql-driver/mysql"
 	"testing"
@@ -19,6 +20,7 @@ type TSt struct {
 	Tval   string    `m2s:"TVAL"`
 	Status string    `m2s:"STATUS"`
 	Time   time.Time `m2s:"TIME"`
+	T      int64     `m2s:"TIME" it:"Y"`
 	Fval   float64   `m2s:"FVAL"`
 	Uival  int64     `m2s:"UIVAL"`
 	Add1   string    `m2s:"ADD1"`
@@ -54,6 +56,7 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not data")
 		return
 	}
+	fmt.Println("...", mres[0].T, util.Timestamp(mres[0].Time), util.Timestamp(time.Now()))
 	fmt.Println(mres, mres[0].Add1)
 	//
 	ivs, err := DbQueryInt(db, "select * from ttable where tid")
