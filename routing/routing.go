@@ -130,13 +130,23 @@ func (h *HTTPSession) RVal(key string) string {
 	return v
 }
 
+//valid require value by format,limit require.
+func (h *HTTPSession) ValidRVal(f string, args ...interface{}) error {
+	return util.ValidAttrF(f, h.RVal, true, args...)
+}
+
+//valid require value by format,not limit require.
+func (h *HTTPSession) ValidRValN(f string, args ...interface{}) error {
+	return util.ValidAttrF(f, h.RVal, false, args...)
+}
+
 //valid all value by format,limit require.
-func (h *HTTPSession) ValidVal(f string, args ...interface{}) error {
+func (h *HTTPSession) ValidCheckVal(f string, args ...interface{}) error {
 	return util.ValidAttrF(f, h.CheckVal, true, args...)
 }
 
 //valid all value by format,not limit require.
-func (h *HTTPSession) ValidValN(f string, args ...interface{}) error {
+func (h *HTTPSession) ValidCheckValN(f string, args ...interface{}) error {
 	return util.ValidAttrF(f, h.CheckVal, false, args...)
 }
 
