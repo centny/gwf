@@ -3,6 +3,7 @@ package util
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -110,17 +111,58 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 		//unknow range limit type.
 		return nil, errors.New(fmt.Sprintf("invalid range limit %s for float", lrs[0]))
 	}
+	//define valid number function.
+	validInt := func(ds int64) (interface{}, error) {
+		//check range limit.
+		switch lrs[0] {
+		case "R":
+			rgs := strings.Split(lrs[1], "-")
+			if len(rgs) < 2 {
+				return nil, errors.New(fmt.Sprintf("invalid range limit:%s", lrs[1]))
+			}
+			beg, err := strconv.ParseInt(rgs[0], 10, 64)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("invalid range begin number(%s)", rgs[0]))
+			}
+			end, err := strconv.ParseInt(rgs[1], 10, 64)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("invalid range end number option(%s)", rgs[1]))
+			}
+			if beg < ds && end > ds {
+				return ds, nil
+			} else {
+				return nil, errors.New(fmt.Sprintf("value must match %v<%v<%v", beg, ds, end))
+			}
+		case "O":
+			options := strings.Split(lrs[1], "-")
+			var oary []int64
+			for _, o := range options { //covert to float array.
+				v, err := strconv.ParseInt(o, 10, 64)
+				if err != nil {
+					return nil, errors.New(fmt.Sprintf("invalid number option(%s)", lrs[1]))
+				}
+				oary = append(oary, v)
+			}
+			if AryExist(oary, ds) {
+				return ds, nil
+			} else {
+				return nil, errors.New(fmt.Sprintf("invalid value(%v) for options(%s)", ds, lrs[1]))
+			}
+		}
+		//unknow range limit type.
+		return nil, errors.New(fmt.Sprintf("invalid range limit %s for float", lrs[0]))
+	}
 	//define value type function
 	validLts := func(ds string) (interface{}, error) {
 		switch lts[1] {
 		case "S":
 			return validStr(ds)
 		case "I":
-			ids, err := strconv.Atoi(ds)
+			ids, err := strconv.ParseInt(ds, 10, 64)
 			if err != nil {
 				return nil, errors.New(fmt.Sprintf("invalid value(%s) for type(%s)", lts[1]))
 			} else {
-				return validNum(float64(ids))
+				return validInt(ids)
 			}
 		case "F":
 			fds, err := strconv.ParseFloat(ds, 64)
@@ -133,4 +175,39 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 		return nil, errors.New(fmt.Sprintf("invalid value type:%s", lts[1]))
 	}
 	return validLts(data)
+}
+
+type AttrFunc func(key string) string
+
+func ValidAttrF(f string, cf AttrFunc, limit_r bool, args ...interface{}) error {
+	f = strings.Replace(f, "\n", "", -1)
+	f = strings.Trim(f, " \t;")
+	if len(f) < 1 {
+		return errors.New("format not found")
+	}
+	trimfs := strings.Split(f, ";")
+	if len(trimfs) != len(args) {
+		return errors.New("args count is not equal format count")
+	}
+	for idx, fs := range trimfs {
+		fs = strings.Trim(fs, " \t")
+		fstr := strings.SplitN(fs, ",", 3)
+		if len(fstr) != 3 {
+			return errors.New(fmt.Sprintf("format error:%s", fs))
+		}
+		rval, err := ValidAttrT(cf(fstr[0]), fstr[1], fstr[2], limit_r)
+		if err != nil {
+			return err
+		}
+		if rval == nil {
+			continue
+		}
+		pval := reflect.Indirect(reflect.ValueOf(args[idx]))
+		tval := reflect.ValueOf(rval)
+		if pval.Kind() != tval.Kind() {
+			return errors.New(fmt.Sprintf("target kind is %v, but %v found", pval.Kind(), tval.Kind()))
+		}
+		pval.Set(tval)
+	}
+	return nil
 }

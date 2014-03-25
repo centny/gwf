@@ -59,6 +59,14 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 	fmt.Println(hs.StrVal("abcss"))
 	fmt.Println(hs.CheckVal("abcss"))
 	hs.S.Set("kkk", nil)
+	//
+	var iv int64
+	err := hs.ValidVal("int,R|I,R:50-300", &iv)
+	fmt.Println(err, iv)
+	if iv != 123 {
+		panic("hava error")
+	}
+	hs.ValidValN("int,R|I,R:50-300", &iv)
 	return s.Res
 }
 

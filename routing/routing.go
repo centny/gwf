@@ -3,6 +3,7 @@ package routing
 import (
 	"fmt"
 	"github.com/Centny/Cny4go/log"
+	"github.com/Centny/Cny4go/util"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -110,7 +111,7 @@ func (h *HTTPSession) StrVal(key string) string {
 	case reflect.String:
 		return v.(string)
 	default:
-		return ""
+		return fmt.Sprintf("%v", v)
 	}
 }
 func (h *HTTPSession) CheckVal(key string) string {
@@ -127,6 +128,16 @@ func (h *HTTPSession) RVal(key string) string {
 	}
 	v = h.R.PostFormValue(key)
 	return v
+}
+
+//valid all value by format,limit require.
+func (h *HTTPSession) ValidVal(f string, args ...interface{}) error {
+	return util.ValidAttrF(f, h.CheckVal, true, args...)
+}
+
+//valid all value by format,not limit require.
+func (h *HTTPSession) ValidValN(f string, args ...interface{}) error {
+	return util.ValidAttrF(f, h.CheckVal, false, args...)
 }
 
 type SessionMux struct {

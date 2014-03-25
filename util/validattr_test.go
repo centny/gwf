@@ -102,6 +102,18 @@ func TestValidAttr(t *testing.T) {
 		return
 	}
 	//
+	v, err = ValidAttrT("1.1", "O|F", "O:1.1-2.2-3.3-4-5", true)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(v)
+	v, err = ValidAttrT("11", "O|F", "O:1-2-3-4-5", true)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	//
 	v, err = ValidAttrT("测", "O|S", "L:a", true)
 	if err == nil {
 		t.Error("not error")
@@ -147,12 +159,37 @@ func TestValidAttr(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	v, err = ValidAttrT("5", "R|F", "R:1", true)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	v, err = ValidAttrT("5", "R|F", "R:a-10", true)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	v, err = ValidAttrT("5", "R|F", "R:1-a", true)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 	v, err = ValidAttrT("5", "R|I", "M:1-a", true)
 	if err == nil {
 		t.Error("not error")
 		return
 	}
 	v, err = ValidAttrT("5", "R|I", "O:1-a", true)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	v, err = ValidAttrT("5", "R|F", "O:1-a", true)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	v, err = ValidAttrT("5", "R|F", "M:1-k", true)
 	if err == nil {
 		t.Error("not error")
 		return
@@ -175,6 +212,83 @@ func TestValidAttr(t *testing.T) {
 	v, err = ValidAttrT("", "O|I", "O:1-10", true)
 	if err != nil {
 		t.Error(err.Error())
+		return
+	}
+}
+
+func TestValidAttrF(t *testing.T) {
+	mv := map[string]string{}
+	mv["a"] = "abc"
+	mv["i"] = "10"
+	mv["f"] = "10.3"
+	mv["ef"] = "20.3"
+	mv["len"] = "11111111"
+	var a string
+	var i int64
+	var k string
+	var f float64
+	err := ValidAttrF(`
+		a,R|S,L:5;
+		i,R|I,R:1-20;
+		k,O|I,R:1-20;
+		f,R|F,R:1.5-20;
+		`, func(key string) string {
+		return mv[key]
+	}, true, &a, &i, &k, &f)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(a, i, k, f)
+	//
+	err = ValidAttrF(`
+		a,R|S L:5;
+		`, func(key string) string {
+		return mv[key]
+	}, true, &a)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	//
+	err = ValidAttrF(`
+		len,R|S,L:5;
+		`, func(key string) string {
+		return mv[key]
+	}, true, &a)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	//
+	var ea float32
+	err = ValidAttrF(`
+		a,R|S,L:5;
+		`, func(key string) string {
+		return mv[key]
+	}, true, &ea)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	//
+	err = ValidAttrF(``, func(key string) string {
+		return mv[key]
+	}, true, &a)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	fmt.Println(err.Error())
+	//
+	err = ValidAttrF(`
+		len,R|S,L:5;
+		len,R|S,L:5;
+		`, func(key string) string {
+		return mv[key]
+	}, true, &a)
+	if err == nil {
+		t.Error("not error")
 		return
 	}
 }
