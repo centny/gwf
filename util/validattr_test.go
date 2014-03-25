@@ -6,13 +6,13 @@ import (
 )
 
 func TestValidAttr(t *testing.T) {
-	v, err := ValidAttrT("测试", "R|S", "L:10", true)
+	v, err := ValidAttrT("测试", "R|S", "L:-10", true)
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
 	fmt.Println(v)
-	v, err = ValidAttrT("测试测试测试测试", "R|S", "L:10", true)
+	v, err = ValidAttrT("测试测试测试测试", "R|S", "L:-10", true)
 	if err == nil {
 		t.Error("not error")
 		return
@@ -48,6 +48,12 @@ func TestValidAttr(t *testing.T) {
 		return
 	}
 	fmt.Println(v)
+	v, err = ValidAttrT("8", "O|I", "R:5-", true)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(v)
 	v, err = ValidAttrT("12", "O|I", "R:5-10", true)
 	if err == nil {
 		t.Error("not error")
@@ -60,19 +66,31 @@ func TestValidAttr(t *testing.T) {
 		return
 	}
 	fmt.Println(v)
+	v, err = ValidAttrT("8", "O|F", "R:5-", true)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(v)
 	v, err = ValidAttrT("12", "O|F", "R:5-10", true)
 	if err == nil {
 		t.Error("not error")
 		return
 	}
 	//
-	v, err = ValidAttrT("测", "O|S", "L:8", true)
+	v, err = ValidAttrT("测", "O|S", "L:-8", true)
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
 	fmt.Println(v)
-	v, err = ValidAttrT("测度测度测度测度测度", "O|S", "L:8", true)
+	v, err = ValidAttrT("测", "O|S", "L:2-", true)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(v)
+	v, err = ValidAttrT("测度测度测度测度测度", "O|S", "L:-8", true)
 	if err == nil {
 		t.Error("not error")
 		return
@@ -156,7 +174,7 @@ func TestValidAttr(t *testing.T) {
 		t.Error("not error")
 		return
 	}
-	v, err = ValidAttrT("5", "R|I", "R:1", true)
+	v, err = ValidAttrT("5", "R|I", "R:-1", true)
 	if err == nil {
 		t.Error("not error")
 		return
@@ -171,7 +189,7 @@ func TestValidAttr(t *testing.T) {
 		t.Error("not error")
 		return
 	}
-	v, err = ValidAttrT("5", "R|F", "R:1", true)
+	v, err = ValidAttrT("5", "R|F", "R:-1", true)
 	if err == nil {
 		t.Error("not error")
 		return
@@ -250,7 +268,7 @@ func TestValidAttrF(t *testing.T) {
 	var k string
 	var f float64
 	err := ValidAttrF(`
-		a,R|S,L:5;
+		a,R|S,L:-5;
 		i,R|I,R:1-20;
 		k,O|I,R:1-20;
 		f,R|F,R:1.5-20;
@@ -264,7 +282,7 @@ func TestValidAttrF(t *testing.T) {
 	fmt.Println(a, i, k, f)
 	//
 	err = ValidAttrF(`
-		a,R|S L:5;
+		a,R|S L:-5;
 		`, func(key string) string {
 		return mv[key]
 	}, true, &a)
@@ -274,7 +292,7 @@ func TestValidAttrF(t *testing.T) {
 	}
 	//
 	err = ValidAttrF(`
-		len,R|S,L:5;
+		len,R|S,L:-5;
 		`, func(key string) string {
 		return mv[key]
 	}, true, &a)
@@ -285,7 +303,7 @@ func TestValidAttrF(t *testing.T) {
 	//
 	var ea float32
 	err = ValidAttrF(`
-		a,R|S,L:5;
+		a,R|S,L:-5;
 		`, func(key string) string {
 		return mv[key]
 	}, true, &ea)
@@ -304,8 +322,8 @@ func TestValidAttrF(t *testing.T) {
 	fmt.Println(err.Error())
 	//
 	err = ValidAttrF(`
-		len,R|S,L:5;
-		len,R|S,L:5;
+		len,R|S,L:-5;
+		len,R|S,L:-5;
 		`, func(key string) string {
 		return mv[key]
 	}, true, &a)
