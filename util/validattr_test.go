@@ -78,6 +78,18 @@ func TestValidAttr(t *testing.T) {
 		return
 	}
 	//
+	v, err = ValidAttrT("测", "O|S", "L:2-8", true)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(v)
+	v, err = ValidAttrT("a", "O|S", "L:2-8", true)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	//
 	v, err = ValidAttrT("centny@gmail.com", "O|S", "P:^.*\\@.*$", true)
 	if err != nil {
 		t.Error(err.Error())
@@ -212,6 +224,16 @@ func TestValidAttr(t *testing.T) {
 	v, err = ValidAttrT("", "O|I", "O:1-10", true)
 	if err != nil {
 		t.Error(err.Error())
+		return
+	}
+	v, err = ValidAttrT("a", "O|S", "L:a-8", true)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	v, err = ValidAttrT("a", "O|S", "L:2-a", true)
+	if err == nil {
+		t.Error("not error")
 		return
 	}
 }

@@ -47,14 +47,32 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 				return nil, errors.New(fmt.Sprintf("invalid value(%s) for options(%s)", ds, lrs[1]))
 			}
 		case "L": //length limit
-			l_len, err := strconv.Atoi(lrs[1])
-			if err != nil {
-				return nil, errors.New(fmt.Sprintf("invalid len limit:%s,err:(%s)", lrs[1], err.Error()))
-			}
-			if len(ds) < l_len {
-				return ds, nil
-			} else {
-				return nil, errors.New(fmt.Sprintf("value must less %d, but %d", l_len, len(ds)))
+			slen := int64(len(ds))
+			rgs := strings.Split(lrs[1], "-")
+			if len(rgs) == 1 {
+				l_len, err := strconv.ParseInt(rgs[0], 10, 64)
+				if err != nil {
+					return nil, errors.New(fmt.Sprintf("invalid len limit:%s,err:(%s)", rgs[0], err.Error()))
+				}
+				if slen < l_len {
+					return ds, nil
+				} else {
+					return nil, errors.New(fmt.Sprintf("value must less %d, but %d", l_len, slen))
+				}
+			} else if len(rgs) > 1 {
+				beg, err := strconv.ParseInt(rgs[0], 10, 64)
+				if err != nil {
+					return nil, errors.New(fmt.Sprintf("invalid range begin number(%s)", rgs[0]))
+				}
+				end, err := strconv.ParseInt(rgs[1], 10, 64)
+				if err != nil {
+					return nil, errors.New(fmt.Sprintf("invalid range end number option(%s)", rgs[1]))
+				}
+				if beg < slen && end > slen {
+					return ds, nil
+				} else {
+					return nil, errors.New(fmt.Sprintf("string length must match %d<%d<%d", beg, ds, end))
+				}
 			}
 		case "P": //regex pattern limit
 			mched, err := regexp.MatchString(lrs[1], ds)
