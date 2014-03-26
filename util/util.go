@@ -108,13 +108,7 @@ func HGet2(ufmt string, args ...interface{}) (Map, error) {
 	if len(data) < 1 || err != nil {
 		return nil, err
 	}
-	md := Map{}
-	d := json.NewDecoder(strings.NewReader(data))
-	err = d.Decode(&md)
-	if err != nil {
-		return nil, err
-	}
-	return md, nil
+	return Json2Map(data)
 }
 
 func HTTPGet(ufmt string, args ...interface{}) string {
@@ -133,4 +127,14 @@ func Map2Query(m Map) string {
 		vs.Add(k, v.(string))
 	}
 	return vs.Encode()
+}
+
+func Json2Map(data string) (Map, error) {
+	md := Map{}
+	d := json.NewDecoder(strings.NewReader(data))
+	err := d.Decode(&md)
+	if err != nil {
+		return nil, err
+	}
+	return md, nil
 }
