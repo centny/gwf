@@ -69,6 +69,7 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 	hs.ValidCheckVal("int,R|I,R:50-300", &iv)
 	hs.ValidRVal("int,R|I,R:50-300", &iv)
 	hs.ValidRValN("int,R|I,R:50-300", &iv)
+	hs.ValidCheckValN("int,R|I,R:50-300", &iv)
 	return s.Res
 }
 

@@ -164,7 +164,7 @@ func TestReadAllStr(t *testing.T) {
 	}
 }
 
-func TestHTTPGet2(t *testing.T) {
+func TestHTTP2(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("{\"code\":1}"))
 	}))
@@ -179,6 +179,21 @@ func TestHTTPGet2(t *testing.T) {
 	fmt.Println(res)
 	res = HTTPGet2(ts3.URL)
 	fmt.Println(res)
+	_, err := HPostF(ts.URL, map[string]string{"ma": "123"}, "abc", "")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = HPostF("hhh", map[string]string{"ma": "123"}, "abc", "test.txt")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	mres, err := HPostF(ts.URL, map[string]string{"ma": "123"}, "abc", "test.txt")
+	fmt.Println(mres, err)
+	HTTPPost(ts.URL, map[string]string{"ma": "123"})
+	HTTPPost2(ts.URL, map[string]string{"ma": "123"})
+	HTTPPost2("jhj", map[string]string{"ma": "123"})
 }
 
 func TestMap2Query(t *testing.T) {

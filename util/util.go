@@ -2,11 +2,13 @@ package util
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -110,7 +112,44 @@ func HGet2(ufmt string, args ...interface{}) (Map, error) {
 	}
 	return Json2Map(data)
 }
-
+func HPost(url string, fields map[string]string) (string, error) {
+	return HPostF(url, fields, "", "")
+}
+func HPostF(url string, fields map[string]string, fkey string, fp string) (string, error) {
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
+	defer bodyWriter.Close()
+	for k, v := range fields {
+		bodyWriter.WriteField(k, v)
+	}
+	if len(fkey) > 0 {
+		fileWriter, err := bodyWriter.CreateFormFile(fkey, fp)
+		if err != nil {
+			return "", err
+		}
+		fh, err := os.Open(fp)
+		if err != nil {
+			return "", err
+		}
+		defer fh.Close()
+		_, err = io.Copy(fileWriter, fh)
+		if err != nil {
+			return "", err
+		}
+	}
+	res, err := HTTPClient.Post(url, bodyWriter.FormDataContentType(), bodyBuf)
+	if err != nil {
+		return "", err
+	}
+	return readAllStr(res.Body)
+}
+func HPost2(url string, fields map[string]string) (Map, error) {
+	data, err := HPost(url, fields)
+	if len(data) < 1 || err != nil {
+		return nil, err
+	}
+	return Json2Map(data)
+}
 func HTTPGet(ufmt string, args ...interface{}) string {
 	res, _ := HGet(ufmt, args...)
 	return res
@@ -118,6 +157,16 @@ func HTTPGet(ufmt string, args ...interface{}) string {
 
 func HTTPGet2(ufmt string, args ...interface{}) Map {
 	res, _ := HGet2(ufmt, args...)
+	return res
+}
+
+func HTTPPost(url string, fields map[string]string) string {
+	res, _ := HPost(url, fields)
+	return res
+}
+
+func HTTPPost2(url string, fields map[string]string) Map {
+	res, _ := HPost2(url, fields)
 	return res
 }
 
