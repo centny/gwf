@@ -228,7 +228,7 @@ func ValidAttrF(f string, cf AttrFunc, limit_r bool, args ...interface{}) error 
 		}
 		rval, err := ValidAttrT(cf(fstr[0]), fstr[1], fstr[2], limit_r)
 		if err != nil {
-			return err
+			return errors.New(fmt.Sprintf("limit(%s),%s", fs, err.Error()))
 		}
 		if rval == nil {
 			continue

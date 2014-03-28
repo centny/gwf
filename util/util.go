@@ -118,7 +118,6 @@ func HPost(url string, fields map[string]string) (string, error) {
 func HPostF(url string, fields map[string]string, fkey string, fp string) (string, error) {
 	bodyBuf := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuf)
-	defer bodyWriter.Close()
 	for k, v := range fields {
 		bodyWriter.WriteField(k, v)
 	}
@@ -137,7 +136,9 @@ func HPostF(url string, fields map[string]string, fkey string, fp string) (strin
 			return "", err
 		}
 	}
-	res, err := HTTPClient.Post(url, bodyWriter.FormDataContentType(), bodyBuf)
+	ctype := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
+	res, err := HTTPClient.Post(url, ctype, bodyBuf)
 	if err != nil {
 		return "", err
 	}
@@ -145,6 +146,13 @@ func HPostF(url string, fields map[string]string, fkey string, fp string) (strin
 }
 func HPost2(url string, fields map[string]string) (Map, error) {
 	data, err := HPost(url, fields)
+	if len(data) < 1 || err != nil {
+		return nil, err
+	}
+	return Json2Map(data)
+}
+func HPostF2(url string, fields map[string]string, fkey string, fp string) (Map, error) {
+	data, err := HPostF(url, fields, fkey, fp)
 	if len(data) < 1 || err != nil {
 		return nil, err
 	}
@@ -183,7 +191,27 @@ func Json2Map(data string) (Map, error) {
 	d := json.NewDecoder(strings.NewReader(data))
 	err := d.Decode(&md)
 	if err != nil {
-		return nil, err
+		return nil, errors.New(fmt.Sprintf("invalid json data(%s)", err.Error()))
 	}
 	return md, nil
+}
+
+type fs_size interface {
+	Size() int64
+}
+
+type fs_stat interface {
+	Stat() (os.FileInfo, error)
+}
+
+func FormFSzie(src interface{}) int64 {
+	var fsize int64 = 0
+	if statInterface, ok := src.(fs_stat); ok {
+		fileInfo, _ := statInterface.Stat()
+		fsize = fileInfo.Size()
+	}
+	if sizeInterface, ok := src.(fs_size); ok {
+		fsize = sizeInterface.Size()
+	}
+	return fsize
 }

@@ -189,13 +189,65 @@ func TestHTTP2(t *testing.T) {
 		t.Error("not error")
 		return
 	}
-	mres, err := HPostF(ts.URL, map[string]string{"ma": "123"}, "abc", "test.txt")
-	fmt.Println(mres, err)
+	_, err = HPostF(ts.URL, map[string]string{"ma": "123"}, "abc", "test.txt")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	_, err = HPostF2(ts.URL, map[string]string{"ma": "123"}, "abc", "test.txt")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	HPostF2("kkk", map[string]string{"ma": "123"}, "abc", "test.txt")
 	HTTPPost(ts.URL, map[string]string{"ma": "123"})
 	HTTPPost2(ts.URL, map[string]string{"ma": "123"})
 	HTTPPost2("jhj", map[string]string{"ma": "123"})
 }
 
+//
+type osize struct {
+}
+
+func (o *osize) Size() int64 {
+	return 100
+}
+
+type ostat struct {
+	F *os.File
+}
+
+func (o *ostat) Stat() (os.FileInfo, error) {
+	return o.F.Stat()
+}
+func TestFormFSzie(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("{\"code\":1}"))
+		src, _, err := r.FormFile("abc")
+		if err != nil {
+			t.Error(err.Error())
+			return
+		}
+		fsize := FormFSzie(src)
+		if fsize < 1 {
+			t.Error("not size")
+		}
+	}))
+	_, err := HPostF(ts.URL, map[string]string{"ma": "123"}, "abc", "test.txt")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	f, _ := os.Open("test.txt")
+	defer f.Close()
+	fsize := FormFSzie(f)
+	if fsize < 1 {
+		t.Error("not right")
+	}
+	fsize = FormFSzie(&osize{})
+	if fsize < 1 {
+		t.Error("not right")
+	}
+}
 func TestMap2Query(t *testing.T) {
 	mv := map[string]interface{}{}
 	mv["abc"] = "123"
