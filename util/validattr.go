@@ -41,7 +41,7 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 		//check range limit.
 		switch lrs[0] {
 		case "O": //option limit.
-			options := strings.Split(lrs[1], "-")
+			options := strings.Split(lrs[1], "~")
 			if AryExist(options, ds) {
 				return ds, nil
 			} else {
@@ -49,7 +49,7 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 			}
 		case "L": //length limit
 			slen := int64(len(ds))
-			rgs := strings.Split(lrs[1], "-")
+			rgs := strings.Split(lrs[1], "~")
 			var beg, end int64 = 0, 0
 			var err error = nil
 			if len(rgs) > 0 && len(rgs[0]) > 0 {
@@ -94,7 +94,7 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 		case "R":
 			var beg, end float64 = 0, 0
 			var err error = nil
-			rgs := strings.Split(lrs[1], "-")
+			rgs := strings.Split(lrs[1], "~")
 			if len(rgs) > 0 && len(rgs[0]) > 0 {
 				beg, err = strconv.ParseFloat(rgs[0], 64)
 				if err != nil {
@@ -117,7 +117,7 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 				return nil, errors.New(fmt.Sprintf("value must match %f<val<%f, but %v", beg, end, ds))
 			}
 		case "O":
-			options := strings.Split(lrs[1], "-")
+			options := strings.Split(lrs[1], "~")
 			var oary []float64
 			for _, o := range options { //covert to float array.
 				v, err := strconv.ParseFloat(o, 64)
@@ -142,7 +142,7 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 		case "R":
 			var beg, end int64 = 0, 0
 			var err error = nil
-			rgs := strings.Split(lrs[1], "-")
+			rgs := strings.Split(lrs[1], "~")
 			if len(rgs) > 0 && len(rgs[0]) > 0 {
 				beg, err = strconv.ParseInt(rgs[0], 10, 64)
 				if err != nil {
@@ -165,7 +165,7 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 				return nil, errors.New(fmt.Sprintf("value must match %v<val<%v, but %v", beg, end, ds))
 			}
 		case "O":
-			options := strings.Split(lrs[1], "-")
+			options := strings.Split(lrs[1], "~")
 			var oary []int64
 			for _, o := range options { //covert to float array.
 				v, err := strconv.ParseInt(o, 10, 64)
