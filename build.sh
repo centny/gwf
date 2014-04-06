@@ -20,6 +20,8 @@ pkgs="\
  github.com/Centny/Cny4go/dbutil\
  github.com/Centny/Cny4go/routing\
  github.com/Centny/Cny4go/routing/cookie\
+ github.com/Centny/Cny4go/routing/filter\
+ github.com/Centny/Cny4go/routing/httptest\
 "
 echo "mode: set" > a.out
 for p in $pkgs;

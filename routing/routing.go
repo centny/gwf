@@ -1,10 +1,13 @@
 package routing
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Centny/Cny4go/log"
 	"github.com/Centny/Cny4go/util"
+	"io"
 	"net/http"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -41,8 +44,13 @@ type HTTPSession struct {
 func (h *HTTPSession) Redirect(url string) {
 	http.Redirect(h.W, h.R, url, http.StatusMovedPermanently)
 }
+
 func (h *HTTPSession) SetVal(key string, val interface{}) {
 	h.S.Set(key, val)
+}
+
+func (h *HTTPSession) Val(key string) interface{} {
+	return h.S.Val(key)
 }
 func (h *HTTPSession) UintVal(key string) uint64 {
 	v := h.S.Val(key)
@@ -128,6 +136,40 @@ func (h *HTTPSession) RVal(key string) string {
 	}
 	v = h.R.PostFormValue(key)
 	return v
+}
+func (h *HTTPSession) FormFInfo(name string) (int64, string, error) {
+	src, fh, err := h.R.FormFile("file")
+	if err != nil {
+		return 0, "", err
+	}
+	fsize := util.FormFSzie(src)
+	if fsize < 1 {
+		return 0, "", errors.New("file size error")
+	}
+	return fsize, fh.Filename, nil
+}
+
+func (h *HTTPSession) RecF(name, tfile string) (int64, error) {
+	src, _, err := h.R.FormFile("file")
+	if err != nil {
+		return 0, err
+	}
+	err = util.FTouch(tfile)
+	if err != nil {
+		return 0, err
+	}
+	dst, _ := os.OpenFile(tfile, os.O_RDWR|os.O_APPEND, 0)
+	csize, err := io.Copy(dst, src)
+	dst.Close()
+	if err != nil {
+		os.Remove(tfile)
+		return 0, err
+	}
+	return csize, nil
+}
+
+func (h *HTTPSession) SendF(fname, tfile, ctype string, attach bool) {
+	SendF(h.W, h.R, fname, tfile, ctype, attach)
 }
 
 //valid require value by format,limit require.
@@ -246,6 +288,12 @@ func (s *SessionMux) HandleFunc(pattern string, h http.HandlerFunc) {
 	s.regex_h_ary = append(s.regex_h_ary, reg)
 }
 
+func (s *SessionMux) slog(fmt string, args ...interface{}) {
+	if s.ShowLog {
+		log.D(fmt, args...)
+	}
+}
+
 //
 func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.URL.Path = strings.TrimPrefix(r.URL.Path, s.Pre)
@@ -267,9 +315,6 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !matched { //if not matched
 			http.NotFound(w, r)
 		}
-		if s.ShowLog {
-			log.D("URL(%s),found(%v)", r.URL.String(), matched)
-		}
 	}()
 	//match filter.
 	if s.FilterEnable {
@@ -279,11 +324,13 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				switch s.regex_f[k] {
 				case 1:
 					rv := s.Filters[k]
+					s.slog("mathced filter %v to %v", k, r.URL.Path)
 					if rv.SrvHTTP(hs) == HRES_RETURN {
 						return
 					}
 				case 2:
 					rv := s.FilterFunc[k]
+					s.slog("mathced filter func %v to %v", k, r.URL.Path)
 					if rv(hs) == HRES_RETURN {
 						return
 					}
@@ -299,18 +346,22 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				switch s.regex_h[k] {
 				case 1:
 					rv := s.Handlers[k]
+					s.slog("mathced handler %v to %v", k, r.URL.Path)
 					if rv.SrvHTTP(hs) == HRES_RETURN {
 						return
 					}
 				case 2:
+					s.slog("mathced handler func %v to %v", k, r.URL.Path)
 					rv := s.HandlerFunc[k]
 					if rv(hs) == HRES_RETURN {
 						return
 					}
 				case 3:
+					s.slog("mathced normal handler %v to %v", k, r.URL.Path)
 					rv := s.NHandlers[k]
 					rv.ServeHTTP(w, r)
 				case 4:
+					s.slog("mathced normal handler func %v to %v", k, r.URL.Path)
 					rv := s.NHandlerFunc[k]
 					rv(w, r)
 				}

@@ -3,8 +3,10 @@ package routing
 import (
 	"code.google.com/p/go.net/publicsuffix"
 	"fmt"
+	"github.com/Centny/Cny4go/util"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
@@ -59,6 +61,7 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 	fmt.Println(hs.StrVal("abcss"))
 	fmt.Println(hs.CheckVal("abcss"))
 	hs.S.Set("kkk", nil)
+	fmt.Println(hs.Val("kkk"))
 	//
 	var iv int64
 	err := hs.ValidCheckVal("int,R|I,R:50~300", &iv)
@@ -74,7 +77,7 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 }
 
 func TestSessionMux(t *testing.T) {
-	sb := NewSrvSessionBuilder("", "/", 2000, 500)
+	sb := NewSrvSessionBuilder("", "/", "rtest", 2000, 500)
 	mux := NewSessionMux("/t", sb)
 	// mux.CDelay = 500
 	ssrv1 := Ssrv{Count: 0}
@@ -181,6 +184,70 @@ func TestSessionMux(t *testing.T) {
 	NewSessionMux("/", nil)
 	//
 	fmt.Println("TestSessionMux end")
+}
+
+func RecF(hs *HTTPSession) HResult {
+	hs.FormFInfo("file")
+	hs.RecF("file", "/tmp/test2.txt")
+	return HRES_RETURN
+}
+func RecF2(hs *HTTPSession) HResult {
+	hs.RecF("file", "/t/mp/test2.txt")
+	return HRES_RETURN
+}
+
+func TestRecf(t *testing.T) {
+	sb := NewSrvSessionBuilder("", "/", "rtest", 2000, 500)
+	mux := NewSessionMux("", sb)
+	mux.HFunc("^/t1.*$", RecF)
+	mux.HFunc("^/t2.*$", RecF2)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mux.ServeHTTP(w, r)
+	}))
+	defer ts.Close()
+	util.FWrite("/tmp/test.txt", "testing")
+	fmt.Println(util.HPostF(fmt.Sprintf("%v/t1", ts.URL), nil, "file", "/tmp/test.txt"))
+	fmt.Println(util.HPostF(fmt.Sprintf("%v/t1", ts.URL), nil, "file2", "/tmp/test.txt"))
+	fmt.Println(util.HPostF(fmt.Sprintf("%v/t2", ts.URL), nil, "file", "/tmp/test.txt"))
+	fmt.Println(util.HPostF(fmt.Sprintf("%v/t1", ts.URL), nil, "file", "/tmp/test.txt2"))
+}
+
+func SendF1(hs *HTTPSession) HResult {
+	hs.SendF("test.txt", "/tmp/test.txt", "", false)
+	return HRES_RETURN
+}
+
+func SendF2(hs *HTTPSession) HResult {
+	hs.SendF("test.txt", "/tmp/test.txt", "application/text", false)
+	return HRES_RETURN
+}
+
+func SendF3(hs *HTTPSession) HResult {
+	hs.SendF("test.txt", "/tmp/test.txt", "", true)
+	return HRES_RETURN
+}
+
+func SendF4(hs *HTTPSession) HResult {
+	hs.SendF("test.txt", "/tmp/jj/test.txt", "", true)
+	return HRES_RETURN
+}
+
+func TestSendF(t *testing.T) {
+	sb := NewSrvSessionBuilder("", "/", "rtest", 2000, 500)
+	mux := NewSessionMux("", sb)
+	mux.HFunc("^/t1.*$", SendF1)
+	mux.HFunc("^/t2.*$", SendF2)
+	mux.HFunc("^/t3.*$", SendF3)
+	mux.HFunc("^/t4.*$", SendF4)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mux.ServeHTTP(w, r)
+	}))
+	defer ts.Close()
+	util.FWrite("/tmp/test.txt", "testing")
+	fmt.Println(util.HGet("%s/t1", ts.URL))
+	fmt.Println(util.HGet("%s/t2", ts.URL))
+	fmt.Println(util.HGet("%s/t3", ts.URL))
+	fmt.Println(util.HGet("%s/t4", ts.URL))
 }
 
 // func TestCookie(t *testing.T) {

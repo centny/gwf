@@ -39,30 +39,32 @@ func (s *SrvSession) Flush() error {
 //
 type SrvSessionBuilder struct {
 	//
-	Domain  string
-	Path    string
-	Timeout int64
-	CDelay  time.Duration
+	Domain    string
+	Path      string
+	Timeout   int64
+	CDelay    time.Duration
+	CookieKey string //cookie key
 	//
 	looping bool
 	ks      map[string]*SrvSession //key session
 	ks_lck  sync.RWMutex
 }
 
-func NewSrvSessionBuilder(domain string, path string, timeout int64, cdelay time.Duration) *SrvSessionBuilder {
+func NewSrvSessionBuilder(domain string, path string, ckey string, timeout int64, cdelay time.Duration) *SrvSessionBuilder {
 	sb := SrvSessionBuilder{}
 	sb.Domain = domain
 	sb.Path = path
 	sb.Timeout = timeout
 	sb.CDelay = cdelay
+	sb.CookieKey = ckey
 	sb.ks = map[string]*SrvSession{}
 	return &sb
 }
 func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) Session {
-	c, err := r.Cookie("token")
+	c, err := r.Cookie(s.CookieKey)
 	ncookie := func() {
 		c = &http.Cookie{}
-		c.Name = "token"
+		c.Name = s.CookieKey
 		c.Value = uuid.New()
 		c.Path = s.Path
 		c.Domain = s.Domain

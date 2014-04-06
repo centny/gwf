@@ -22,6 +22,18 @@ func TestFile(t *testing.T) {
 	fmt.Println(os.Open("/tmp/kkgg"))
 }
 
+func TestFWrite(t *testing.T) {
+	err := FWrite("/tmp/test.txt", "data")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	err = FWrite("/kk/kkfd/d", "data")
+	if err == nil {
+		t.Error("not error")
+	}
+	os.Remove("/tmp/test.txt")
+}
 func TestFTouch(t *testing.T) {
 	os.RemoveAll("/tmp/kkk")
 	os.RemoveAll("/tmp/abc.log")

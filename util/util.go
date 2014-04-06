@@ -46,6 +46,14 @@ func FTouch(path string) error {
 	}
 	return nil
 }
+func FWrite(path, data string) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	_, err = f.WriteString(data)
+	return err
+}
 
 func ReadLine(r *bufio.Reader, limit int, end bool) ([]byte, error) {
 	var isPrefix bool = true
@@ -203,6 +211,9 @@ type fs_size interface {
 type fs_stat interface {
 	Stat() (os.FileInfo, error)
 }
+type fs_name interface {
+	Name() string
+}
 
 func FormFSzie(src interface{}) int64 {
 	var fsize int64 = 0
@@ -215,3 +226,11 @@ func FormFSzie(src interface{}) int64 {
 	}
 	return fsize
 }
+
+// func FormFName(src interface{}) string {
+// 	if nameInterface, ok := src.(fs_name); ok {
+// 		return nameInterface.Name()
+// 	} else {
+// 		return ""
+// 	}
+// }
