@@ -11,7 +11,7 @@ import (
 type Server struct {
 	URL string
 	S   *httptest.Server
-	mux *routing.SessionMux
+	Mux *routing.SessionMux
 }
 
 func (s *Server) Close() {
@@ -34,20 +34,36 @@ func (s *Server) P2(url string, fields map[string]string) (util.Map, error) {
 	return util.HPost2(fmt.Sprintf("%v%v", s.URL, url), fields)
 }
 
+func (s *Server) PostF(url, fkey, fp string, fields map[string]string) (string, error) {
+	return util.HPostF(fmt.Sprintf("%v%v", s.URL, url), fields, fkey, fp)
+}
+
+func (s *Server) PostF2(url, fkey, fp string, fields map[string]string) (util.Map, error) {
+	return util.HPostF2(fmt.Sprintf("%v%v", s.URL, url), fields, fkey, fp)
+}
+
 func NewServer(f routing.HandleFunc) *Server {
 	sb := routing.NewSrvSessionBuilder("", "/", "tsrv", 60000, 200)
 	mux := routing.NewSessionMux("", sb)
 	mux.HFunc("^.*$", f)
-	return NewMuxServer(mux)
+	return NewMuxServer2(mux)
 }
 func NewServer2(h routing.Handler) *Server {
 	sb := routing.NewSrvSessionBuilder("", "/", "tsrv", 60000, 200)
 	mux := routing.NewSessionMux("", sb)
 	mux.H("^.*$", h)
-	return NewMuxServer(mux)
+	return NewMuxServer2(mux)
 }
-func NewMuxServer(mux *routing.SessionMux) *Server {
-	srv := &Server{mux: mux}
+func NewMuxServer() *Server {
+	sb := routing.NewSrvSessionBuilder("", "/", "tsrv", 60000, 200)
+	mux := routing.NewSessionMux("", sb)
+	srv := &Server{Mux: mux}
+	srv.S = httptest.NewServer(mux)
+	srv.URL = srv.S.URL
+	return srv
+}
+func NewMuxServer2(mux *routing.SessionMux) *Server {
+	srv := &Server{Mux: mux}
 	srv.S = httptest.NewServer(mux)
 	srv.URL = srv.S.URL
 	return srv

@@ -64,6 +64,8 @@ func TestServer(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+	ts.PostF("/", "filt", "/tmp/test.txt", nil)
+	ts.PostF2("/", "filt", "/tmp/test.txt", nil)
 }
 func TestServer2(t *testing.T) {
 	ts := NewServer2(&T2{})
@@ -71,4 +73,5 @@ func TestServer2(t *testing.T) {
 	Tnf(NT, "?a=%v", "testing")
 	Tf(T, "?a=%v", "testing")
 	Th(&T2{}, "?a=%v", "testing")
+	NewMuxServer()
 }

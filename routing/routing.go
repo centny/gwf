@@ -20,6 +20,16 @@ const (
 	HRES_RETURN
 )
 
+func (h HResult) String() string {
+	switch h {
+	case HRES_CONTINUE:
+		return "ONTINUE"
+	case HRES_RETURN:
+		return "RETURN"
+	}
+	return ""
+}
+
 type SessionBuilder interface {
 	FindSession(w http.ResponseWriter, r *http.Request) Session
 }
@@ -324,14 +334,16 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				switch s.regex_f[k] {
 				case 1:
 					rv := s.Filters[k]
-					s.slog("mathced filter %v to %v", k, r.URL.Path)
-					if rv.SrvHTTP(hs) == HRES_RETURN {
+					res := rv.SrvHTTP(hs)
+					s.slog("mathced filter %v to %v (%v)", k, r.URL.Path, res.String())
+					if res == HRES_RETURN {
 						return
 					}
 				case 2:
 					rv := s.FilterFunc[k]
-					s.slog("mathced filter func %v to %v", k, r.URL.Path)
-					if rv(hs) == HRES_RETURN {
+					res := rv(hs)
+					s.slog("mathced filter func %v to %v (%v)", k, r.URL.Path, res.String())
+					if res == HRES_RETURN {
 						return
 					}
 				}
@@ -346,14 +358,16 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				switch s.regex_h[k] {
 				case 1:
 					rv := s.Handlers[k]
-					s.slog("mathced handler %v to %v", k, r.URL.Path)
-					if rv.SrvHTTP(hs) == HRES_RETURN {
+					res := rv.SrvHTTP(hs)
+					s.slog("mathced handler %v to %v (%v)", k, r.URL.Path, res.String())
+					if res == HRES_RETURN {
 						return
 					}
 				case 2:
-					s.slog("mathced handler func %v to %v", k, r.URL.Path)
 					rv := s.HandlerFunc[k]
-					if rv(hs) == HRES_RETURN {
+					res := rv(hs)
+					s.slog("mathced handler func %v to %v (%v)", k, r.URL.Path, res.String())
+					if res == HRES_RETURN {
 						return
 					}
 				case 3:
