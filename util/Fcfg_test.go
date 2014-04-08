@@ -36,6 +36,7 @@ func TestInit(t *testing.T) {
 	fmt.Println(f.FloatVal("a"))
 	f.Del("nfound")
 	f.Del("a")
+	fmt.Println(f.Show())
 }
 func TestOpenError(t *testing.T) {
 	f := &Fcfg{}

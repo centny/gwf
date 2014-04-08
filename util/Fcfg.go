@@ -50,6 +50,15 @@ func (f *Fcfg) FloatVal(key string) float64 {
 	return val
 }
 
+//
+func (f *Fcfg) Show() string {
+	sdata := ""
+	for k, v := range *f {
+		sdata = fmt.Sprintf("%v\t%v=%v\n", sdata, k, v)
+	}
+	return sdata
+}
+
 //set the value by key and value.
 func (f *Fcfg) SetVal(key string, val string) *Fcfg {
 	(*f)[key] = val
