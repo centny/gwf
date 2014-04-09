@@ -76,7 +76,7 @@ func Tnh(h http.Handler, f string, args ...interface{}) error {
 	return err
 }
 
-//test normal handler function
+//test normal handler function a=%v&
 func Tnf(h func(http.ResponseWriter, *http.Request), f string, args ...interface{}) error {
 	return Tnh(http.HandlerFunc(h), f, args...)
 }

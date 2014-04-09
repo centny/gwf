@@ -141,6 +141,7 @@ func TestSessionMux(t *testing.T) {
 	c := http.Client{Jar: jar}
 	c.Get("http://127.0.0.1:2789/t/a")
 	c.Get("http://127.0.0.1:2789/t/b")
+	c.Post("http://127.0.0.1:2789/t/b", "application/x-www-form-urlencoded", nil)
 	mux.ShowLog = true
 	c.Get("http://127.0.0.1:2789/t/redirect")
 	c.Get("http://127.0.0.1:2789/t2/b")
