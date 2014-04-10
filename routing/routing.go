@@ -352,7 +352,7 @@ func (s *SessionMux) check_continue(reg *regexp.Regexp) bool {
 	return false
 }
 
-func (s *SessionMux) exec_f(hs *HTTPSession) bool {
+func (s *SessionMux) exec_f(hs *HTTPSession) (bool, HResult) {
 	url := hs.R.URL.Path
 	var matched bool = false
 	for _, k := range s.regex_f_ary {
@@ -370,20 +370,20 @@ func (s *SessionMux) exec_f(hs *HTTPSession) bool {
 			res := rv.SrvHTTP(hs)
 			s.slog("mathced filter %v to %v (%v)", k, hs.R.URL.Path, res.String())
 			if res == HRES_RETURN {
-				return matched
+				return matched, res
 			}
 		case 2:
 			rv := s.FilterFunc[k]
 			res := rv(hs)
 			s.slog("mathced filter func %v to %v (%v)", k, hs.R.URL.Path, res.String())
 			if res == HRES_RETURN {
-				return matched
+				return matched, res
 			}
 		}
 	}
-	return matched
+	return matched, HRES_CONTINUE
 }
-func (s *SessionMux) exec_h(hs *HTTPSession) bool {
+func (s *SessionMux) exec_h(hs *HTTPSession) (bool, HResult) {
 	url := hs.R.URL.Path
 	var matched bool = false
 	for _, k := range s.regex_h_ary {
@@ -401,14 +401,14 @@ func (s *SessionMux) exec_h(hs *HTTPSession) bool {
 			res := rv.SrvHTTP(hs)
 			s.slog("mathced handler %v to %v (%v)", k, hs.R.URL.Path, res.String())
 			if res == HRES_RETURN {
-				return matched
+				return matched, res
 			}
 		case 2:
 			rv := s.HandlerFunc[k]
 			res := rv(hs)
 			s.slog("mathced handler func %v to %v (%v)", k, hs.R.URL.Path, res.String())
 			if res == HRES_RETURN {
-				return matched
+				return matched, res
 			}
 		case 3:
 			rv := s.NHandlers[k]
@@ -420,7 +420,7 @@ func (s *SessionMux) exec_h(hs *HTTPSession) bool {
 			} else {
 				s.slog("mathced normal handler %v to %v (%v)",
 					k, hs.R.URL.Path, HRES_RETURN.String())
-				return matched
+				return matched, HRES_RETURN
 			}
 		case 4:
 			rv := s.NHandlerFunc[k]
@@ -432,11 +432,11 @@ func (s *SessionMux) exec_h(hs *HTTPSession) bool {
 			} else {
 				s.slog("mathced normal handler func %v to %v (%v)", k,
 					hs.R.URL.Path, HRES_RETURN.String())
-				return matched
+				return matched, HRES_RETURN
 			}
 		}
 	}
-	return matched
+	return matched, HRES_CONTINUE
 }
 
 //
@@ -463,11 +463,18 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 	//match filter.
 	if s.FilterEnable {
-		matched = s.exec_f(hs)
+		mrv, res := s.exec_f(hs)
+		matched = mrv
+		if res == HRES_RETURN {
+			return
+		}
 	}
 	//match handle
 	if s.HandleEnable {
-		mrv := s.exec_h(hs)
+		mrv, res := s.exec_h(hs)
 		matched = matched || mrv
+		if res == HRES_RETURN {
+			return
+		}
 	}
 }
