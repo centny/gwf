@@ -439,15 +439,20 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					s.slog("mathced normal handler %v to %v", k, r.URL.Path)
 					rv := s.NHandlers[k]
 					rv.ServeHTTP(w, r)
+					if s.check_continue(k) {
+						continue
+					} else {
+						return
+					}
 				case 4:
 					s.slog("mathced normal handler func %v to %v", k, r.URL.Path)
 					rv := s.NHandlerFunc[k]
 					rv(w, r)
-				}
-				if s.check_continue(k) {
-					continue
-				} else {
-					return
+					if s.check_continue(k) {
+						continue
+					} else {
+						return
+					}
 				}
 			}
 		}
