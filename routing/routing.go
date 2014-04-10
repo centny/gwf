@@ -22,7 +22,7 @@ const (
 
 func (h HResult) String() string {
 	if h == HRES_CONTINUE {
-		return "HRES_CONTINUE"
+		return "CONTINUE"
 	} else {
 		return "RETURN"
 	}
@@ -346,6 +346,7 @@ func (s *SessionMux) check_m(reg *regexp.Regexp, m string) bool {
 
 func (s *SessionMux) check_continue(reg *regexp.Regexp) bool {
 	if tm, ok := s.regex_m[reg]; ok {
+		fmt.Println(tm)
 		return strings.Contains(tm, ":CONTINUE")
 	}
 	return false
@@ -355,27 +356,28 @@ func (s *SessionMux) exec_f(hs *HTTPSession) bool {
 	url := hs.R.URL.Path
 	var matched bool = false
 	for _, k := range s.regex_f_ary {
-		if k.MatchString(url) {
-			if !s.check_m(k, hs.R.Method) {
-				s.slog("not mathced method %v to %v", hs.R.Method, s.regex_m[k])
-				continue
+		if !k.MatchString(url) {
+			continue
+		}
+		if !s.check_m(k, hs.R.Method) {
+			s.slog("not mathced method %v to %v", hs.R.Method, s.regex_m[k])
+			continue
+		}
+		matched = true
+		switch s.regex_f[k] {
+		case 1:
+			rv := s.Filters[k]
+			res := rv.SrvHTTP(hs)
+			s.slog("mathced filter %v to %v (%v)", k, hs.R.URL.Path, res.String())
+			if res == HRES_RETURN {
+				return matched
 			}
-			matched = true
-			switch s.regex_f[k] {
-			case 1:
-				rv := s.Filters[k]
-				res := rv.SrvHTTP(hs)
-				s.slog("mathced filter %v to %v (%v)", k, hs.R.URL.Path, res.String())
-				if res == HRES_RETURN {
-					return matched
-				}
-			case 2:
-				rv := s.FilterFunc[k]
-				res := rv(hs)
-				s.slog("mathced filter func %v to %v (%v)", k, hs.R.URL.Path, res.String())
-				if res == HRES_RETURN {
-					return matched
-				}
+		case 2:
+			rv := s.FilterFunc[k]
+			res := rv(hs)
+			s.slog("mathced filter func %v to %v (%v)", k, hs.R.URL.Path, res.String())
+			if res == HRES_RETURN {
+				return matched
 			}
 		}
 	}
@@ -412,10 +414,12 @@ func (s *SessionMux) exec_h(hs *HTTPSession) bool {
 			rv := s.NHandlers[k]
 			rv.ServeHTTP(hs.W, hs.R)
 			if s.check_continue(k) {
-				s.slog("mathced normal handler %v to %v (%v)", k, hs.R.URL.Path, HRES_CONTINUE)
+				s.slog("mathced normal handler %v to %v (%v)",
+					k, hs.R.URL.Path, HRES_CONTINUE.String())
 				continue
 			} else {
-				s.slog("mathced normal handler %v to %v (%v)", k, hs.R.URL.Path, HRES_RETURN)
+				s.slog("mathced normal handler %v to %v (%v)",
+					k, hs.R.URL.Path, HRES_RETURN.String())
 				return matched
 			}
 		case 4:
@@ -423,11 +427,11 @@ func (s *SessionMux) exec_h(hs *HTTPSession) bool {
 			rv(hs.W, hs.R)
 			if s.check_continue(k) {
 				s.slog("mathced normal handler func %v to %v (%v)",
-					k, hs.R.URL.Path, HRES_CONTINUE)
+					k, hs.R.URL.Path, HRES_CONTINUE.String())
 				continue
 			} else {
 				s.slog("mathced normal handler func %v to %v (%v)", k,
-					hs.R.URL.Path, HRES_RETURN)
+					hs.R.URL.Path, HRES_RETURN.String())
 				return matched
 			}
 		}
@@ -463,6 +467,7 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	//match handle
 	if s.HandleEnable {
-		matched = s.exec_h(hs) || matched
+		mrv := s.exec_h(hs)
+		matched = matched || mrv
 	}
 }

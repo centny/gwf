@@ -79,13 +79,20 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 func TestSessionMux(t *testing.T) {
 	sb := NewSrvSessionBuilder("", "/", "rtest", 2000, 500)
 	mux := NewSessionMux("/t", sb)
+	mux.ShowLog = true
 	// mux.CDelay = 500
 	ssrv1 := Ssrv{Count: 0}
 	csrv1 := CSrv{Count: 0, Res: HRES_CONTINUE}
 	csrv2 := CSrv{Count: 0, Res: HRES_RETURN}
 	count := 0
-	mux.Handler("^/a(\\?.*)?$", &ssrv1)
-	mux.HandleFunc("^/a(\\?.*)?$", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandlerM("^/a(\\?.*)?$", &ssrv1, "*", false)
+	mux.Handler("^/atestadd(\\?.*)?$", &ssrv1)
+	mux.HandleFuncM("^/a(\\?.*)?$", func(w http.ResponseWriter, r *http.Request) {
+		count = count + 1
+		w.Write([]byte("abc"))
+		fmt.Println(mux.RSession(r))
+	}, "*", false)
+	mux.HandleFunc("^/atestadd(\\?.*)?$", func(w http.ResponseWriter, r *http.Request) {
 		count = count + 1
 		w.Write([]byte("abc"))
 		fmt.Println(mux.RSession(r))
@@ -96,18 +103,7 @@ func TestSessionMux(t *testing.T) {
 		fmt.Println(sb.Session(hs.S.(*SrvSession).Token()))
 		return HRES_CONTINUE
 	})
-	mux.HFilterFunc("^/redirect(\\?.*)?$", func(hs *HTTPSession) HResult {
-		// count = count + 1
-		hs.Redirect("http://www.baidu.com")
-		// fmt.Println(sb.Session(hs.S.(*SrvSession).Token()))
-		return HRES_CONTINUE
-	})
-	mux.HFilterFunc("^/abc(\\?.*)?$", func(hs *HTTPSession) HResult {
-		// count = count + 1
-		fmt.Println(hs.CheckVal("ttv"))
-		// fmt.Println(sb.Session(hs.S.(*SrvSession).Token()))
-		return HRES_CONTINUE
-	})
+
 	mux.HFilter("^/r1(\\?.*)?$", &csrv2)
 	mux.HFilterFunc("^/r2(\\?.*)?$", func(hs *HTTPSession) HResult {
 		count = count + 1
@@ -124,6 +120,20 @@ func TestSessionMux(t *testing.T) {
 		count = count + 1
 		return HRES_RETURN
 	})
+
+	mux.HFilterFunc("^/redirect(\\?.*)?$", func(hs *HTTPSession) HResult {
+		// count = count + 1
+		hs.Redirect("http://www.baidu.com")
+		// fmt.Println(sb.Session(hs.S.(*SrvSession).Token()))
+		return HRES_CONTINUE
+	})
+	mux.HFilterFunc("^/abc(\\?.*)?$", func(hs *HTTPSession) HResult {
+		// count = count + 1
+		fmt.Println(hs.CheckVal("ttv"))
+		// fmt.Println(sb.Session(hs.S.(*SrvSession).Token()))
+		return HRES_CONTINUE
+	})
+	fmt.Println(mux.regex_m)
 	sb.StartLoop()
 	//
 	http.Handle("/t/", mux)
@@ -140,15 +150,16 @@ func TestSessionMux(t *testing.T) {
 	}
 	c := http.Client{Jar: jar}
 	c.Get("http://127.0.0.1:2789/t/a")
+	fmt.Println(ssrv1.Count, csrv1.Count, count)
+	if ssrv1.Count != 1 || csrv1.Count != 2 || count != 3 {
+		t.Error("count error")
+		return
+	}
 	c.Get("http://127.0.0.1:2789/t/b")
 	c.Post("http://127.0.0.1:2789/t/b", "application/x-www-form-urlencoded", nil)
 	mux.ShowLog = true
 	c.Get("http://127.0.0.1:2789/t/redirect")
 	c.Get("http://127.0.0.1:2789/t2/b")
-	fmt.Println(ssrv1.Count, csrv1.Count, count)
-	if ssrv1.Count != 1 || csrv1.Count != 2 || count != 3 {
-		t.Error("count error")
-	}
 	time.Sleep(3 * time.Second)
 	c.Get("http://127.0.0.1:2789/t/a")
 	c.Get("http://127.0.0.1:2789/t/b")
