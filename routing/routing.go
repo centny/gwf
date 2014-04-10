@@ -356,6 +356,7 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//
 	defer func() {
 		if !matched { //if not matched
+			s.slog("not matchd any filter:", r.URL.Path)
 			http.NotFound(w, r)
 		}
 	}()
@@ -413,12 +414,12 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					s.slog("mathced normal handler %v to %v", k, r.URL.Path)
 					rv := s.NHandlers[k]
 					rv.ServeHTTP(w, r)
-					return
+					// return
 				case 4:
 					s.slog("mathced normal handler func %v to %v", k, r.URL.Path)
 					rv := s.NHandlerFunc[k]
 					rv(w, r)
-					return
+					// return
 				}
 			}
 		}
