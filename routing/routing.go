@@ -262,7 +262,7 @@ func (s *SessionMux) RSession(r *http.Request) *HTTPSession {
 	}
 }
 func (s *SessionMux) HFilter(pattern string, h Handler) {
-	s.HFilterM(pattern, h, "GET")
+	s.HFilterM(pattern, h, "*")
 }
 func (s *SessionMux) HFilterM(pattern string, h Handler, m string) {
 	reg := regexp.MustCompile(pattern)
@@ -302,23 +302,33 @@ func (s *SessionMux) HFuncM(pattern string, h HandleFunc, m string) {
 	s.regex_m[reg] = m
 }
 func (s *SessionMux) Handler(pattern string, h http.Handler) {
-	s.HandlerM(pattern, h, "*")
+	s.HandlerM(pattern, h, "*", true)
 }
-func (s *SessionMux) HandlerM(pattern string, h http.Handler, m string) {
+func (s *SessionMux) HandlerM(pattern string, h http.Handler, m string, ret bool) {
 	reg := regexp.MustCompile(pattern)
 	s.NHandlers[reg] = h
 	s.regex_h[reg] = 3
 	s.regex_h_ary = append(s.regex_h_ary, reg)
+	if ret {
+		m = fmt.Sprintf("%s,:RETURN", m)
+	} else {
+		m = fmt.Sprintf("%s,:CONTINUE", m)
+	}
 	s.regex_m[reg] = m
 }
 func (s *SessionMux) HandleFunc(pattern string, h http.HandlerFunc) {
-	s.HandleFuncM(pattern, h, "*")
+	s.HandleFuncM(pattern, h, "*", true)
 }
-func (s *SessionMux) HandleFuncM(pattern string, h http.HandlerFunc, m string) {
+func (s *SessionMux) HandleFuncM(pattern string, h http.HandlerFunc, m string, ret bool) {
 	reg := regexp.MustCompile(pattern)
 	s.NHandlerFunc[reg] = h
 	s.regex_h[reg] = 4
 	s.regex_h_ary = append(s.regex_h_ary, reg)
+	if ret {
+		m = fmt.Sprintf("%s,:RETURN", m)
+	} else {
+		m = fmt.Sprintf("%s,:CONTINUE", m)
+	}
 	s.regex_m[reg] = m
 }
 
@@ -333,6 +343,13 @@ func (s *SessionMux) check_m(reg *regexp.Regexp, m string) bool {
 			return true
 		}
 		return strings.Contains(tm, m)
+	}
+	return false
+}
+
+func (s *SessionMux) check_continue(reg *regexp.Regexp) bool {
+	if tm, ok := s.regex_m[reg]; ok {
+		return strings.Contains(tm, ":CONTINUE")
 	}
 	return false
 }
@@ -375,6 +392,8 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					s.slog("mathced filter %v to %v (%v)", k, r.URL.Path, res.String())
 					if res == HRES_RETURN {
 						return
+					} else {
+						continue
 					}
 				case 2:
 					rv := s.FilterFunc[k]
@@ -382,6 +401,8 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					s.slog("mathced filter func %v to %v (%v)", k, r.URL.Path, res.String())
 					if res == HRES_RETURN {
 						return
+					} else {
+						continue
 					}
 				}
 			}
@@ -402,6 +423,8 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					s.slog("mathced handler %v to %v (%v)", k, r.URL.Path, res.String())
 					if res == HRES_RETURN {
 						return
+					} else {
+						continue
 					}
 				case 2:
 					rv := s.HandlerFunc[k]
@@ -409,17 +432,22 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					s.slog("mathced handler func %v to %v (%v)", k, r.URL.Path, res.String())
 					if res == HRES_RETURN {
 						return
+					} else {
+						continue
 					}
 				case 3:
 					s.slog("mathced normal handler %v to %v", k, r.URL.Path)
 					rv := s.NHandlers[k]
 					rv.ServeHTTP(w, r)
-					// return
 				case 4:
 					s.slog("mathced normal handler func %v to %v", k, r.URL.Path)
 					rv := s.NHandlerFunc[k]
 					rv(w, r)
-					// return
+				}
+				if s.check_continue(k) {
+					continue
+				} else {
+					return
 				}
 			}
 		}
