@@ -73,6 +73,9 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 	hs.ValidRVal("int,R|I,R:50~300", &iv)
 	hs.ValidRValN("int,R|I,R:50~300", &iv)
 	hs.ValidCheckValN("int,R|I,R:50~300", &iv)
+	hs.Cookie("key")
+	hs.SetCookie("kk", "sfsf")
+	hs.Cookie("kk")
 	return s.Res
 }
 

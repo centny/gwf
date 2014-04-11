@@ -49,6 +49,24 @@ type HTTPSession struct {
 	Kvs map[string]interface{}
 }
 
+func (h *HTTPSession) SetCookie(key string, val string) {
+	cookie := &http.Cookie{}
+	cookie.Name = key
+	cookie.Domain = h.Mux.Domain
+	cookie.Path = h.Mux.Path
+	cookie.Value = val
+	cookie.MaxAge = 0
+	http.SetCookie(h.W, cookie)
+}
+
+func (h *HTTPSession) Cookie(key string) string {
+	c, err := h.R.Cookie(key)
+	if c == nil || err != nil {
+		return ""
+	}
+	return c.Value
+}
+
 func (h *HTTPSession) Redirect(url string) {
 	http.Redirect(h.W, h.R, url, http.StatusMovedPermanently)
 }
@@ -201,7 +219,9 @@ func (h *HTTPSession) ValidCheckValN(f string, args ...interface{}) error {
 }
 
 type SessionMux struct {
-	Pre string
+	Pre    string
+	Domain string
+	Path   string
 	//
 	Sb SessionBuilder
 	//
@@ -234,6 +254,8 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	}
 	mux := SessionMux{}
 	mux.Pre = pre
+	mux.Domain = ""
+	mux.Path = "/"
 	mux.Sb = sb
 	mux.Filters = map[*regexp.Regexp]Handler{}
 	mux.Handlers = map[*regexp.Regexp]Handler{}
