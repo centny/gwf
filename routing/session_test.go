@@ -76,6 +76,7 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 	hs.Cookie("key")
 	hs.SetCookie("kk", "sfsf")
 	hs.Cookie("kk")
+	hs.SetCookie("kk", "")
 	return s.Res
 }
 

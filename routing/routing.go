@@ -56,6 +56,9 @@ func (h *HTTPSession) SetCookie(key string, val string) {
 	cookie.Path = h.Mux.Path
 	cookie.Value = val
 	cookie.MaxAge = 0
+	if len(val) < 1 {
+		cookie.Expires = util.Time(0)
+	}
 	http.SetCookie(h.W, cookie)
 }
 
@@ -368,7 +371,6 @@ func (s *SessionMux) check_m(reg *regexp.Regexp, m string) bool {
 
 func (s *SessionMux) check_continue(reg *regexp.Regexp) bool {
 	if tm, ok := s.regex_m[reg]; ok {
-		fmt.Println(tm)
 		return strings.Contains(tm, ":CONTINUE")
 	}
 	return false
