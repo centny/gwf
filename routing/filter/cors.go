@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"github.com/Centny/Cny4go/log"
 	"github.com/Centny/Cny4go/routing"
 	"net/http"
 )
@@ -12,6 +13,7 @@ type CORS struct {
 func (c *CORS) exec(w http.ResponseWriter, r *http.Request) routing.HResult {
 	origin := r.Header.Get("Origin")
 	found := func(origin string) routing.HResult {
+		log.D("sending CORS to %s", origin)
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		if r.Method == "OPTIONS" {
 			return routing.HRES_RETURN
