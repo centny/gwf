@@ -42,4 +42,4 @@ cat coverage.json | gocov-xml -b $GOPATH/src > coverage.xml
 cat coverage.json | gocov-html coverage.json > coverage.html
 
 ######
-go install github.com/Centny/Cny4go/igtest/mrepo
+go install github.com/Centny/Cny4go/mrepo
