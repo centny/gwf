@@ -13,12 +13,12 @@ type A struct {
 
 func TestIg(t *testing.T) {
 	b := NewBuilder2()
-	b.SetData("F64", float64(111))
-	b.SetData("I64", int64(111))
+	b.StoreData("F64", float64(111))
+	b.StoreData("I64", int64(111))
 	av := map[string]interface{}{
 		"IV": "kkkkkk",
 	}
-	b.SetData("AV", av)
+	b.StoreData("AV", av)
 	//
 	b.Append3(empty_f)
 	b.Append2("F64", int64_f)
@@ -27,6 +27,7 @@ func TestIg(t *testing.T) {
 	b.Append2("F64", string_f)
 	b.Append2("AV,AV", av_f)
 	b.Append2("F64,F64", t_f)
+	b.Append2("@b,@t,F64,F64", b_f)
 	if err := b.Exec(); err != nil {
 		t.Error(err.Error())
 	}
@@ -41,7 +42,7 @@ func TestIg(t *testing.T) {
 	b.Append2("I64", int_f).Exec()
 
 	//end
-	b.DelData("I64")
+	b.DeleteData("I64")
 	b.cls_dset()
 
 }
@@ -65,6 +66,9 @@ func av_f(v1 *A, v2 A) {
 }
 func t_f(v1 int64, v2 string) {
 	fmt.Println(v1, v2)
+}
+func b_f(b *Builder, t Task, v1 int64, v2 string) {
+	fmt.Println(b, t, v1, v2)
 }
 
 func TestIgE(t *testing.T) {

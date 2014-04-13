@@ -23,19 +23,32 @@ type Task struct {
 type Builder struct {
 	In    string   //the rely json data file path for read
 	Out   string   //the json data file path for write
-	Dset  util.Map //the data set
+	Dset  util.Map //the data set read from json file or store to json file.
+	Kvs   util.Map //the extern key value to run the task
 	tasks []Task   //all testing task.
 }
 
-//add data to data set by key
-func (b *Builder) SetData(key string, val interface{}) *Builder {
+//add data to data set by key,
+//if val is nil,it will delete the key value.
+func (b *Builder) Set(key string, val interface{}) *Builder {
+	if val == nil {
+		delete(b.Kvs, key)
+	} else {
+		b.Kvs[key] = val
+	}
+	log.D("adding the cache data:%v", key)
+	return b
+}
+
+//store data to data set by key.
+func (b *Builder) StoreData(key string, val interface{}) *Builder {
 	b.Dset[key] = val
 	log.D("adding the test data to set:%v", key)
 	return b
 }
 
 //delete the data from data set by key
-func (b *Builder) DelData(key string) *Builder {
+func (b *Builder) DeleteData(key string) *Builder {
 	delete(b.Dset, key)
 	log.D("remove the test data from set:%v", key)
 	return b
@@ -95,15 +108,21 @@ func (b *Builder) exec_f(task Task) error {
 	//covert all in value.
 	vals := []reflect.Value{}
 	for i, r := range task.Rely {
-		if _, ok := b.Dset[r]; !ok {
+		atype := ftype.In(i)
+		var data interface{} = nil
+		if td, ok := b.Dset[r]; ok {
+			data = td
+		}
+		if td, ok := b.Kvs[r]; ok {
+			data = td
+		}
+		if data == nil {
 			err := errors.New(fmt.Sprintf(
 				"rely data(%v) not found for func(%v)",
 				r, ftype.String(),
 			))
 			return err
 		}
-		data := b.Dset[r]
-		atype := ftype.In(i)
 		dtype := reflect.TypeOf(data)
 		if atype.Kind() == dtype.Kind() {
 			vals = append(vals, reflect.ValueOf(data))
@@ -145,6 +164,7 @@ func (b *Builder) exec_f(task Task) error {
 
 //execute all task in queue.
 func (b *Builder) Exec() error {
+	b.Set("@b", b)
 	if len(b.In) > 0 {
 		idata, err := ioutil.ReadFile(b.In)
 		if err != nil {
@@ -156,10 +176,13 @@ func (b *Builder) Exec() error {
 		}
 	}
 	for _, ts := range b.tasks {
+		b.Set("@t", ts)
 		if err := b.exec_f(ts); err != nil {
+			b.Set("@t", nil)
 			return err
 		}
 	}
+	b.Set("@t", nil)
 	if len(b.Out) > 0 {
 		odata, err := json.Marshal(b.Dset)
 		if err != nil {
@@ -177,6 +200,7 @@ func (b *Builder) Exec() error {
 func NewBuilder(in string, out string) *Builder {
 	b := &Builder{}
 	b.Dset = util.Map{}
+	b.Kvs = util.Map{}
 	b.tasks = []Task{}
 	b.In, b.Out = in, out
 	for _, a := range os.Args {
