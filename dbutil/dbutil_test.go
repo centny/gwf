@@ -30,6 +30,10 @@ type TSt struct {
 func TestDbUtil(t *testing.T) {
 	db, _ := sql.Open("mysql", test.TDbCon)
 	defer db.Close()
+	err := DbExecF(db, "ttable.sql")
+	if err != nil {
+		t.Error(err.Error())
+	}
 	res, err := DbQuery(db, "select * from ttable where tid>?", 1)
 	if err != nil {
 		t.Error(err.Error())
@@ -242,4 +246,17 @@ func TestDbUtil2(t *testing.T) {
 		return
 	}
 	fmt.Println(res)
+}
+
+func TestDbExecF(t *testing.T) {
+	db, _ := sql.Open("mysql", test.TDbCon)
+	defer db.Close()
+	err := DbExecF(db, "ttable.sql")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	DbExecF(nil, "ttable.sql")
+	DbExecF(db, "ttables.sql")
+	db.Close()
+	DbExecF(db, "ttable.sql")
 }

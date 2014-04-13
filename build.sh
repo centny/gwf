@@ -18,6 +18,7 @@ pkgs="\
  github.com/Centny/Cny4go/log\
  github.com/Centny/Cny4go/util\
  github.com/Centny/Cny4go/dbutil\
+ github.com/Centny/Cny4go/igtest\
  github.com/Centny/Cny4go/routing\
  github.com/Centny/Cny4go/routing/cookie\
  github.com/Centny/Cny4go/routing/filter\
@@ -39,3 +40,6 @@ gocov convert a.out > coverage.json
 echo "Create Coverage Report"
 cat coverage.json | gocov-xml -b $GOPATH/src > coverage.xml
 cat coverage.json | gocov-html coverage.json > coverage.html
+
+######
+go install github.com/Centny/Cny4go/igtest/mrepo

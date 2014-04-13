@@ -13,3 +13,5 @@ CREATE TABLE `ttable` (
   PRIMARY KEY (`TID`)
 );
 insert into ttable(tname,titem,tval,status,time) values('name','item','val','N',now());
+insert into ttable(tname,titem,tval,status,time) values('name','item','val','N',now());
+insert into ttable(tname,titem,tval,status,time) values('name','item','val','N',now());

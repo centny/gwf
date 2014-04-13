@@ -6,7 +6,9 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/Centny/Cny4go/util"
+	"io/ioutil"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -190,4 +192,24 @@ func DbUpdate2(db *sql.Tx, query string, args ...interface{}) (int64, error) {
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+func DbExecF(db *sql.DB, file string) error {
+	if db == nil {
+		return errors.New("db is nil")
+	}
+	fdata, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	blocks := strings.Split(string(fdata), ";")
+	for _, b := range blocks {
+		if len(b) < 1 {
+			continue
+		}
+		_, err := db.Exec(b)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
