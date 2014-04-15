@@ -2,8 +2,6 @@ package util
 
 import (
 	"fmt"
-	"math"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -154,90 +152,4 @@ func TestTime(t *testing.T) {
 	ti := time.Now().UnixNano() / (1e6)
 	fmt.Println(ti)
 	fmt.Println(time.Unix(ti/1e3, (ti % 1e3)))
-}
-
-func TestMap(t *testing.T) {
-	m := Map{}
-	//
-	m["abc"] = "123"
-	m["abd"] = "a123"
-	m["abe"] = []byte("akkkk")
-	m["abc2"] = int(1)
-	m["float32"] = float32(1)
-	m["float64"] = float64(1)
-	m["int"] = int(1)
-	m["int8"] = int8(1)
-	m["int16"] = int16(1)
-	m["int32"] = int32(1)
-	m["int64"] = int64(1)
-	m["uint"] = uint(1)
-	m["uint8"] = uint8(1)
-	m["uint16"] = uint16(1)
-	m["uint32"] = uint32(1)
-	m["uint64"] = uint64(1)
-	m["time"] = time.Now()
-
-	fmt.Println(m.StrVal("abc"))
-	fmt.Println(m.StrVal("abc2"))
-	fmt.Println(m.StrVal("nf"))
-	fmt.Println(m.StrVal("int"))
-	//
-	fmt.Println(m.IntVal("int"))
-	fmt.Println(m.IntVal("int8"))
-	fmt.Println(m.IntVal("int16"))
-	fmt.Println(m.IntVal("int32"))
-	fmt.Println(m.IntVal("int64"))
-	fmt.Println(m.IntVal("uint64"))
-	fmt.Println(m.IntVal("nf"))
-	fmt.Println(m.IntVal("abc"))
-	fmt.Println(m.IntVal("abd"))
-	fmt.Println(m.IntVal("abe"))
-	fmt.Println(m.IntVal("float32"))
-	fmt.Println(m.IntVal("uint64"))
-	//
-	fmt.Println(m.UintVal("uint"))
-	fmt.Println(m.UintVal("uint8"))
-	fmt.Println(m.UintVal("uint16"))
-	fmt.Println(m.UintVal("uint32"))
-	fmt.Println(m.UintVal("uint64"))
-	fmt.Println(m.UintVal("float64"))
-	fmt.Println(m.UintVal("nf"))
-	fmt.Println(m.UintVal("abc"))
-	fmt.Println(m.UintVal("abd"))
-	fmt.Println(m.UintVal("abe"))
-	fmt.Println(m.UintVal("float32"))
-	fmt.Println(m.UintVal("int64"))
-	//
-	fmt.Println(m.FloatVal("float32"))
-	fmt.Println(m.FloatVal("float64"))
-	fmt.Println(m.FloatVal("int64"))
-	fmt.Println(m.FloatVal("nf"))
-	fmt.Println(m.FloatVal("abc"))
-	fmt.Println(m.FloatVal("abd"))
-	fmt.Println(m.FloatVal("abe"))
-	fmt.Println(m.FloatVal("int64"))
-	fmt.Println(m.FloatVal("uint64"))
-	//
-	fmt.Println(m.IntVal("time"))
-}
-
-func TestC(t *testing.T) {
-	fv := math.MaxFloat64
-	iv := math.MaxInt64
-	var uv uint64 = math.MaxUint64
-	fmt.Println(uint64(fv))
-	fmt.Println(uint64(iv))
-	fmt.Println(int64(uv))
-	fmt.Println(int64(fv))
-	fmt.Println(float64(uv))
-	fmt.Println(float64(iv))
-	// fmt.Println(int64(fv))
-	// fmt.Println(int64(math.MaxFloat64 / 2e8))
-	// fmt.Println(int64(math.MaxUint64 / 2))
-}
-func TestReflect(t *testing.T) {
-	var mm map[string]interface{}
-	fmt.Println(reflect.TypeOf(mm).Name())
-	var m2 Map
-	fmt.Println(reflect.TypeOf(m2).Name())
 }
