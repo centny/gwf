@@ -2,16 +2,9 @@ package util
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"mime/multipart"
-	"net/http"
-	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -93,144 +86,10 @@ func AryExist(ary interface{}, obj interface{}) bool {
 		return false
 	}
 }
-func readAllStr(r io.Reader) (string, error) {
-	if r == nil {
-		return "", nil
-	}
-	bys, err := ioutil.ReadAll(r)
-	if err != nil {
-		return "", nil
-	}
-	return string(bys), nil
-}
 
-var HTTPClient http.Client
+var C_SH string = "/bin/bash"
 
-func HGet(ufmt string, args ...interface{}) (string, error) {
-	res, err := HTTPClient.Get(fmt.Sprintf(ufmt, args...))
-	if err != nil {
-		return "", err
-	}
-	return readAllStr(res.Body)
+func Exec(args ...string) (string, error) {
+	bys, err := exec.Command(C_SH, "-c", strings.Join(args, " ")).Output()
+	return string(bys), err
 }
-func HGet2(ufmt string, args ...interface{}) (Map, error) {
-	data, err := HGet(ufmt, args...)
-	if len(data) < 1 || err != nil {
-		return nil, err
-	}
-	return Json2Map(data)
-}
-func HPost(url string, fields map[string]string) (string, error) {
-	return HPostF(url, fields, "", "")
-}
-func HPostF(url string, fields map[string]string, fkey string, fp string) (string, error) {
-	bodyBuf := &bytes.Buffer{}
-	bodyWriter := multipart.NewWriter(bodyBuf)
-	for k, v := range fields {
-		bodyWriter.WriteField(k, v)
-	}
-	if len(fkey) > 0 {
-		fileWriter, err := bodyWriter.CreateFormFile(fkey, fp)
-		if err != nil {
-			return "", err
-		}
-		fh, err := os.Open(fp)
-		if err != nil {
-			return "", err
-		}
-		defer fh.Close()
-		_, err = io.Copy(fileWriter, fh)
-		if err != nil {
-			return "", err
-		}
-	}
-	ctype := bodyWriter.FormDataContentType()
-	bodyWriter.Close()
-	res, err := HTTPClient.Post(url, ctype, bodyBuf)
-	if err != nil {
-		return "", err
-	}
-	return readAllStr(res.Body)
-}
-func HPost2(url string, fields map[string]string) (Map, error) {
-	data, err := HPost(url, fields)
-	if len(data) < 1 || err != nil {
-		return nil, err
-	}
-	return Json2Map(data)
-}
-func HPostF2(url string, fields map[string]string, fkey string, fp string) (Map, error) {
-	data, err := HPostF(url, fields, fkey, fp)
-	if len(data) < 1 || err != nil {
-		return nil, err
-	}
-	return Json2Map(data)
-}
-func HTTPGet(ufmt string, args ...interface{}) string {
-	res, _ := HGet(ufmt, args...)
-	return res
-}
-
-func HTTPGet2(ufmt string, args ...interface{}) Map {
-	res, _ := HGet2(ufmt, args...)
-	return res
-}
-
-func HTTPPost(url string, fields map[string]string) string {
-	res, _ := HPost(url, fields)
-	return res
-}
-
-func HTTPPost2(url string, fields map[string]string) Map {
-	res, _ := HPost2(url, fields)
-	return res
-}
-
-func Map2Query(m Map) string {
-	vs := url.Values{}
-	for k, v := range m {
-		vs.Add(k, v.(string))
-	}
-	return vs.Encode()
-}
-
-func Json2Map(data string) (Map, error) {
-	md := Map{}
-	d := json.NewDecoder(strings.NewReader(data))
-	err := d.Decode(&md)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("invalid json data(%s)", err.Error()))
-	}
-	return md, nil
-}
-
-type fs_size interface {
-	Size() int64
-}
-
-type fs_stat interface {
-	Stat() (os.FileInfo, error)
-}
-type fs_name interface {
-	Name() string
-}
-
-func FormFSzie(src interface{}) int64 {
-	var fsize int64 = 0
-	if statInterface, ok := src.(fs_stat); ok {
-		fileInfo, _ := statInterface.Stat()
-		fsize = fileInfo.Size()
-	}
-	if sizeInterface, ok := src.(fs_size); ok {
-		fsize = sizeInterface.Size()
-	}
-	return fsize
-}
-
-// func FormFName(src interface{}) string {
-// 	if nameInterface, ok := src.(fs_name); ok {
-// 		return nameInterface.Name()
-// 	} else {
-// 		return ""
-// 	}
-// }
