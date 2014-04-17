@@ -127,3 +127,10 @@ func TestAryExist(t *testing.T) {
 func TestExec(t *testing.T) {
 	fmt.Println(Exec("echo", "abc", "kk"))
 }
+
+func TestDLoad(t *testing.T) {
+	DLoad("/tmp/index.html", "http/www.baidu.com")
+	DLoad("/tmp/index.html", "http://www.baidu.com")
+	os.Remove("/tmp/index.html")
+	DLoad("/tm/s.html", "http://www.baidu.com")
+}

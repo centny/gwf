@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -107,6 +108,29 @@ func (h *HClient) HTTPPost2(url string, fields map[string]string) Map {
 	return res
 }
 
+func (h *HClient) DLoad(spath string, header map[string]string, ufmt string, args ...interface{}) error {
+	req, err := http.NewRequest("GET", fmt.Sprintf(ufmt, args...), nil)
+	if err != nil {
+		return err
+	}
+	for k, v := range header {
+		req.Header.Set(k, v)
+	}
+	res, err := h.Do(req)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(spath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	buf := bufio.NewWriter(f)
+	_, err = io.Copy(buf, res.Body)
+	buf.Flush()
+	return err
+}
+
 func HGet(ufmt string, args ...interface{}) (string, error) {
 	return HTTPClient.HGet(ufmt, args...)
 }
@@ -139,6 +163,10 @@ func HTTPPost(url string, fields map[string]string) string {
 
 func HTTPPost2(url string, fields map[string]string) Map {
 	return HTTPClient.HTTPPost2(url, fields)
+}
+
+func DLoad(spath string, ufmt string, args ...interface{}) error {
+	return HTTPClient.DLoad(spath, map[string]string{}, ufmt, args...)
 }
 
 func readAllStr(r io.Reader) (string, error) {
