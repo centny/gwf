@@ -196,6 +196,16 @@ func Json2Map(data string) (Map, error) {
 	}
 	return md, nil
 }
+
+func Json2Ary(data string) ([]interface{}, error) {
+	var ary []interface{}
+	d := json.NewDecoder(strings.NewReader(data))
+	err := d.Decode(&ary)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("invalid json data(%s)", err.Error()))
+	}
+	return ary, nil
+}
 func CreateFormBody(fields map[string]string, fkey string, fp string) (string, *bytes.Buffer, error) {
 	bodyBuf := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuf)
