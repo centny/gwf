@@ -71,24 +71,34 @@ func NewMuxServer2(mux *routing.SessionMux) *Server {
 
 //test normal handler
 func Tnh(h http.Handler, f string, args ...interface{}) error {
-	ts := httptest.NewServer(h)
-	_, err := util.HGet(fmt.Sprintf("%v%v", ts.URL, f), args...)
+	_, err := Tnh2(h, f, args...)
 	return err
+}
+func Tnh2(h http.Handler, f string, args ...interface{}) (string, error) {
+	ts := httptest.NewServer(h)
+	return util.HGet(fmt.Sprintf("%v%v", ts.URL, f), args...)
 }
 
 //test normal handler function a=%v&
 func Tnf(h func(http.ResponseWriter, *http.Request), f string, args ...interface{}) error {
 	return Tnh(http.HandlerFunc(h), f, args...)
 }
-
+func Tnf2(h func(http.ResponseWriter, *http.Request), f string, args ...interface{}) (string, error) {
+	return Tnh2(http.HandlerFunc(h), f, args...)
+}
 func Th(h routing.Handler, f string, args ...interface{}) error {
-	ts := NewServer2(h)
-	_, err := ts.G(f, args...)
+	_, err := Th2(h, f, args...)
 	return err
 }
-
+func Th2(h routing.Handler, f string, args ...interface{}) (string, error) {
+	ts := NewServer2(h)
+	return ts.G(f, args...)
+}
 func Tf(h routing.HandleFunc, f string, args ...interface{}) error {
-	ts := NewServer(h)
-	_, err := ts.G(f, args...)
+	_, err := Tf2(h, f, args...)
 	return err
+}
+func Tf2(h routing.HandleFunc, f string, args ...interface{}) (string, error) {
+	ts := NewServer(h)
+	return ts.G(f, args...)
 }

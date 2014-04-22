@@ -37,6 +37,7 @@ func StoreCache(fname string) {
 	}
 	defer f.Close()
 	buf := bufio.NewWriter(f)
+	buf.WriteString("mode: set\n")
 	for k, v := range cache {
 		buf.WriteString(fmt.Sprintf("%v %v %v\n", k, v.A, v.B))
 	}
