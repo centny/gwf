@@ -167,19 +167,19 @@ func (h *HTTPSession) RVal(key string) string {
 	return v
 }
 func (h *HTTPSession) FormFInfo(name string) (int64, string, error) {
-	src, fh, err := h.R.FormFile("file")
+	src, fh, err := h.R.FormFile(name)
 	if err != nil {
 		return 0, "", err
 	}
 	fsize := util.FormFSzie(src)
 	if fsize < 1 {
-		return 0, "", errors.New("file size error")
+		err = errors.New("file size error")
 	}
-	return fsize, fh.Filename, nil
+	return fsize, fh.Filename, err
 }
 
 func (h *HTTPSession) RecF(name, tfile string) (int64, error) {
-	src, _, err := h.R.FormFile("file")
+	src, _, err := h.R.FormFile(name)
 	if err != nil {
 		return 0, err
 	}
@@ -187,14 +187,10 @@ func (h *HTTPSession) RecF(name, tfile string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	dst, _ := os.OpenFile(tfile, os.O_RDWR|os.O_APPEND, 0)
+	dst, _ := os.OpenFile(tfile, os.O_RDWR|os.O_APPEND, 0644)
 	csize, err := io.Copy(dst, src)
 	dst.Close()
-	if err != nil {
-		os.Remove(tfile)
-		return 0, err
-	}
-	return csize, nil
+	return csize, err
 }
 
 func (h *HTTPSession) SendF(fname, tfile, ctype string, attach bool) {

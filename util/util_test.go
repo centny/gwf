@@ -132,5 +132,5 @@ func TestDLoad(t *testing.T) {
 	DLoad("/tmp/index.html", "http/www.baidu.com")
 	DLoad("/tmp/index.html", "http://www.baidu.com")
 	os.Remove("/tmp/index.html")
-	DLoad("/tm/s.html", "http://www.baidu.com")
+	DLoad("/tmp/s.html", "")
 }

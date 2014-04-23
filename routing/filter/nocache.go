@@ -2,7 +2,6 @@ package filter
 
 import (
 	"github.com/Centny/Cny4go/routing"
-	"net/http"
 	"time"
 )
 
@@ -11,6 +10,5 @@ func NoCacheFilter(hs *routing.HTTPSession) routing.HResult {
 	hs.R.Header.Set("Last-Modified", time.Now().Format(time.RFC1123))
 	hs.R.Header.Set("Cache-Control", "no-stroe,no-cache,must-revalidate,post-check=0,pre-check=0")
 	hs.R.Header.Set("Pragma", "no-cache")
-	http.FileServer(http.Dir("kkk"))
 	return routing.HRES_CONTINUE
 }

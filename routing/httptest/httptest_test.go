@@ -33,6 +33,9 @@ func (t *T2) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	hs.W.Write([]byte("{\"OK\":1}"))
 	return routing.HRES_RETURN
 }
+func (t *T2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("{\"OK\":1}"))
+}
 
 func TestServer(t *testing.T) {
 	ts := NewServer(T)
@@ -74,4 +77,5 @@ func TestServer2(t *testing.T) {
 	Tf(T, "?a=%v", "testing")
 	Th(&T2{}, "?a=%v", "testing")
 	NewMuxServer()
+	Tnh(&T2{}, "?a=%v", "testing")
 }

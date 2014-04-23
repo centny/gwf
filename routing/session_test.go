@@ -8,6 +8,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -247,6 +248,10 @@ func SendF4(hs *HTTPSession) HResult {
 	hs.SendF("test.txt", "/tmp/jj/test.txt", "", true)
 	return HRES_RETURN
 }
+func SendF5(hs *HTTPSession) HResult {
+	hs.SendF("test.txt", "/tmp", "", true)
+	return HRES_RETURN
+}
 
 func TestSendF(t *testing.T) {
 	sb := NewSrvSessionBuilder("", "/", "rtest", 2000, 500)
@@ -255,6 +260,7 @@ func TestSendF(t *testing.T) {
 	mux.HFunc("^/t2.*$", SendF2)
 	mux.HFunc("^/t3.*$", SendF3)
 	mux.HFunc("^/t4.*$", SendF4)
+	mux.HFunc("^/t5.*$", SendF5)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mux.ServeHTTP(w, r)
 	}))
@@ -264,6 +270,39 @@ func TestSendF(t *testing.T) {
 	fmt.Println(util.HGet("%s/t2", ts.URL))
 	fmt.Println(util.HGet("%s/t3", ts.URL))
 	fmt.Println(util.HGet("%s/t4", ts.URL))
+	fmt.Println(util.HGet("%s/t5", ts.URL))
+}
+
+type rhtp struct {
+}
+
+func (rh *rhtp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK\n"))
+}
+func TestMatch(t *testing.T) {
+	sb := NewSrvSessionBuilder("", "/", "rtest", 2000, 500)
+	mux := NewSessionMux("", sb)
+	mux.HandleFuncM("^/a1.*$", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK\n"))
+	}, "POST", true)
+	mux.HandleFuncM("^/a2.*$", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK\n"))
+	}, "*", true)
+	mux.HandlerM("^/a3.*$", &rhtp{}, "*", true)
+	mux.HFilterFuncM("^/a4.*$", func(hs *HTTPSession) HResult {
+		return HRES_RETURN
+	}, "POST")
+	mux.HFilterFuncM("^/a5.*$", func(hs *HTTPSession) HResult { //test check m
+		hs.Mux.check_continue(regexp.MustCompile(".*"))
+		hs.Mux.check_m(regexp.MustCompile(".*"), "*")
+		return HRES_RETURN
+	}, "*")
+	ts := httptest.NewServer(mux)
+	util.HGet("%v/a1", ts.URL)
+	util.HGet("%v/a2", ts.URL)
+	util.HGet("%v/a3", ts.URL)
+	util.HGet("%v/a4", ts.URL)
+	util.HGet("%v/a5", ts.URL)
 }
 
 // func TestCookie(t *testing.T) {

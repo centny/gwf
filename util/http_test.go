@@ -92,6 +92,11 @@ func TestHTTP2(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+	_, err = HPostF(ts.URL, map[string]string{"ma": "123"}, "abc", "/tmp")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 	_, err = HPostF2(ts.URL, map[string]string{"ma": "123"}, "abc", "test.txt")
 	if err != nil {
 		t.Error(err.Error())
@@ -210,4 +215,22 @@ func CreateFormBody2(fields map[string]string, fkey string, fp string) (string, 
 	ctype := bodyWriter.FormDataContentType()
 	bodyWriter.Close()
 	return ctype, bodyBuf, nil
+}
+
+func TestJson2Ary(t *testing.T) {
+	ary, err := Json2Ary(`
+		[1,2,"ss"]
+		`)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(ary)
+	_, err = Json2Ary(`
+		[1,2,ss"]
+		`)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 }
