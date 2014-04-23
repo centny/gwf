@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"github.com/Centny/Cny4go/log"
 	"net/http"
 	"os"
 	"regexp"
@@ -9,7 +10,8 @@ import (
 
 type Dir struct {
 	http.Dir
-	Inc []*regexp.Regexp
+	Inc     []*regexp.Regexp
+	ShowLog bool
 }
 type File struct {
 	http.File
@@ -18,6 +20,11 @@ type FileInfo struct {
 	os.FileInfo
 }
 
+func (d *Dir) log(f string, args ...interface{}) {
+	if d.ShowLog {
+		log.D(f, args...)
+	}
+}
 func (d *Dir) Add(m *regexp.Regexp) {
 	d.Inc = append(d.Inc, m)
 }
@@ -29,9 +36,11 @@ func (d *Dir) Open(name string) (http.File, error) {
 	}
 	for _, inc := range d.Inc {
 		if inc.MatchString(name) {
+			d.log("not cahce for path:%v", name)
 			return &File{File: rf}, nil
 		}
 	}
+	d.log("using normal file system for path:%v", name)
 	return rf, nil
 }
 
