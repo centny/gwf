@@ -44,15 +44,15 @@ func (f *FileInfo) ModTime() time.Time {
 	return time.Now()
 }
 
-func NewNoCacheDir(path string) Dir {
-	return Dir{
+func NewNoCacheDir(path string) *Dir {
+	return &Dir{
 		Dir: http.Dir(path),
 		Inc: []*regexp.Regexp{},
 	}
 }
 
-func NewAllNoCacheDir(path string) Dir {
-	return Dir{
+func NewAllNoCacheDir(path string) *Dir {
+	return &Dir{
 		Dir: http.Dir(path),
 		Inc: []*regexp.Regexp{regexp.MustCompile("^.*$")},
 	}
