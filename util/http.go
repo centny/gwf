@@ -181,8 +181,8 @@ func readAllStr(r io.Reader) (string, error) {
 }
 func Map2Query(m Map) string {
 	vs := url.Values{}
-	for k, v := range m {
-		vs.Add(k, v.(string))
+	for k, _ := range m {
+		vs.Add(k, m.StrVal(k))
 	}
 	return vs.Encode()
 }
