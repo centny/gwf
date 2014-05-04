@@ -21,6 +21,8 @@ type S1 struct {
 	H  time.Time `m2s:"HT"`
 	I  time.Time `m2s:"IT"`
 	J  string    `m2s:"JV"`
+	K  string    `m2s:"T2" tf:"2006-01-02 15:04:05"`
+	K2 string    `m2s:"T2"`
 }
 
 func TestM2S(t *testing.T) {
@@ -29,6 +31,7 @@ func TestM2S(t *testing.T) {
 	m["VA"] = "S1_A"
 	m["VB"] = "S2_B"
 	m["T"] = "2014-02-17 11:50:05"
+	m["T2"] = time.Now()
 	m["T_L"] = tt
 	m["GT"] = time.Now()
 	m["HT"] = int32(tt)
