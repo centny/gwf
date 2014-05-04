@@ -234,3 +234,17 @@ func TestJson2Ary(t *testing.T) {
 		return
 	}
 }
+
+func TestPostN(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Ok"))
+	}))
+	_, data, err := HPostN(ts.URL, "text/plain", bytes.NewBuffer([]byte("WWW")))
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(data)
+	fmt.Println(HPostN("kkk://sssss", "text/plain", bytes.NewBuffer([]byte("WWW"))))
+	fmt.Println(HPostN("http://localhostjj/kkkfjdfsfsd", "text/plain", bytes.NewBuffer([]byte("WWW"))))
+}

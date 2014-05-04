@@ -74,6 +74,21 @@ func (h *HClient) HPostF_H(url string, fields map[string]string, header map[stri
 	str, err := readAllStr(res.Body)
 	return res.StatusCode, str, err
 }
+
+func (h *HClient) HPostN(url string, ctype string, buf io.Reader) (int, string, error) {
+	req, err := http.NewRequest("POST", url, buf)
+	if err != nil {
+		return 0, "", err
+	}
+	req.Header.Set("Content-Type", ctype)
+	res, err := h.Do(req)
+	if err != nil {
+		return 0, "", err
+	}
+	str, err := readAllStr(res.Body)
+	return res.StatusCode, str, err
+}
+
 func (h *HClient) HPost2(url string, fields map[string]string) (Map, error) {
 	data, err := h.HPost(url, fields)
 	if len(data) < 1 || err != nil {
@@ -142,6 +157,9 @@ func HPost(url string, fields map[string]string) (string, error) {
 }
 func HPostF(url string, fields map[string]string, fkey string, fp string) (string, error) {
 	return HTTPClient.HPostF(url, fields, fkey, fp)
+}
+func HPostN(url string, ctype string, buf io.Reader) (int, string, error) {
+	return HTTPClient.HPostN(url, ctype, buf)
 }
 func HPost2(url string, fields map[string]string) (Map, error) {
 	return HTTPClient.HPost2(url, fields)

@@ -58,6 +58,13 @@ func M2S(m Map, dest interface{}) {
 					}
 				}
 				continue
+			} else if f.Type.Name() == "string" && vty.Name() == "Time" {
+				df := f.Tag.Get("tf")
+				if len(df) < 1 {
+					df = D_DATEFORMAT
+				}
+				pval.Field(i).Set(reflect.ValueOf(v.(time.Time).Format(df)))
+				continue
 			}
 			it := f.Tag.Get("it")
 			var iv int64
