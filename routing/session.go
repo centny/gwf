@@ -150,7 +150,8 @@ func (s *SrvSessionBuilder) Loop() {
 
 func (s *SrvSessionBuilder) Clear() {
 	s.ks_lck.RLock()
-	for k, _ := range s.ks {
+	for k, v := range s.ks {
+		s.evh.OnTimeout(v)
 		delete(s.ks, k)
 	}
 	s.ks_lck.RUnlock()
