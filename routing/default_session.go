@@ -34,3 +34,5 @@ func NewDefaultSessionBuilder() *DefaultSessionBuilder {
 func (s *DefaultSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) Session {
 	return &DefaultSession{}
 }
+func (s *DefaultSessionBuilder) SetEvH(h SessionEvHandler) {
+}

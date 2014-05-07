@@ -98,6 +98,8 @@ type CookieSessionBuilder struct {
 	CName    string
 	Crypto   CookieCryptoFunc
 	UnCrypto CookieCryptoFunc
+	//
+	evh routing.SessionEvHandler
 }
 
 func NewCookieSessionBuilder(domain string, path string) *CookieSessionBuilder {
@@ -111,7 +113,12 @@ func NewCookieSessionBuilder(domain string, path string) *CookieSessionBuilder {
 	sb.UnCrypto = func(bys []byte) ([]byte, error) {
 		return bys, nil
 	}
+	sb.SetEvH(routing.SessionEvHFunc(func(t string, s routing.Session) {
+	}))
 	return &sb
+}
+func (s *CookieSessionBuilder) SetEvH(h routing.SessionEvHandler) {
+	s.evh = h
 }
 func (s *CookieSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) routing.Session {
 	c, err := r.Cookie(s.CName)

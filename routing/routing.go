@@ -28,8 +28,23 @@ func (h HResult) String() string {
 	}
 }
 
+type SessionEvHFunc func(string, Session)
+
+func (h SessionEvHFunc) OnCreate(s Session) {
+	h("CREATE", s)
+}
+func (h SessionEvHFunc) OnTimeout(s Session) {
+	h("TIMEOUT", s)
+}
+
+type SessionEvHandler interface {
+	OnCreate(s Session)
+	OnTimeout(s Session)
+}
+
 type SessionBuilder interface {
 	FindSession(w http.ResponseWriter, r *http.Request) Session
+	SetEvH(h SessionEvHandler)
 }
 type Session interface {
 	Val(key string) interface{}

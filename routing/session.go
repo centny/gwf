@@ -47,6 +47,7 @@ type SrvSessionBuilder struct {
 	CookieKey string //cookie key
 	ShowLog   bool
 	//
+	evh     SessionEvHandler
 	looping bool
 	ks      map[string]*SrvSession //key session
 	ks_lck  sync.RWMutex
@@ -61,12 +62,17 @@ func NewSrvSessionBuilder(domain string, path string, ckey string, timeout int64
 	sb.CookieKey = ckey
 	sb.ks = map[string]*SrvSession{}
 	sb.ShowLog = false
+	sb.SetEvH(SessionEvHFunc(func(t string, s Session) {
+	}))
 	return &sb
 }
 func (s *SrvSessionBuilder) log(f string, args ...interface{}) {
 	if s.ShowLog {
 		log.D(f, args...)
 	}
+}
+func (s *SrvSessionBuilder) SetEvH(h SessionEvHandler) {
+	s.evh = h
 }
 func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) Session {
 	c, err := r.Cookie(s.CookieKey)
@@ -87,6 +93,7 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 		s.ks[c.Value] = session
 		s.ks_lck.RUnlock()
 		http.SetCookie(w, c)
+		s.evh.OnCreate(session)
 		// s.log("setting cookie %v=%v to %v", c.Name, c.Value, r.Host)
 	}
 	if err != nil {
@@ -125,6 +132,7 @@ func (s *SrvSessionBuilder) Loop() {
 		for k, v := range s.ks {
 			delay := now - v.begin
 			if delay > s.Timeout {
+				s.evh.OnTimeout(v)
 				ary = append(ary, k)
 			}
 		}
