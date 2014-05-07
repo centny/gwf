@@ -87,7 +87,7 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 		s.ks[c.Value] = session
 		s.ks_lck.RUnlock()
 		http.SetCookie(w, c)
-		s.log("setting cookie %v=%v to %v", c.Value, c.Value, r.Host)
+		s.log("setting cookie %v=%v to %v", c.Name, c.Value, r.Host)
 	}
 	if err != nil {
 		ncookie()
