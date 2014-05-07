@@ -9,6 +9,7 @@ import (
 func TestNoCache(t *testing.T) {
 	NewAllNoCacheDir("www")
 	nnd := NewNoCacheDir("../test")
+	nnd.ShowLog = true
 	nnd.Add(regexp.MustCompile("^.*\\.html(\\?.*)?$"))
 	f, _ := nnd.Open("test.html")
 	fi, _ := f.Stat()
