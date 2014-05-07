@@ -139,3 +139,11 @@ func (s *SrvSessionBuilder) Loop() {
 		time.Sleep(s.CDelay * time.Millisecond)
 	}
 }
+
+func (s *SrvSessionBuilder) Clear() {
+	s.ks_lck.RLock()
+	for k, _ := range s.ks {
+		delete(s.ks, k)
+	}
+	s.ks_lck.RUnlock()
+}

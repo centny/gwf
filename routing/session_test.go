@@ -197,6 +197,7 @@ func TestSessionMux(t *testing.T) {
 		return
 	}
 	//
+	sb.Clear()
 	sb.StopLoop()
 	//
 	NewSessionMux("/", nil)
