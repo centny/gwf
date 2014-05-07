@@ -2,6 +2,7 @@ package routing
 
 import (
 	"code.google.com/p/go-uuid/uuid"
+	"github.com/Centny/Cny4go/log"
 	"github.com/Centny/Cny4go/util"
 	"net/http"
 	"sync"
@@ -44,6 +45,7 @@ type SrvSessionBuilder struct {
 	Timeout   int64
 	CDelay    time.Duration
 	CookieKey string //cookie key
+	ShowLog   bool
 	//
 	looping bool
 	ks      map[string]*SrvSession //key session
@@ -58,7 +60,13 @@ func NewSrvSessionBuilder(domain string, path string, ckey string, timeout int64
 	sb.CDelay = cdelay
 	sb.CookieKey = ckey
 	sb.ks = map[string]*SrvSession{}
+	sb.ShowLog = false
 	return &sb
+}
+func (s *SrvSessionBuilder) log(f string, args ...interface{}) {
+	if s.ShowLog {
+		log.D(f, args...)
+	}
 }
 func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) Session {
 	c, err := r.Cookie(s.CookieKey)
@@ -79,6 +87,7 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 		s.ks[c.Value] = session
 		s.ks_lck.RUnlock()
 		http.SetCookie(w, c)
+		s.log("setting cookie %v=%v to %v", c.Value, c.Value, r.Host)
 	}
 	if err != nil {
 		ncookie()
@@ -119,6 +128,7 @@ func (s *SrvSessionBuilder) Loop() {
 				ary = append(ary, k)
 			}
 		}
+		s.log("looping session time out,removing (%v)", ary)
 		s.ks_lck.RLock()
 		for _, v := range ary {
 			delete(s.ks, v)

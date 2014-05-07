@@ -83,6 +83,7 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 
 func TestSessionMux(t *testing.T) {
 	sb := NewSrvSessionBuilder("", "/", "rtest", 2000, 500)
+	sb.ShowLog = true
 	mux := NewSessionMux("/t", sb)
 	mux.ShowLog = true
 	// mux.CDelay = 500
