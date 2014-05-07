@@ -128,7 +128,9 @@ func (s *SrvSessionBuilder) Loop() {
 				ary = append(ary, k)
 			}
 		}
-		s.log("looping session time out,removing (%v)", ary)
+		if len(ary) > 0 {
+			s.log("looping session time out,removing (%v)", ary)
+		}
 		s.ks_lck.RLock()
 		for _, v := range ary {
 			delete(s.ks, v)
