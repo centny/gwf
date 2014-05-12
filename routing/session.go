@@ -89,9 +89,9 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 		session.kvs = map[string]interface{}{}
 		session.Flush()
 		//
-		s.ks_lck.RLock()
+		s.ks_lck.Lock()
 		s.ks[c.Value] = session
-		s.ks_lck.RUnlock()
+		s.ks_lck.Unlock()
 		http.SetCookie(w, c)
 		s.evh.OnCreate(session)
 		// s.log("setting cookie %v=%v to %v", c.Name, c.Value, r.Host)
@@ -99,8 +99,12 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		ncookie()
 	}
+	s.ks_lck.RLock()
+	defer s.ks_lck.RUnlock()
 	if _, ok := s.ks[c.Value]; !ok { //if not found,reset cookie
+		s.ks_lck.RUnlock()
 		ncookie()
+		s.ks_lck.RLock()
 	}
 	ss := s.ks[c.Value]
 	ss.Flush()
@@ -108,6 +112,8 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *SrvSessionBuilder) Session(token string) Session {
+	s.ks_lck.RLock()
+	defer s.ks_lck.RUnlock()
 	if v, ok := s.ks[token]; ok {
 		return v
 	} else {
@@ -129,6 +135,7 @@ func (s *SrvSessionBuilder) Loop() {
 	for s.looping {
 		ary := []string{}
 		now := util.Timestamp(time.Now())
+		s.ks_lck.RLock()
 		for k, v := range s.ks {
 			delay := now - v.begin
 			if delay > s.Timeout {
@@ -136,23 +143,24 @@ func (s *SrvSessionBuilder) Loop() {
 				ary = append(ary, k)
 			}
 		}
+		s.ks_lck.RUnlock()
 		if len(ary) > 0 {
 			s.log("looping session time out,removing (%v)", ary)
 		}
-		s.ks_lck.RLock()
+		s.ks_lck.Lock()
 		for _, v := range ary {
 			delete(s.ks, v)
 		}
-		s.ks_lck.RUnlock()
+		s.ks_lck.Unlock()
 		time.Sleep(s.CDelay * time.Millisecond)
 	}
 }
 
 func (s *SrvSessionBuilder) Clear() {
-	s.ks_lck.RLock()
+	s.ks_lck.Lock()
 	for k, v := range s.ks {
 		s.evh.OnTimeout(v)
 		delete(s.ks, k)
 	}
-	s.ks_lck.RUnlock()
+	s.ks_lck.Unlock()
 }

@@ -294,7 +294,7 @@ func (m Map) SetValP(path string, val interface{}) error {
 				"invalid map in path(/%v)", strings.Join(keys[:i], "/"),
 			))
 		}
-		tm[keys[i]] = val
+		tm.SetVal(keys[i], val)
 	default: //unknow type
 		return errors.New(fmt.Sprintf(
 			"not map type(%v) in path(/%v)",

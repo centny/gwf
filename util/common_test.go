@@ -20,4 +20,5 @@ func TestArray(t *testing.T) {
 	}
 	fmt.Println("len:", CreateArray(10).Len())
 	time.Sleep(2 * time.Second)
+	fmt.Println(Err("aaa:%v", "kkk"))
 }

@@ -1,5 +1,10 @@
 package util
 
+import (
+	"errors"
+	"fmt"
+)
+
 type Array struct {
 	vals []interface{}
 }
@@ -29,4 +34,8 @@ func (a *Array) Ary() []interface{} {
 type Pair struct {
 	Left  interface{}
 	Right interface{}
+}
+
+func Err(f string, args ...interface{}) error {
+	return errors.New(fmt.Sprintf(f, args...))
 }

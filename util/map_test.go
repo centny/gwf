@@ -204,7 +204,20 @@ func TestASetMapP(t *testing.T) {
 	mv := m.MapValP("/abc")
 	v, err = mv.ValP("/a")
 	Ap(t, v, err)
+
+	//
 }
+
+// func TestValp(t *testing.T) {
+// 	m := Map{}
+// 	err := m.SetValP("/aa/val/a", "11111")
+// 	if err != nil {
+// 		t.Error(err.Error())
+// 	}
+// 	fmt.Println(m.StrValP("/aa/val/a"))
+// 	m.SetValP("/aa/val/a", nil)
+// 	fmt.Println(m.StrValP("/aa/val/a"))
+// }
 func Ap(t *testing.T, v interface{}, err error) {
 	if err != nil {
 		t.Error(err.Error())

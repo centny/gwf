@@ -7,6 +7,7 @@ import (
 	"github.com/Centny/Cny4go/log"
 	"github.com/Centny/Cny4go/routing"
 	"net/http"
+	"sync"
 )
 
 type CookieSession struct {
@@ -14,10 +15,13 @@ type CookieSession struct {
 	R       *http.Request
 	Sb      *CookieSessionBuilder
 	kvs     map[string]interface{}
+	kvs_lck sync.RWMutex
 	updated bool
 }
 
 func (c *CookieSession) Val(key string) interface{} {
+	c.kvs_lck.RLock()
+	defer c.kvs_lck.RUnlock()
 	if v, ok := c.kvs[key]; ok {
 		return v
 	} else {
@@ -25,6 +29,8 @@ func (c *CookieSession) Val(key string) interface{} {
 	}
 }
 func (c *CookieSession) Set(key string, val interface{}) {
+	c.kvs_lck.Lock()
+	defer c.kvs_lck.Unlock()
 	if val == nil {
 		delete(c.kvs, key)
 	} else {
