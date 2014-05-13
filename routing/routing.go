@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type HResult int
@@ -250,7 +251,8 @@ type SessionMux struct {
 	regex_h_ary  []*regexp.Regexp
 	regex_h      map[*regexp.Regexp]int
 	regex_m      map[*regexp.Regexp]string
-	rs           map[*http.Request]*HTTPSession //request to session
+	rs_m         map[*http.Request]*HTTPSession //request to session
+	rs_l         sync.RWMutex
 	Kvs          map[string]interface{}
 	FilterEnable bool
 	HandleEnable bool
@@ -282,7 +284,7 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	mux.regex_h = map[*regexp.Regexp]int{}
 	mux.regex_h_ary = []*regexp.Regexp{}
 	mux.regex_m = map[*regexp.Regexp]string{}
-	mux.rs = map[*http.Request]*HTTPSession{}
+	mux.rs_m = map[*http.Request]*HTTPSession{}
 	mux.Kvs = map[string]interface{}{}
 	mux.FilterEnable = true
 	mux.HandleEnable = true
@@ -291,7 +293,9 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 }
 
 func (s *SessionMux) RSession(r *http.Request) *HTTPSession {
-	if v, ok := s.rs[r]; ok {
+	s.rs_l.RLock()
+	defer s.rs_l.RUnlock()
+	if v, ok := s.rs_m[r]; ok {
 		return v
 	} else {
 		return nil
@@ -485,8 +489,14 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Mux: s,
 		Kvs: map[string]interface{}{},
 	}
-	s.rs[r] = hs
-	defer delete(s.rs, r) //remove the http session object.
+	s.rs_l.Lock()
+	s.rs_m[r] = hs
+	s.rs_l.Unlock()
+	defer func() {
+		s.rs_l.Lock()
+		delete(s.rs_m, r) //remove the http session object.
+		s.rs_l.Unlock()
+	}()
 	//
 	var matched bool = false
 	//
