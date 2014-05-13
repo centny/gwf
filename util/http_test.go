@@ -246,5 +246,5 @@ func TestPostN(t *testing.T) {
 	}
 	fmt.Println(data)
 	fmt.Println(HPostN("kkk://sssss", "text/plain", bytes.NewBuffer([]byte("WWW"))))
-	fmt.Println(HPostN("http://localhostjj/kkkfjdfsfsd", "text/plain", bytes.NewBuffer([]byte("WWW"))))
+	fmt.Println(HPostN("http:///kkkfjdfsfsd", "text/plain", bytes.NewBuffer([]byte("WWW"))))
 }
