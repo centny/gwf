@@ -65,17 +65,12 @@ func DbQuery(db *sql.DB, query string, args ...interface{}) ([]util.Map, error) 
 	if db == nil {
 		return nil, errors.New("db is nil")
 	}
-	stmt, err := db.Prepare(query)
+	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	defer stmt.Close()
-	rows, err := stmt.Query(args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return DbRow2Map(rows), nil
+	defer tx.Commit()
+	return DbQuery2(tx, query, args...)
 }
 func DbQuery2(tx *sql.Tx, query string, args ...interface{}) ([]util.Map, error) {
 	if tx == nil {
@@ -117,23 +112,12 @@ func DbQueryInt(db *sql.DB, query string, args ...interface{}) ([]int64, error) 
 	if db == nil {
 		return nil, errors.New("db is nil")
 	}
-	stmt, err := db.Prepare(query)
+	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	defer stmt.Close()
-	rows, err := stmt.Query(args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	rv := []int64{}
-	for rows.Next() {
-		var iv int64
-		rows.Scan(&iv)
-		rv = append(rv, iv)
-	}
-	return rv, nil
+	defer tx.Commit()
+	return DbQueryInt2(tx, query, args...)
 }
 func DbQueryInt2(tx *sql.Tx, query string, args ...interface{}) ([]int64, error) {
 	if tx == nil {
@@ -163,23 +147,12 @@ func DbQueryString(db *sql.DB, query string, args ...interface{}) ([]string, err
 	if db == nil {
 		return nil, errors.New("db is nil")
 	}
-	stmt, err := db.Prepare(query)
+	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	defer stmt.Close()
-	rows, err := stmt.Query(args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	rv := []string{}
-	for rows.Next() {
-		var sv string
-		rows.Scan(&sv)
-		rv = append(rv, sv)
-	}
-	return rv, nil
+	defer tx.Commit()
+	return DbQueryString2(tx, query, args...)
 }
 func DbQueryString2(tx *sql.Tx, query string, args ...interface{}) ([]string, error) {
 	if tx == nil {
@@ -209,16 +182,18 @@ func DbInsert(db *sql.DB, query string, args ...interface{}) (int64, error) {
 	if db == nil {
 		return 0, errors.New("db is nil")
 	}
-	stmt, err := db.Prepare(query)
+	tx, err := db.Begin()
 	if err != nil {
 		return 0, err
 	}
-	defer stmt.Close()
-	res, err := stmt.Exec(args...)
+	erow, err := DbInsert2(tx, query, args...)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
+	} else {
+		tx.Commit()
+		return erow, nil
 	}
-	return res.LastInsertId()
 }
 func DbInsert2(db *sql.Tx, query string, args ...interface{}) (int64, error) {
 	if db == nil {
@@ -241,16 +216,18 @@ func DbUpdate(db *sql.DB, query string, args ...interface{}) (int64, error) {
 	if db == nil {
 		return 0, errors.New("db is nil")
 	}
-	stmt, err := db.Prepare(query)
+	tx, err := db.Begin()
 	if err != nil {
 		return 0, err
 	}
-	defer stmt.Close()
-	res, err := stmt.Exec(args...)
+	erow, err := DbUpdate2(tx, query, args...)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
+	} else {
+		tx.Commit()
+		return erow, nil
 	}
-	return res.RowsAffected()
 }
 func DbUpdate2(db *sql.Tx, query string, args ...interface{}) (int64, error) {
 	if db == nil {

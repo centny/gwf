@@ -49,6 +49,7 @@ func TestDbUtil(t *testing.T) {
 	}
 	bys, err := json.Marshal(res)
 	fmt.Println(string(bys))
+	fmt.Println("T-->00")
 	//
 	var mres []TSt
 	err = DbQueryS(db, &mres, "select * from ttable where tid>?", 1)
@@ -63,6 +64,15 @@ func TestDbUtil(t *testing.T) {
 	fmt.Println("...", mres[0].T, util.Timestamp(mres[0].Time), util.Timestamp(time.Now()))
 	fmt.Println(mres, mres[0].Add1)
 	//
+	tx, _ := db.Begin()
+	err = DbQueryS2(tx, &mres, "select * from ttable where tid>?", 1)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	tx.Commit()
+	fmt.Println("T-->01")
+	//
 	ivs, err := DbQueryInt(db, "select * from ttable where tid")
 	if err != nil {
 		t.Error(err.Error())
@@ -72,6 +82,7 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not data")
 		return
 	}
+	fmt.Println("T-->02")
 	//
 	svs, err := DbQueryString(db, "select tname from ttable")
 	if err != nil {
@@ -82,6 +93,19 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not data")
 		return
 	}
+	fmt.Println("T-->03")
+	//
+	tx, _ = db.Begin()
+	svs, err = DbQueryString2(tx, "select tname from ttable")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(svs) < 1 {
+		t.Error("not data")
+		return
+	}
+	tx.Commit()
 	//
 	iid, err := DbInsert(db, "insert into ttable(tname,titem,tval,status,time) values('name','item','val','N',now())")
 	if err != nil {
@@ -89,8 +113,9 @@ func TestDbUtil(t *testing.T) {
 		return
 	}
 	fmt.Println(iid)
+	fmt.Println("T-->04")
 	//
-	tx, _ := db.Begin()
+	tx, _ = db.Begin()
 	iid2, err := DbInsert2(tx, "insert into ttable(tname,titem,tval,status,time) values('name','item','val','N',now())")
 	if err != nil {
 		t.Error(err.Error())
@@ -98,6 +123,7 @@ func TestDbUtil(t *testing.T) {
 	}
 	fmt.Println(iid2)
 	tx.Commit()
+	fmt.Println("T-->05")
 	//
 	erow, err := DbUpdate(db, "delete from ttable where tid=?", iid)
 	if err != nil {
@@ -105,6 +131,7 @@ func TestDbUtil(t *testing.T) {
 		return
 	}
 	fmt.Println(erow)
+	fmt.Println("T-->06")
 	//
 	tx, _ = db.Begin()
 	erow, err = DbUpdate2(tx, "delete from ttable where tid=?", iid2)
@@ -211,7 +238,14 @@ func TestDbUtil(t *testing.T) {
 	DbUpdate(nil, "select * from ttable where tid>?", 1, 2)
 	DbInsert2(nil, "select * from ttable where tid>?", 1, 2)
 	DbUpdate2(nil, "select * from ttable where tid>?", 1, 2)
+	DbQuery2(nil, "select * from ttable where tid>?", 1, 2)
+	DbQueryInt2(nil, "select * from ttable where tid>?", 1, 2)
+	DbQueryString2(nil, "select * from ttable where tid>?", 1, 2)
+	DbQueryS2(nil, nil, "query", 11)
+	//
+	fmt.Println("------->")
 }
+
 func Map2Val2(columns []string, row map[string]interface{}, dest []driver.Value) {
 	for i, c := range columns {
 		if v, ok := row[c]; ok {
@@ -247,7 +281,15 @@ func TestDbUtil2(t *testing.T) {
 	}
 	fmt.Println(res)
 }
-
+func TestDbUtilErr(t *testing.T) {
+	db2, _ := sql.Open("mysql", test.TDbCon)
+	db2.Close()
+	DbQuery(db2, "select * from ttable where tid>?", 1, 2)
+	DbInsert(db2, "select * from ttable where tid>?", 1, 2)
+	DbUpdate(db2, "select * from ttable where tid>?", 1, 2)
+	DbQueryString(db2, "select * from ttable where tid>?", 1, 2)
+	DbQueryInt(db2, "select * from ttable where tid>?", 1, 2)
+}
 func TestDbExecF(t *testing.T) {
 	db, _ := sql.Open("mysql", test.TDbCon)
 	defer db.Close()

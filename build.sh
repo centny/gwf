@@ -12,9 +12,11 @@ echo "Installing Dependence"
 #go get code.google.com/p/go-uuid/uuid
 ##############################
 #########Running Clear#########
-echo "Running Clear"
-rm -rf $GOPATH/src/github.com/Centny/Cny4go
-go get -u github.com/Centny/Cny4go
+if [ "$1" = "-u" ];then
+ echo "Running Clear"
+ rm -rf $GOPATH/src/github.com/Centny/Cny4go
+ go get -u github.com/Centny/Cny4go
+fi
 #########Running Test#########
 echo "Running Test"
 pkgs="\

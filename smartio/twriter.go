@@ -47,7 +47,7 @@ func (t *TimeFlushWriter) runClock() {
 	wg.Add(1)
 	var ttime time.Duration = 0
 	for t.running {
-		if ttime >= t.cdelay || t.Available() > t.bsize {
+		if ttime >= t.cdelay {
 			err := t.Flush()
 			if err != nil {
 				log.E("flush error for wirter(%v):%v", t.sw, err.Error())
