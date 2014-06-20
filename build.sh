@@ -7,10 +7,14 @@ export PATH=$PATH:$GOPATH/bin:$HOME/bin:$GOROOT/bin
 ##############################
 ######Install Dependence######
 echo "Installing Dependence"
-go get github.com/go-sql-driver/mysql
-go get github.com/Centny/TDb
-go get code.google.com/p/go-uuid/uuid
+#go get github.com/go-sql-driver/mysql
+#go get github.com/Centny/TDb
+#go get code.google.com/p/go-uuid/uuid
 ##############################
+#########Running Clear#########
+echo "Running Clear"
+rm -rf $GOPATH/src/github.com/Centny/Cny4go
+go get -u github.com/Centny/Cny4go
 #########Running Test#########
 echo "Running Test"
 pkgs="\
@@ -27,9 +31,6 @@ pkgs="\
 echo "mode: set" > a.out
 for p in $pkgs;
 do
- if [ "$1" = "-u" ];then
-  go get -u $p
- fi
  go test -v --coverprofile=c.out $p
  cat c.out | grep -v "mode" >>a.out
 done
