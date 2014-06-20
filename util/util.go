@@ -11,22 +11,27 @@ import (
 	"time"
 )
 
+var DEFAULT_MODE os.FileMode = 0766
+
 func Fexists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
 
 func FTouch(path string) error {
+	return FTouch2(path, DEFAULT_MODE)
+}
+func FTouch2(path string, fm os.FileMode) error {
 	f, err := os.Open(path)
 	if err != nil {
 		p := filepath.Dir(path)
 		if !Fexists(p) {
-			err := os.MkdirAll(p, os.ModePerm)
+			err := os.MkdirAll(p, fm)
 			if err != nil {
 				return err
 			}
 		}
-		f, err = os.Create(path)
+		f, err = os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fm)
 		if f != nil {
 			defer f.Close()
 		}

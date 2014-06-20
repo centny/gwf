@@ -1,7 +1,7 @@
 package smartio
 
 import (
-	"fmt"
+	"github.com/Centny/Cny4go/log"
 	"github.com/Centny/Cny4go/util"
 	"io"
 	"os"
@@ -9,11 +9,9 @@ import (
 	"time"
 )
 
-var fs_fmod int = 0755
-
-func SetFMode(fmod int) {
-	fs_fmod = fmod
-}
+// func SetFMode(fmod int) {
+// 	fs_fmod = fmod
+// }
 
 type DateSwitchWriter struct {
 	ws  string
@@ -23,13 +21,16 @@ type DateSwitchWriter struct {
 	FMODE os.FileMode
 }
 
-func NewDateSwitchWriter(ws string) *DateSwitchWriter {
+func NewDateSwitchWriter(ws string, fm os.FileMode) *DateSwitchWriter {
 	dsw := &DateSwitchWriter{}
 	dsw.ws = ws
 	dsw.cfn = ""
 	dsw.F = nil
-	dsw.FMODE = 0666
+	dsw.FMODE = fm
 	return dsw
+}
+func NewDateSwitchWriter2(ws string) *DateSwitchWriter {
+	return NewDateSwitchWriter(ws, util.DEFAULT_MODE)
 }
 
 func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
@@ -43,21 +44,20 @@ func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
 	//create new log writer
 	if d.F == nil {
 		fpath := filepath.Join(d.ws, fname)
-		err := util.FTouch(fpath)
+		err := util.FTouch2(fpath, d.FMODE)
 		if err != nil {
 			return 0, err
 		}
-		f, _ := os.OpenFile(fpath, os.O_RDWR|os.O_APPEND, d.FMODE)
+		f, _ := os.OpenFile(fpath, os.O_WRONLY|os.O_TRUNC|os.O_APPEND, d.FMODE)
 		d.cfn = fname
 		d.F = f
-		os.Chmod(fpath, os.FileMode(fs_fmod))
-		fmt.Println("open file:" + fpath)
+		log.D("open file:%v", fpath)
 	}
 	return d.F.Write(p)
 }
 func (d *DateSwitchWriter) Close() {
 	if d.F != nil {
-		fmt.Println("close file:", d.FilePath())
+		log.D("close file:%v", d.FilePath())
 		d.F.Close()
 		d.F = nil
 	}

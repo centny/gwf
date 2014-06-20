@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
 
 func TestTwAutoFlush(t *testing.T) {
-	SetFMode(0755)
 	b := bytes.NewBuffer([]byte{})
 	tw := NewTimeWriter(b, 100000, 1000)
 	tw.WriteString("12345\n")
@@ -43,7 +43,7 @@ func TestTwBuffer(t *testing.T) {
 }
 
 func TestDwNormal(t *testing.T) {
-	dw := NewDateSwitchWriter("/tmp")
+	dw := NewDateSwitchWriter2("/tmp")
 	if dw.FilePath() != "" {
 		t.Error("file path error")
 	}
@@ -55,11 +55,24 @@ func TestDwNormal(t *testing.T) {
 	dw.Write([]byte{'1', '1', '1', '\n'})
 	dw.Close()
 	//
-	dw = NewDateSwitchWriter(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm', '/', 'a'}))
+	dw = NewDateSwitchWriter2(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm', '/', 'a'}))
 	dw.Write([]byte{'1', '1', '1', '\n'})
-	NewDateSwitchWriter("/tmp").Close()
+	NewDateSwitchWriter2("/tmp").Close()
 }
-
+func TestDwNormal2(t *testing.T) {
+	dw := NewDateSwitchWriter2("/tmp")
+	for i := 0; i < 1000; i++ {
+		var ij = i
+		go func() {
+			_, err := dw.Write([]byte(fmt.Sprintf("ksjfksdfjksdfjskfjskfsfs:%v\n", ij)))
+			if err != nil {
+				t.Error(err.Error())
+			}
+		}()
+	}
+	time.Sleep(time.Second)
+	dw.Close()
+}
 func TestNtw(t *testing.T) {
 	fw := NewTWriter(os.Stderr)
 	fw.WriteString("loging \n")
@@ -67,4 +80,24 @@ func TestNtw(t *testing.T) {
 	fw.Flush()
 	fw.Stop()
 	fmt.Println("test new TWriter end ...")
+}
+
+func TestDTW(t *testing.T) {
+	dw := NewDateSwitchWriter2("/tmp/kkjj/kk")
+	tw := NewTimeWriter(dw, 1024, 100)
+	wg := sync.WaitGroup{}
+	for i := 0; i < 1000; i++ {
+		var ij = i
+		go func() {
+			wg.Add(1)
+			_, err := tw.Write([]byte(fmt.Sprintf("ksjfksdfjksdfjskfjskfsfs:%v\n", ij)))
+			if err != nil {
+				t.Error(err.Error())
+			}
+			wg.Done()
+		}()
+	}
+	time.Sleep(time.Second)
+	wg.Wait()
+	dw.Close()
 }
