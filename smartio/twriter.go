@@ -47,11 +47,12 @@ func (t *TimeFlushWriter) runClock() {
 	wg.Add(1)
 	var ttime time.Duration = 0
 	for t.running {
-		if ttime >= t.cdelay {
+		if ttime >= t.cdelay && t.Buffered() > 0 {
 			err := t.Flush()
 			if err != nil {
-				log.E("flush error for wirter(%v):%v", t.sw, err.Error())
+				log.E("flush error for wirter(%v) info(%v,%v):%v", t.sw, t.Available(), t.Buffered(), err.Error())
 			}
+			ttime = 0
 		}
 		ttime += t.rdelay
 		time.Sleep(t.rdelay * time.Millisecond)
