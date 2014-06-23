@@ -1,7 +1,7 @@
 package smartio
 
 import (
-	"github.com/Centny/Cny4go/log"
+	"fmt"
 	"github.com/Centny/Cny4go/util"
 	"io"
 	"os"
@@ -51,13 +51,13 @@ func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
 		f, _ := os.OpenFile(fpath, os.O_WRONLY|os.O_TRUNC|os.O_APPEND, d.FMODE)
 		d.cfn = fname
 		d.F = f
-		log.D("open file:%v", fpath)
+		fmt.Println("open file:%v", fpath)
 	}
 	return d.F.Write(p)
 }
 func (d *DateSwitchWriter) Close() {
 	if d.F != nil {
-		log.D("close file:%v", d.FilePath())
+		fmt.Println("close file:%v", d.FilePath())
 		d.F.Close()
 		d.F = nil
 	}

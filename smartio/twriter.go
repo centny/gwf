@@ -2,7 +2,7 @@ package smartio
 
 import (
 	"bufio"
-	"github.com/Centny/Cny4go/log"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -50,7 +50,9 @@ func (t *TimeFlushWriter) runClock() {
 		if ttime >= t.cdelay && t.Buffered() > 0 {
 			err := t.Flush()
 			if err != nil {
-				log.E("flush error for wirter(%v) info(%v,%v):%v", t.sw, t.Available(), t.Buffered(), err.Error())
+				fmt.Println(fmt.Sprintf(
+					"flush error for wirter(%v) info(%v,%v):%v",
+					t.sw, t.Available(), t.Buffered(), err.Error()))
 			}
 			ttime = 0
 		}
