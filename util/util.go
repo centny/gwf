@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var DEFAULT_MODE os.FileMode = 0766
+// var DEFAULT_MODE os.FileMode = os.ModePerm
 
 func Fexists(path string) bool {
 	_, err := os.Stat(path)
@@ -19,7 +19,7 @@ func Fexists(path string) bool {
 }
 
 func FTouch(path string) error {
-	return FTouch2(path, DEFAULT_MODE)
+	return FTouch2(path, os.ModePerm)
 }
 func FTouch2(path string, fm os.FileMode) error {
 	f, err := os.Open(path)

@@ -44,6 +44,10 @@ func TestFTouch(t *testing.T) {
 	fmt.Println(FTouch(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm', '/', 'a'})))
 	//
 }
+func TestFTouch2(t *testing.T) {
+	os.RemoveAll("/tmp/tkk")
+	fmt.Println(FTouch2("/tmp/tkk", os.ModePerm))
+}
 func TestBytePtrFromString(t *testing.T) {
 	bys, err := syscall.BytePtrFromString(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm'}))
 	fmt.Println(bys, err)
