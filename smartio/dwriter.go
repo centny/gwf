@@ -30,7 +30,7 @@ func NewDateSwitchWriter(ws string, fm os.FileMode) *DateSwitchWriter {
 	return dsw
 }
 func NewDateSwitchWriter2(ws string) *DateSwitchWriter {
-	return NewDateSwitchWriter(ws, util.DEFAULT_MODE)
+	return NewDateSwitchWriter(ws, os.ModePerm)
 }
 
 func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
