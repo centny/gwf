@@ -204,7 +204,25 @@ func TestSessionMux(t *testing.T) {
 	//
 	fmt.Println("TestSessionMux end")
 }
-
+func TestSessionMux2(t *testing.T) {
+	sb := NewSrvSessionBuilder("", "/", "rtest2", 2000, 500)
+	sb.ShowLog = true
+	mux := NewSessionMux("/t", sb)
+	mux.ShowLog = true
+	mux.HFunc("/a", func(hs *HTTPSession) HResult {
+		return hs.MsgRes("aaaa")
+	})
+	mux.HFunc("/b", func(hs *HTTPSession) HResult {
+		return hs.MsgRes2(200, "bbbb")
+	})
+	mux.HFunc("/c", func(hs *HTTPSession) HResult {
+		return hs.MsgResE(1, "cccc")
+	})
+	ts := httptest.NewServer(mux)
+	fmt.Println(util.HGet("%s/t/a", ts.URL))
+	fmt.Println(util.HGet("%s/t/b", ts.URL))
+	fmt.Println(util.HGet("%s/t/c", ts.URL))
+}
 func RecF(hs *HTTPSession) HResult {
 	hs.FormFInfo("file")
 	hs.RecF("file", "/tmp/test2.txt")

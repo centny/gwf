@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Centny/Cny4go/log"
@@ -231,6 +232,35 @@ func (h *HTTPSession) ValidCheckVal(f string, args ...interface{}) error {
 //valid all value by format,not limit require.
 func (h *HTTPSession) ValidCheckValN(f string, args ...interface{}) error {
 	return util.ValidAttrF(f, h.CheckVal, false, args...)
+}
+
+func HttpRes(code int, data interface{}, msg string) util.Map {
+	res := make(util.Map)
+	res["code"] = code
+	res["msg"] = msg
+	res["data"] = data
+	return res
+}
+
+func JsonRes(code int, data interface{}, msg string) []byte {
+	res := HttpRes(code, data, msg)
+	dbys, _ := json.Marshal(res)
+	return dbys
+}
+
+func (h *HTTPSession) MsgRes(data interface{}) HResult {
+	h.W.Write(JsonRes(0, data, ""))
+	return HRES_RETURN
+}
+
+func (h *HTTPSession) MsgRes2(code int, data interface{}) HResult {
+	h.W.Write(JsonRes(code, data, ""))
+	return HRES_RETURN
+}
+
+func (h *HTTPSession) MsgResE(code int, msg string) HResult {
+	h.W.Write(JsonRes(code, "", msg))
+	return HRES_RETURN
 }
 
 type SessionMux struct {
