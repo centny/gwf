@@ -218,10 +218,23 @@ func TestSessionMux2(t *testing.T) {
 	mux.HFunc("/c", func(hs *HTTPSession) HResult {
 		return hs.MsgResE(1, "cccc")
 	})
+	mux.HFunc("/c2", func(hs *HTTPSession) HResult {
+		err := hs.JsonRes(nil)
+		if err == nil {
+			t.Error("not error")
+		}
+		return HRES_RETURN
+	})
+	mux.HFunc("/d", func(hs *HTTPSession) HResult {
+		hs.SendT("abc", "text/plain;charset=utf-8")
+		return HRES_RETURN
+	})
 	ts := httptest.NewServer(mux)
 	fmt.Println(util.HGet("%s/t/a", ts.URL))
 	fmt.Println(util.HGet("%s/t/b", ts.URL))
 	fmt.Println(util.HGet("%s/t/c", ts.URL))
+	fmt.Println(util.HGet("%s/t/c2", ts.URL))
+	fmt.Println(util.HGet("%s/t/d", ts.URL))
 }
 func RecF(hs *HTTPSession) HResult {
 	hs.FormFInfo("file")

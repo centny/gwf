@@ -26,7 +26,29 @@ func TestFWrite(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+	err = FAppend("/tmp/test.txt", "data")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
 	err = FWrite("/kk/kkfd/d", "data")
+	if err == nil {
+		t.Error("not error")
+	}
+	err = FAppend("/kk/kkfd/d", "data")
+	if err == nil {
+		t.Error("not error")
+	}
+	err = FCopy("/tmp/test.txt", "/tmp/test2.txt")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	err = FCopy("/kk/kkfd/d", "data")
+	if err == nil {
+		t.Error("not error")
+	}
+	err = FCopy("/tmp/test.txt", "/dsss/dd.txt")
 	if err == nil {
 		t.Error("not error")
 	}

@@ -3,6 +3,7 @@ package util
 import (
 	"bufio"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -52,7 +53,28 @@ func FWrite(path, data string) error {
 	_, err = f.WriteString(data)
 	return err
 }
-
+func FAppend(path, data string) error {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	_, err = f.WriteString(data)
+	return err
+}
+func FCopy(src string, dst string) error {
+	sf, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sf.Close()
+	df, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer df.Close()
+	_, err = io.Copy(df, sf)
+	return err
+}
 func ReadLine(r *bufio.Reader, limit int, end bool) ([]byte, error) {
 	var isPrefix bool = true
 	var bys []byte

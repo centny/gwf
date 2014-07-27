@@ -214,6 +214,16 @@ func (h *HTTPSession) SendF(fname, tfile, ctype string, attach bool) {
 	SendF(h.W, h.R, fname, tfile, ctype, attach)
 }
 
+//sending string by target context type.
+func (h *HTTPSession) SendT(data string, ctype string) {
+	header := h.W.Header()
+	header.Set("Content-Type", ctype)
+	header.Set("Content-Length", fmt.Sprintf("%v", len(data)))
+	// header.Set("Content-Transfer-Encoding", "binary")
+	header.Set("Expires", "0")
+	h.W.Write([]byte(data))
+}
+
 //valid require value by format,limit require.
 func (h *HTTPSession) ValidRVal(f string, args ...interface{}) error {
 	return util.ValidAttrF(f, h.RVal, true, args...)
@@ -234,7 +244,7 @@ func (h *HTTPSession) ValidCheckValN(f string, args ...interface{}) error {
 	return util.ValidAttrF(f, h.CheckVal, false, args...)
 }
 
-func HttpRes(code int, data interface{}, msg string) util.Map {
+func http_res(code int, data interface{}, msg string) util.Map {
 	res := make(util.Map)
 	res["code"] = code
 	res["msg"] = msg
@@ -242,24 +252,31 @@ func HttpRes(code int, data interface{}, msg string) util.Map {
 	return res
 }
 
-func JsonRes(code int, data interface{}, msg string) []byte {
-	res := HttpRes(code, data, msg)
+func json_res(code int, data interface{}, msg string) []byte {
+	res := http_res(code, data, msg)
 	dbys, _ := json.Marshal(res)
 	return dbys
 }
-
+func (h *HTTPSession) JsonRes(data interface{}) error {
+	dbys, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	h.W.Write(dbys)
+	return nil
+}
 func (h *HTTPSession) MsgRes(data interface{}) HResult {
-	h.W.Write(JsonRes(0, data, ""))
+	h.JsonRes(http_res(0, data, ""))
 	return HRES_RETURN
 }
 
 func (h *HTTPSession) MsgRes2(code int, data interface{}) HResult {
-	h.W.Write(JsonRes(code, data, ""))
+	h.JsonRes(http_res(code, data, ""))
 	return HRES_RETURN
 }
 
 func (h *HTTPSession) MsgResE(code int, msg string) HResult {
-	h.W.Write(JsonRes(code, "", msg))
+	h.JsonRes(http_res(code, "", msg))
 	return HRES_RETURN
 }
 
