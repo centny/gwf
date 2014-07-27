@@ -1,0 +1,5 @@
+{
+	"name":"coverage_jcr",
+	"dir":"out",
+	"listen":":8799"
+}
