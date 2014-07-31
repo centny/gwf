@@ -6,7 +6,14 @@ import (
 )
 
 func Usage() {
-	fmt.Println("Usage:jcr app|start -d <html directory> -o <output directory> -ex <exclude> -in <include> -js <jcr.js location> -f <configure file>")
+	fmt.Println(`Usage:jcr app|start options
+	-d <html directory> 
+	-o <output directory> 
+	-ex <exclude>
+	-in <include>
+	-js <jcr.js location>
+	-n <coverage file name>
+	-p <listen port>`)
 }
 func Run() {
 	if len(os.Args) < 2 {
@@ -17,8 +24,9 @@ func Run() {
 	ex := ""          //exclude
 	in := ".*\\.html" //include
 	out := "out"
-	js := ""
-	cf := ""
+	js := "http://localhost:5457/jcr/jcr.js"
+	port := ":5457"
+	name := "coverage_jcr"
 	alen := len(os.Args) - 1
 	for i := 2; i < alen; i++ {
 		switch os.Args[i] {
@@ -37,8 +45,11 @@ func Run() {
 		case "-js":
 			js = os.Args[i+1]
 			i++
-		case "-f":
-			cf = os.Args[i+1]
+		case "-p":
+			port = os.Args[i+1]
+			i++
+		case "-n":
+			name = os.Args[i+1]
 			i++
 		default:
 			fmt.Println("invalid option:" + os.Args[i])
@@ -46,11 +57,11 @@ func Run() {
 	}
 	switch os.Args[1] {
 	case "start":
-		if len(cf) < 1 {
+		if len(name) < 1 || len(out) < 1 || len(port) < 1 {
 			Usage()
 			return
 		}
-		StartSrv(cf)
+		RunSrv(name, out, port)
 	default:
 		if len(dir) < 1 || len(js) < 1 {
 			Usage()

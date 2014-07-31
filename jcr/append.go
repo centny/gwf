@@ -11,8 +11,8 @@ import (
 )
 
 func RunAppend(dir, ex, in, out, js string) {
-	exs := strings.Split(ex, ";")
-	ins := strings.Split(in, ";")
+	exs := strings.Split(ex, ",")
+	ins := strings.Split(in, ",")
 	dir, _ = filepath.Abs(dir)
 	out, _ = filepath.Abs(out)
 	if !util.Fexists(out) {

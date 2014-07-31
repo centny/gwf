@@ -1,13 +1,11 @@
 package jcr
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/Centny/Cny4go/log"
 	"github.com/Centny/Cny4go/routing"
 	"github.com/Centny/Cny4go/routing/filter"
 	"github.com/Centny/Cny4go/util"
-	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"sync"
@@ -78,6 +76,11 @@ func JcrJs(hs *routing.HTTPSession) routing.HResult {
 		"text/javascript;charset=utf-8")
 	return routing.HRES_RETURN
 }
+func JcrExit(hs *routing.HTTPSession) routing.HResult {
+	log.D("Jcr receiving exit command...")
+	StopSrv()
+	return hs.MsgRes("SUCCESS")
+}
 func NewJcrMux() *routing.SessionMux {
 	mux := routing.NewSessionMux2("/jcr")
 	cors := filter.NewCORS()
@@ -86,6 +89,7 @@ func NewJcrMux() *routing.SessionMux {
 	mux.HFunc("^/conf(\\?.*)?$", JcrConf)
 	mux.HFunc("^/store(\\?.*)?$", JcrStore)
 	mux.HFunc("^/jcr\\.js(\\?.*)?$", JcrJs)
+	mux.HFunc("^/exit(\\?.*)?$", JcrExit)
 	return mux
 }
 
@@ -93,23 +97,15 @@ var lock sync.WaitGroup
 var s_running bool
 var s http.Server
 
-func StartSrv(cpath string) {
-	defer StopSrv()
-	bys, err := ioutil.ReadFile(cpath)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	err = json.Unmarshal(bys, _conf_)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+func StartSrv(name, dir, port string) {
+	_conf_.Name = name
+	_conf_.Dir = dir
+	_conf_.Listen = port
 	mux := http.NewServeMux()
 	mux.Handle("/jcr/", NewJcrMux())
 	log.D("running server on %v", _conf_.Listen)
 	s = http.Server{Addr: _conf_.Listen, Handler: mux}
-	err = s.ListenAndServe()
+	err := s.ListenAndServe()
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -117,12 +113,13 @@ func StartSrv(cpath string) {
 }
 
 //run the server.
-func RunSrv(cpath string) {
+func RunSrv(name, dir, port string) {
 	s_running = true
 	lock.Add(1)
-	go StartSrv(cpath)
+	go StartSrv(name, dir, port)
 	lock.Wait()
 	s_running = false
+	log.D("jcr server stopped...")
 }
 
 //stop the server.
