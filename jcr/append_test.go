@@ -14,9 +14,9 @@ func TestWalkC(t *testing.T) {
 			return nil
 		})
 	})
-	filepath.Walk(".", func(path string, fi os.FileInfo, err error) error {
+	filepath.Walk("/tmp/", func(path string, fi os.FileInfo, err error) error {
 		fmt.Println(path)
-		return walk_c("dir", "out", path, fi, nil, func(path string) error {
+		return walk_c("dir", "/", path, fi, nil, func(path string) error {
 			return nil
 		})
 	})
