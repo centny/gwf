@@ -8,3 +8,5 @@ coverage.xml
 coverage.json
 
 jcr/out
+
+mcobertura/c.xml

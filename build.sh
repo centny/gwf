@@ -29,6 +29,8 @@ pkgs="\
  github.com/Centny/Cny4go/routing/cookie\
  github.com/Centny/Cny4go/routing/filter\
  github.com/Centny/Cny4go/routing/httptest\
+ github.com/Centny/Cny4go/jcr\
+ github.com/Centny/Cny4go/mcobertura\
 "
 echo "mode: set" > a.out
 for p in $pkgs;
@@ -46,4 +48,5 @@ cat coverage.json | gocov-html coverage.json > coverage.html
 
 ######
 go install github.com/Centny/Cny4go/mrepo
+go install github.com/Centny/Cny4go/mcobertura
 go install github.com/Centny/Cny4go/jcr/jcr
