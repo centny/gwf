@@ -57,10 +57,10 @@ func Run() {
 	}
 	switch os.Args[1] {
 	case "start":
-		if len(name) < 1 || len(out) < 1 || len(port) < 1 {
-			Usage()
-			return
-		}
+		// if len(name) < 1 || len(out) < 1 || len(port) < 1 {
+		// 	Usage()
+		// 	return
+		// }
 		RunSrv(name, out, port)
 	default:
 		if len(dir) < 1 || len(js) < 1 {

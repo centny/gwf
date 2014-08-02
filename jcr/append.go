@@ -18,7 +18,8 @@ func RunAppend(dir, ex, in, out, js string) {
 	if !util.Fexists(out) {
 		err := os.Mkdir(out, os.ModePerm)
 		if err != nil {
-			panic(err.Error())
+			fmt.Println(err.Error())
+			return
 		}
 	}
 	cover_c := 0
@@ -51,17 +52,20 @@ func RunAppend(dir, ex, in, out, js string) {
 }
 func list(dir string, out string, exec func(path string) error) error {
 	return filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if fi.IsDir() {
-			return nil
-		}
-		if strings.HasPrefix(path, out) {
-			return nil
-		}
-		return exec(path)
+		return walk_c(dir, out, path, fi, err, exec)
 	})
+}
+func walk_c(dir string, out string, path string, fi os.FileInfo, err error, exec func(path string) error) error {
+	if err != nil {
+		return err
+	}
+	if fi.IsDir() {
+		return nil
+	}
+	if strings.HasPrefix(path, out) {
+		return nil
+	}
+	return exec(path)
 }
 func match(regs []string, path string) bool {
 	for _, reg := range regs {

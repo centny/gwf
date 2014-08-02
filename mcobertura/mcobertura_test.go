@@ -8,6 +8,8 @@ import (
 func TestR(t *testing.T) {
 	os.Args = []string{"abc"}
 	main()
+	os.Args = []string{"abc", "-h"}
+	main()
 	os.Args = []string{"abc", "j"}
 	main()
 	os.Args = []string{"abc", "j", "-o"}
