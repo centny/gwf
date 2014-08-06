@@ -30,6 +30,7 @@ pkgs="\
  github.com/Centny/Cny4go/routing/filter\
  github.com/Centny/Cny4go/routing/httptest\
  github.com/Centny/Cny4go/jcr\
+ github.com/Centny/Cny4go/pathc\
  github.com/Centny/Cny4go/mcobertura\
 "
 echo "mode: set" > a.out
