@@ -50,3 +50,4 @@ cat coverage.json | gocov-html coverage.json > coverage.html
 go install github.com/Centny/Cny4go/mrepo
 go install github.com/Centny/Cny4go/mcobertura
 go install github.com/Centny/Cny4go/jcr/jcr
+go install github.com/Centny/Cny4go/pathc
