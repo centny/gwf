@@ -3,6 +3,7 @@ package util
 import (
 	"errors"
 	"fmt"
+	"github.com/Centny/Cny4go/log"
 	"math"
 	"reflect"
 	"regexp"
@@ -211,6 +212,7 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 type AttrFunc func(key string) string
 
 func ValidAttrF(f string, cf AttrFunc, limit_r bool, args ...interface{}) error {
+	f = regexp.MustCompile("\\/\\/.*").ReplaceAllString(f, "")
 	f = strings.Replace(f, "\n", "", -1)
 	f = strings.Trim(f, " \t;")
 	if len(f) < 1 {
@@ -222,13 +224,19 @@ func ValidAttrF(f string, cf AttrFunc, limit_r bool, args ...interface{}) error 
 	}
 	for idx, fs := range trimfs {
 		fs = strings.Trim(fs, " \t")
-		fstr := strings.SplitN(fs, ",", 3)
-		if len(fstr) != 3 {
+		fstr := strings.SplitN(fs, ",", 4)
+		if len(fstr) < 3 {
 			return errors.New(fmt.Sprintf("format error:%s", fs))
 		}
 		rval, err := ValidAttrT(cf(fstr[0]), fstr[1], fstr[2], limit_r)
 		if err != nil {
-			return errors.New(fmt.Sprintf("limit(%s),%s", fs, err.Error()))
+			rerr := errors.New(fmt.Sprintf("limit(%s),%s", fs, err.Error()))
+			if len(fstr) > 3 {
+				log.D("%s", rerr.Error())
+				return errors.New(fstr[3])
+			} else {
+				return rerr
+			}
 		}
 		if rval == nil {
 			continue

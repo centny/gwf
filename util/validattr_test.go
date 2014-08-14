@@ -267,10 +267,10 @@ func TestValidAttrF(t *testing.T) {
 	var i int64
 	var k string
 	var f float64
-	err := ValidAttrF(`
-		a,R|S,L:~5;
+	err := ValidAttrF(`//abc
+		a,R|S,L:~5;//abc
 		i,R|I,R:1~20;
-		k,O|I,R:1~20;
+		k,O|I,R:1~20;//sfdsj
 		f,R|F,R:1.5~20;
 		`, func(key string) string {
 		return mv[key]
@@ -311,6 +311,7 @@ func TestValidAttrF(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	fmt.Println(err.Error())
 	//
 	err = ValidAttrF(``, func(key string) string {
 		return mv[key]
@@ -331,4 +332,15 @@ func TestValidAttrF(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	fmt.Println(err.Error())
+	err = ValidAttrF(`
+		len,R|S,L:~5,this is error message;
+		`, func(key string) string {
+		return mv[key]
+	}, true, &a)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	fmt.Println(err.Error())
 }
