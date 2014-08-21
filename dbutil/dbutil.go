@@ -5,9 +5,11 @@ package dbutil
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/Centny/Cny4go/util"
 	"io/ioutil"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -254,14 +256,21 @@ func DbExecF(db *sql.DB, file string) error {
 	if err != nil {
 		return err
 	}
-	blocks := strings.Split(string(fdata), ";")
+	return DbExecScript(db, string(fdata))
+}
+func DbExecScript(db *sql.DB, script string) error {
+	script = regexp.MustCompile("(?msU)/\\*.*\\*/\n?").ReplaceAllString(script, "")
+	script = regexp.MustCompile("--.*\n?").ReplaceAllString(script, "")
+	script = regexp.MustCompile("\n{2,}").ReplaceAllString(script, "\n")
+	blocks := strings.Split(script, ";")
 	for _, b := range blocks {
+		b = strings.Trim(b, " \t\n")
 		if len(b) < 1 {
 			continue
 		}
 		_, err := db.Exec(b)
 		if err != nil {
-			return err
+			return errors.New(fmt.Sprintf("%v:%v", b, err.Error()))
 		}
 	}
 	return nil

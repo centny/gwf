@@ -12,6 +12,13 @@ CREATE TABLE `ttable` (
   `ADD2` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`TID`)
 );
+/* */
+--sfdsf
+/* 
+sdfs
+sfs
+*/
+--sdds
 insert into ttable(tname,titem,tval,status,time) values('name','item','val','N',now());
 insert into ttable(tname,titem,tval,status,time) values('name','item','val','N',now());
 insert into ttable(tname,titem,tval,status,time) values('name','item','val','N',now());

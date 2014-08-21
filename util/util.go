@@ -120,3 +120,11 @@ func Exec(args ...string) (string, error) {
 	bys, err := exec.Command(C_SH, "-c", strings.Join(args, " ")).Output()
 	return string(bys), err
 }
+
+func IsType(v interface{}, t string) bool {
+	t = strings.Trim(t, " \t")
+	if v == nil || len(t) < 1 {
+		return false
+	}
+	return reflect.Indirect(reflect.ValueOf(v)).Type().Name() == t
+}

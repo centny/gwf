@@ -160,3 +160,13 @@ func TestDLoad(t *testing.T) {
 	os.Remove("/tmp/index.html")
 	DLoad("/tmp/s.html", "")
 }
+
+func TestIsType(t *testing.T) {
+	if !IsType(t, "T") {
+		t.Error("not right")
+	}
+	fmt.Println(IsType(nil, "A"))
+	fmt.Println(IsType(t, ""))
+	fmt.Println(IsType(t, " "))
+	fmt.Println(IsType(t, "\t"))
+}
