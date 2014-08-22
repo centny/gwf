@@ -2,6 +2,7 @@ package smartio
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -53,6 +54,8 @@ func TestDwNormal(t *testing.T) {
 	dw.cfn = "lll.log"
 	dw.Write([]byte{'1', '1', '1', '\n'})
 	dw.Write([]byte{'1', '1', '1', '\n'})
+	dw.F.Close()
+	dw.Write([]byte{'1', '1', '1', '\n'})
 	dw.Close()
 	//
 	dw = NewDateSwitchWriter2(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm', '/', 'a'}))
@@ -71,6 +74,13 @@ func TestDwNormal2(t *testing.T) {
 		}()
 	}
 	time.Sleep(time.Second)
+	dw.Close()
+}
+func TestDwNormal3(t *testing.T) {
+	dw := NewDateSwitchWriter2("/tmp")
+	dw.Write([]byte("jjjsfs\n"))
+	dw.F.Close()
+	dw.Write([]byte("jjjsfs\n"))
 	dw.Close()
 }
 func TestNtw(t *testing.T) {
@@ -100,4 +110,18 @@ func TestDTW(t *testing.T) {
 	time.Sleep(time.Second)
 	wg.Wait()
 	dw.Close()
+}
+
+type ErrWriter struct {
+}
+
+func (e *ErrWriter) Write(p []byte) (int, error) {
+	return 0, errors.New("error")
+}
+func TestDTW2(t *testing.T) {
+	tw := NewTimeWriter(&ErrWriter{}, 1024, 100)
+	wg := sync.WaitGroup{}
+	tw.Write([]byte("ksjfksdfjksdfjskfjskfsfs:%v\n"))
+	time.Sleep(time.Second)
+	wg.Wait()
 }

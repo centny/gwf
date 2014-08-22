@@ -33,7 +33,7 @@ func NewDateSwitchWriter2(ws string) *DateSwitchWriter {
 	return NewDateSwitchWriter(ws, os.ModePerm)
 }
 
-func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
+func (d *DateSwitchWriter) Write(p []byte) (int, error) {
 	fname := time.Now().Format("2006-1-2.log")
 	if d.cfn != fname {
 		if d.F != nil {
@@ -43,17 +43,33 @@ func (d *DateSwitchWriter) Write(p []byte) (n int, err error) {
 	}
 	//create new log writer
 	if d.F == nil {
-		fpath := filepath.Join(d.ws, fname)
-		err := util.FTouch2(fpath, d.FMODE)
+		err := d.reopen(fname)
 		if err != nil {
 			return 0, err
 		}
-		f, _ := os.OpenFile(fpath, os.O_WRONLY|os.O_TRUNC|os.O_APPEND, d.FMODE)
-		d.cfn = fname
-		d.F = f
-		fmt.Println("open file:", fpath)
 	}
-	return d.F.Write(p)
+	l, err := d.F.Write(p)
+	if err == nil {
+		return l, err
+	} else { //if writing error,try again.
+		d.F.Close()
+		d.F = nil
+		fmt.Println("writing data error:" + err.Error())
+		time.Sleep(time.Second)
+		return d.Write(p)
+	}
+}
+func (d *DateSwitchWriter) reopen(fname string) error {
+	fpath := filepath.Join(d.ws, fname)
+	err := util.FTouch2(fpath, d.FMODE)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(fpath, os.O_WRONLY|os.O_TRUNC|os.O_APPEND, d.FMODE)
+	d.cfn = fname
+	d.F = f
+	fmt.Println("open file:", fpath)
+	return err
 }
 func (d *DateSwitchWriter) Close() {
 	if d.F != nil {
