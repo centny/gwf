@@ -15,10 +15,10 @@ func Usage() {
 	-n <coverage file name>
 	-p <listen port>`)
 }
-func Run() {
+func Run() error {
 	if len(os.Args) < 2 {
 		Usage()
-		return
+		return nil
 	}
 	dir := ""
 	ex := ""          //exclude
@@ -62,11 +62,12 @@ func Run() {
 		// 	return
 		// }
 		RunSrv(name, out, port)
+		return nil
 	default:
 		if len(dir) < 1 || len(js) < 1 {
 			Usage()
-			return
+			return nil
 		}
-		RunAppend(dir, ex, in, out, js)
+		return RunAppend(dir, ex, in, out, js)
 	}
 }

@@ -2,8 +2,12 @@ package main
 
 import (
 	"github.com/Centny/Cny4go/jcr"
+	"os"
 )
 
 func main() {
-	jcr.Run()
+	err := jcr.Run()
+	if err != nil {
+		os.Exit(1)
+	}
 }

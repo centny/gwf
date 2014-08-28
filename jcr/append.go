@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func RunAppend(dir, ex, in, out, js string) {
+func RunAppend(dir, ex, in, out, js string) error {
 	exs := strings.Split(ex, ",")
 	ins := strings.Split(in, ",")
 	dir, _ = filepath.Abs(dir)
@@ -19,7 +19,7 @@ func RunAppend(dir, ex, in, out, js string) {
 		err := os.Mkdir(out, os.ModePerm)
 		if err != nil {
 			fmt.Println(err.Error())
-			return
+			return err
 		}
 	}
 	cover_c := 0
@@ -49,6 +49,7 @@ func RunAppend(dir, ex, in, out, js string) {
 	} else {
 		log.D("jcr execute success, %d file is covered...", cover_c)
 	}
+	return err
 }
 func list(dir string, out string, exec func(path string) error) error {
 	return filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
