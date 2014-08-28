@@ -57,7 +57,8 @@ func list(dir string, out string, exec func(path string) error) error {
 }
 func walk_c(dir string, out string, path string, fi os.FileInfo, err error, exec func(path string) error) error {
 	if err != nil {
-		return err
+		log.W("list path error(%v)", err.Error())
+		return nil
 	}
 	if fi.IsDir() {
 		return nil
