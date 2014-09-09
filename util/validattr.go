@@ -22,6 +22,8 @@ import (
 //	seperate value by -
 //limit_r:if return error when require value not found.
 func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interface{}, error) {
+	valLR = strings.Replace(valLR, "%N", ",", -1)
+	valLR = strings.Replace(valLR, "%%", "%", -1)
 	lrs := strings.SplitN(valLR, ":", 2) //valid value range.
 	lts := strings.SplitN(valLT, "|", 2) //valid required type
 	if len(lrs) < 2 {
