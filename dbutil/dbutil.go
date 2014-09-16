@@ -274,15 +274,25 @@ func DbExecScript(db *sql.DB, script string) error {
 	script = regexp.MustCompile("--.*\n?").ReplaceAllString(script, "")
 	script = regexp.MustCompile("\n{2,}").ReplaceAllString(script, "\n")
 	blocks := strings.Split(script, ";")
+	// fmt.Println(blocks)
 	for _, b := range blocks {
-		b = strings.Trim(b, " \t\n")
+		b = strings.Trim(b, " \t\n\r")
 		if len(b) < 1 {
 			continue
 		}
+		// fmt.Println(b)
 		_, err := db.Exec(b)
 		if err != nil {
 			return errors.New(fmt.Sprintf("%v:%v", b, err.Error()))
 		}
 	}
 	return nil
+}
+func DbExecF2(driver, dsn, file string) error {
+	db, err := sql.Open(driver, dsn)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	return DbExecF(db, file)
 }
