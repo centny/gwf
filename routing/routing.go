@@ -11,6 +11,8 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -57,6 +59,10 @@ type HandleFunc func(*HTTPSession) HResult
 type Handler interface {
 	SrvHTTP(*HTTPSession) HResult
 }
+type International interface {
+	SetLocal(hs *HTTPSession, local string)
+	LocalVal(hs *HTTPSession, key string) string
+}
 
 type HTTPSession struct {
 	W   http.ResponseWriter
@@ -64,6 +70,7 @@ type HTTPSession struct {
 	S   Session
 	Mux *SessionMux
 	Kvs map[string]interface{}
+	INT International
 }
 
 func (h *HTTPSession) SetCookie(key string, val string) {
@@ -244,16 +251,17 @@ func (h *HTTPSession) ValidCheckValN(f string, args ...interface{}) error {
 	return util.ValidAttrF(f, h.CheckVal, false, args...)
 }
 
-func http_res(code int, data interface{}, msg string) util.Map {
+func http_res(code int, data interface{}, msg string, dmsg string) util.Map {
 	res := make(util.Map)
 	res["code"] = code
 	res["msg"] = msg
 	res["data"] = data
+	res["dmsg"] = dmsg
 	return res
 }
 
-func json_res(code int, data interface{}, msg string) []byte {
-	res := http_res(code, data, msg)
+func json_res(code int, data interface{}, msg string, dmsg string) []byte {
+	res := http_res(code, data, msg, dmsg)
 	dbys, _ := json.Marshal(res)
 	return dbys
 }
@@ -266,19 +274,90 @@ func (h *HTTPSession) JsonRes(data interface{}) error {
 	return nil
 }
 func (h *HTTPSession) MsgRes(data interface{}) HResult {
-	h.JsonRes(http_res(0, data, ""))
+	h.JsonRes(http_res(0, data, "", ""))
 	return HRES_RETURN
 }
 
 func (h *HTTPSession) MsgRes2(code int, data interface{}) HResult {
-	h.JsonRes(http_res(code, data, ""))
+	h.JsonRes(http_res(code, data, "", ""))
 	return HRES_RETURN
 }
 
 func (h *HTTPSession) MsgResE(code int, msg string) HResult {
-	h.JsonRes(http_res(code, "", msg))
+	h.JsonRes(http_res(code, "", msg, ""))
 	return HRES_RETURN
 }
+func (h *HTTPSession) MsgResE2(code int, msg string, dmsg string) HResult {
+	h.JsonRes(http_res(code, "", msg, dmsg))
+	return HRES_RETURN
+}
+func (h *HTTPSession) MsgResE3(code int, key string, dmsg string) HResult {
+	h.JsonRes(http_res(code, "", h.LocalVal(key), dmsg))
+	return HRES_RETURN
+}
+func (h *HTTPSession) MsgResErr(code int, msg string, err error) HResult {
+	h.JsonRes(http_res(code, "", msg, err.Error()))
+	return HRES_RETURN
+}
+
+//using the local value by key for error message.
+func (h *HTTPSession) MsgResErr2(code int, key string, err error) HResult {
+	h.JsonRes(http_res(code, "", h.LocalVal(key), err.Error()))
+	return HRES_RETURN
+}
+
+/* International */
+func (h *HTTPSession) SetLocal(local string) {
+	if h.INT != nil {
+		h.INT.SetLocal(h, local)
+	}
+}
+func (h *HTTPSession) LocalVal(key string) string {
+	if h.INT != nil {
+		return h.INT.LocalVal(h, key)
+	} else {
+		return ""
+	}
+}
+
+/* --------------- Access-Language --------------- */
+type LangQ struct {
+	Lang string
+	Q    float64
+}
+type LangQes []LangQ
+
+func (l LangQes) Len() int           { return len(l) }
+func (l LangQes) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
+func (l LangQes) Less(i, j int) bool { return l[i].Q > l[j].Q }
+
+func (h *HTTPSession) AcceptLanguages() LangQes {
+	if len(h.R.Header["Accept-Language"]) < 1 {
+		return LangQes{}
+	}
+	lstr := h.R.Header["Accept-Language"][0]
+	var als LangQes = LangQes{} //all access languages.
+	regexp.MustCompile("[^;]*;q?[^,]*").ReplaceAllStringFunc(lstr, func(src string) string {
+		src = strings.Trim(src, "\t \n,")
+		lq := strings.Split(src, ";")
+		qua, err := strconv.ParseFloat(strings.Replace(lq[1], "q=", "", -1), 64)
+		if err != nil {
+			log.D("invalid Accept-Language q:%s", src)
+			return src
+		}
+		for _, lan := range strings.Split(lq[0], ",") {
+			als = append(als, LangQ{
+				Lang: lan,
+				Q:    qua,
+			})
+		}
+		return src
+	})
+	sort.Sort(als)
+	return als
+}
+
+/* --------------- Access-Language --------------- */
 
 type SessionMux struct {
 	Pre    string
@@ -304,6 +383,7 @@ type SessionMux struct {
 	FilterEnable bool
 	HandleEnable bool
 	ShowLog      bool
+	INT          International
 }
 
 func NewSessionMux2(pre string) *SessionMux {
@@ -336,6 +416,7 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	mux.FilterEnable = true
 	mux.HandleEnable = true
 	mux.ShowLog = false
+	mux.INT = nil
 	return &mux
 }
 
@@ -535,6 +616,7 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		S:   session,
 		Mux: s,
 		Kvs: map[string]interface{}{},
+		INT: s.INT,
 	}
 	s.rs_l.Lock()
 	s.rs_m[r] = hs

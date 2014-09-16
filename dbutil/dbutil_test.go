@@ -82,6 +82,21 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not data")
 		return
 	}
+	_, err = DbQueryI(db, "select count(*) from ttable")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	_, err = DbQueryI(db, "select tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryI(db, "selects tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 	fmt.Println("T-->02")
 	//
 	svs, err := DbQueryString(db, "select tname from ttable")

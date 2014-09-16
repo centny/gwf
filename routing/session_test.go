@@ -209,23 +209,27 @@ func TestSessionMux2(t *testing.T) {
 	sb.ShowLog = true
 	mux := NewSessionMux("/t", sb)
 	mux.ShowLog = true
-	mux.HFunc("/a", func(hs *HTTPSession) HResult {
+	mux.HFunc("^/a$", func(hs *HTTPSession) HResult {
 		return hs.MsgRes("aaaa")
 	})
-	mux.HFunc("/b", func(hs *HTTPSession) HResult {
+	mux.HFunc("^/b$", func(hs *HTTPSession) HResult {
 		return hs.MsgRes2(200, "bbbb")
 	})
-	mux.HFunc("/c", func(hs *HTTPSession) HResult {
+	mux.HFunc("^/c$", func(hs *HTTPSession) HResult {
 		return hs.MsgResE(1, "cccc")
 	})
-	mux.HFunc("/c2", func(hs *HTTPSession) HResult {
-		err := hs.JsonRes(nil)
+	mux.HFunc("^/c2$", func(hs *HTTPSession) HResult {
+		fmt.Println("------->")
+		err := hs.JsonRes(func() {})
 		if err == nil {
 			t.Error("not error")
 		}
 		return HRES_RETURN
 	})
-	mux.HFunc("/d", func(hs *HTTPSession) HResult {
+	mux.HFunc("^/c3$", func(hs *HTTPSession) HResult {
+		return hs.MsgResE(1, "cccc")
+	})
+	mux.HFunc("^/d$", func(hs *HTTPSession) HResult {
 		hs.SendT("abc", "text/plain;charset=utf-8")
 		return HRES_RETURN
 	})

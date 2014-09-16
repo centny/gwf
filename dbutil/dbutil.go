@@ -108,6 +108,17 @@ func DbQueryS2(tx *sql.Tx, res interface{}, query string, args ...interface{}) e
 	util.Ms2Ss(mres, res)
 	return nil
 }
+func DbQueryI(db *sql.DB, query string, args ...interface{}) (int64, error) {
+	ic, err := DbQueryInt(db, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	if len(ic) < 1 {
+		return 0, errors.New("not found")
+	} else {
+		return ic[0], nil
+	}
+}
 
 //
 func DbQueryInt(db *sql.DB, query string, args ...interface{}) ([]int64, error) {

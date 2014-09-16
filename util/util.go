@@ -128,3 +128,10 @@ func IsType(v interface{}, t string) bool {
 	}
 	return reflect.Indirect(reflect.ValueOf(v)).Type().Name() == t
 }
+
+func Append(ary []interface{}, args ...interface{}) []interface{} {
+	for _, arg := range args {
+		ary = append(ary, arg)
+	}
+	return ary
+}

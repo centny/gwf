@@ -170,3 +170,9 @@ func TestIsType(t *testing.T) {
 	fmt.Println(IsType(t, " "))
 	fmt.Println(IsType(t, "\t"))
 }
+
+func TestAppend(t *testing.T) {
+	args := []interface{}{}
+	args = Append(args, 1, nil)
+	fmt.Println(args)
+}
