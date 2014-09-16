@@ -317,3 +317,13 @@ func TestDbExecF(t *testing.T) {
 	db.Close()
 	DbExecF(db, "ttable.sql")
 }
+func TestDbExecF2(t *testing.T) {
+	err := DbExecF2("mysql", test.TDbCon, "ttable.sql")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	err = DbExecF2("myl", test.TDbCon, "ttable.sql")
+	if err == nil {
+		t.Error("not error")
+	}
+}

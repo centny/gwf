@@ -38,6 +38,8 @@ func TestINT(t *testing.T) {
 	fmt.Println(util.HTTPClient.HGet_H(header, "%s/t/info", ts.URL))
 	header["Accept-Language"] = "zh-cn,zh;q=0.8,en;q=0.3,abc;q=0.9"
 	fmt.Println(util.HTTPClient.HGet_H(header, "%s/t/info", ts.URL))
+	header["Accept-Language"] = "abcdd;q=0.9"
+	fmt.Println(util.HTTPClient.HGet_H(header, "%s/t/info", ts.URL))
 	//
 	fmt.Println(util.HTTPClient.HGet_H(header, "%s/t/set", ts.URL))
 	header["Accept-Language"] = "zh-cn,zh;q=0.8,en;q=0.9"

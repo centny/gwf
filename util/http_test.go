@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -92,6 +93,11 @@ func TestHTTP2(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+	_, _, err = HTTPClient.HPostF_H(ts.URL, map[string]string{"ma": "123"}, map[string]string{"ma": "123"}, "abc", "test.txt")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
 	_, err = HPostF(ts.URL, map[string]string{"ma": "123"}, "abc", "/tmp")
 	if err == nil {
 		t.Error("not error")
@@ -102,10 +108,33 @@ func TestHTTP2(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+	_, _, err = HTTPClient.HGet_H(map[string]string{"ma": "123"}, "%s?abc=%s", ts.URL, "1111")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
 	HPostF2("kkk", map[string]string{"ma": "123"}, "abc", "test.txt")
+	HPostF2("123%34%56://s", map[string]string{"ma": "123"}, "abc", "test.txt")
 	HTTPPost(ts.URL, map[string]string{"ma": "123"})
 	HTTPPost2(ts.URL, map[string]string{"ma": "123"})
 	HTTPPost2("jhj", map[string]string{"ma": "123"})
+	//
+	HTTPClient.DLoad("/tmp/aa.log", map[string]string{"ma": "123"}, "%s", ts.URL)
+	fmt.Println(HTTPClient.DLoad("/sg/aa.log", map[string]string{"ma": "123"}, "%s", ts.URL))
+}
+func TestHTTPErr(t *testing.T) {
+	fmt.Println(HPostF2("123%45%6", map[string]string{"ma": "123"}, "abc", "test.txt"))
+	fmt.Println(HGet("123%45%6"))
+	fmt.Println(HPostN("123%45%6", "ABcc", nil))
+	fmt.Println(DLoad("spath", "123%45%6"))
+}
+func TestHpp(t *testing.T) {
+	HGet("123%45%67://s")
+	HGet("kk")
+	HGet2("kk")
+	HPost("jjjj", nil)
+	HPost2("kkk", nil)
+	HGet2("kkk")
 }
 
 //
@@ -151,13 +180,7 @@ func TestFormFSzie(t *testing.T) {
 		t.Error("not right")
 	}
 }
-func TestHpp(t *testing.T) {
-	HGet("kk")
-	HGet2("kk")
-	HPost("jjjj", nil)
-	HPost2("kkk", nil)
-	HGet2("kkk")
-}
+
 func TestMap2Query(t *testing.T) {
 	mv := map[string]interface{}{}
 	mv["abc"] = "123"
@@ -217,6 +240,22 @@ func CreateFormBody2(fields map[string]string, fkey string, fp string) (string, 
 	return ctype, bodyBuf, nil
 }
 
+type ErrWriter struct {
+}
+
+func (e *ErrWriter) Write(p []byte) (n int, err error) {
+	return 0, errors.New("test erro")
+}
+
+func TestCreateFileForm(t *testing.T) {
+	bodyWriter := multipart.NewWriter(&ErrWriter{})
+	err := CreateFileForm(bodyWriter, "sss", "sss")
+	if err == nil {
+		t.Error("not error")
+	}
+	fmt.Println(err.Error())
+}
+
 func TestJson2Ary(t *testing.T) {
 	ary, err := Json2Ary(`
 		[1,2,"ss"]
@@ -235,6 +274,12 @@ func TestJson2Ary(t *testing.T) {
 	}
 }
 
+type ErrReader struct {
+}
+
+func (e *ErrReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("error")
+}
 func TestPostN(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Ok"))
@@ -247,4 +292,9 @@ func TestPostN(t *testing.T) {
 	fmt.Println(data)
 	fmt.Println(HPostN("kkk://sssss", "text/plain", bytes.NewBuffer([]byte("WWW"))))
 	fmt.Println(HPostN("http:///kkkfjdfsfsd", "text/plain", bytes.NewBuffer([]byte("WWW"))))
+	// fmt.Println(HPostN("http://www.baidu.com", "text/plain", &ErrReader{}))
+}
+func TestPostN2(t *testing.T) {
+	_, err := http.NewRequest("POT", "123%45%6://www.ss.com?", nil)
+	fmt.Println(err)
 }

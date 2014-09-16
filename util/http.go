@@ -224,6 +224,22 @@ func Json2Ary(data string) ([]interface{}, error) {
 	}
 	return ary, nil
 }
+func CreateFileForm(bodyWriter *multipart.Writer, fkey, fp string) error {
+	fileWriter, err := bodyWriter.CreateFormFile(fkey, fp)
+	if err != nil {
+		return err
+	}
+	fh, err := os.Open(fp)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	_, err = io.Copy(fileWriter, fh)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func CreateFormBody(fields map[string]string, fkey string, fp string) (string, *bytes.Buffer, error) {
 	bodyBuf := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuf)
@@ -231,16 +247,7 @@ func CreateFormBody(fields map[string]string, fkey string, fp string) (string, *
 		bodyWriter.WriteField(k, v)
 	}
 	if len(fkey) > 0 {
-		fileWriter, err := bodyWriter.CreateFormFile(fkey, fp)
-		if err != nil {
-			return "", nil, err
-		}
-		fh, err := os.Open(fp)
-		if err != nil {
-			return "", nil, err
-		}
-		defer fh.Close()
-		_, err = io.Copy(fileWriter, fh)
+		err := CreateFileForm(bodyWriter, fkey, fp)
 		if err != nil {
 			return "", nil, err
 		}

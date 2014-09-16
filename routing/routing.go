@@ -195,9 +195,10 @@ func (h *HTTPSession) FormFInfo(name string) (int64, string, error) {
 	if err != nil {
 		return 0, "", err
 	}
+	err = errors.New("file size error")
 	fsize := util.FormFSzie(src)
-	if fsize < 1 {
-		err = errors.New("file size error")
+	if fsize > 0 {
+		err = nil
 	}
 	return fsize, fh.Filename, err
 }
@@ -260,11 +261,11 @@ func http_res(code int, data interface{}, msg string, dmsg string) util.Map {
 	return res
 }
 
-func json_res(code int, data interface{}, msg string, dmsg string) []byte {
-	res := http_res(code, data, msg, dmsg)
-	dbys, _ := json.Marshal(res)
-	return dbys
-}
+// func json_res(code int, data interface{}, msg string, dmsg string) []byte {
+// 	res := http_res(code, data, msg, dmsg)
+// 	dbys, _ := json.Marshal(res)
+// 	return dbys
+// }
 func (h *HTTPSession) JsonRes(data interface{}) error {
 	dbys, err := json.Marshal(data)
 	if err != nil {

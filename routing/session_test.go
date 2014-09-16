@@ -2,6 +2,7 @@ package routing
 
 import (
 	"code.google.com/p/go.net/publicsuffix"
+	"errors"
 	"fmt"
 	"github.com/Centny/Cny4go/util"
 	"net/http"
@@ -229,6 +230,18 @@ func TestSessionMux2(t *testing.T) {
 	mux.HFunc("^/c3$", func(hs *HTTPSession) HResult {
 		return hs.MsgResE(1, "cccc")
 	})
+	mux.HFunc("^/c4$", func(hs *HTTPSession) HResult {
+		return hs.MsgResErr2(1, "cccc", errors.New("text"))
+	})
+	mux.HFunc("^/c5$", func(hs *HTTPSession) HResult {
+		return hs.MsgResE2(1, "cccc", "text")
+	})
+	mux.HFunc("^/c6$", func(hs *HTTPSession) HResult {
+		return hs.MsgResErr(1, "cccc", errors.New("text"))
+	})
+	mux.HFunc("^/c7$", func(hs *HTTPSession) HResult {
+		return hs.MsgResE3(1, "cccc", "text")
+	})
 	mux.HFunc("^/d$", func(hs *HTTPSession) HResult {
 		hs.SendT("abc", "text/plain;charset=utf-8")
 		return HRES_RETURN
@@ -238,6 +251,11 @@ func TestSessionMux2(t *testing.T) {
 	fmt.Println(util.HGet("%s/t/b", ts.URL))
 	fmt.Println(util.HGet("%s/t/c", ts.URL))
 	fmt.Println(util.HGet("%s/t/c2", ts.URL))
+	fmt.Println(util.HGet("%s/t/c3", ts.URL))
+	fmt.Println(util.HGet("%s/t/c4", ts.URL))
+	fmt.Println(util.HGet("%s/t/c5", ts.URL))
+	fmt.Println(util.HGet("%s/t/c6", ts.URL))
+	fmt.Println(util.HGet("%s/t/c7", ts.URL))
 	fmt.Println(util.HGet("%s/t/d", ts.URL))
 }
 func RecF(hs *HTTPSession) HResult {
