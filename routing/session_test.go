@@ -62,6 +62,7 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 	fmt.Println(hs.CheckVal("abc"))
 	fmt.Println(hs.StrVal("abcss"))
 	fmt.Println(hs.CheckVal("abcss"))
+	fmt.Println(hs.Host())
 	hs.S.Set("kkk", nil)
 	fmt.Println(hs.Val("kkk"))
 	//

@@ -94,8 +94,9 @@ func (h *HTTPSession) Cookie(key string) string {
 	return c.Value
 }
 
+/* Redirect */
 func (h *HTTPSession) Redirect(url string) {
-	http.Redirect(h.W, h.R, url, http.StatusMovedPermanently)
+	http.Redirect(h.W, h.R, url, http.StatusTemporaryRedirect)
 }
 
 func (h *HTTPSession) SetVal(key string, val interface{}) {
@@ -319,6 +320,11 @@ func (h *HTTPSession) LocalVal(key string) string {
 	} else {
 		return ""
 	}
+}
+
+/* Host */
+func (h *HTTPSession) Host() string {
+	return h.R.Host
 }
 
 /* --------------- Access-Language --------------- */

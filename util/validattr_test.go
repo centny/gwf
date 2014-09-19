@@ -344,3 +344,16 @@ func TestValidAttrF(t *testing.T) {
 	}
 	fmt.Println(err.Error())
 }
+func TestEscape(t *testing.T) {
+	//
+	var a string
+	err := ValidAttrF(`
+		len,R|S,P:[^%N]*%N.*$;
+		`, func(key string) string {
+		return "abc,ddf"
+	}, true, &a)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+}
