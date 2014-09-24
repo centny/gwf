@@ -2,7 +2,7 @@ package routing
 
 import (
 	"fmt"
-	"github.com/Centny/Cny4go/log"
+	"github.com/Centny/gwf/log"
 	"net/http"
 )
 

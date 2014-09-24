@@ -2,7 +2,7 @@ package routing
 
 import (
 	"encoding/json"
-	"github.com/Centny/Cny4go/log"
+	"github.com/Centny/gwf/log"
 	"io/ioutil"
 	"path/filepath"
 	"sync"

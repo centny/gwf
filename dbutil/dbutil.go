@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/Centny/Cny4go/util"
+	"github.com/Centny/gwf/util"
 	"io/ioutil"
 	"reflect"
 	"regexp"

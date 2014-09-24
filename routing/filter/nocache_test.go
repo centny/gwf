@@ -1,8 +1,8 @@
 package filter
 
 import (
-	"github.com/Centny/Cny4go/routing"
-	"github.com/Centny/Cny4go/util"
+	"github.com/Centny/gwf/routing"
+	"github.com/Centny/gwf/util"
 	"net/http/httptest"
 	"testing"
 )

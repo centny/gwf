@@ -2,7 +2,7 @@ package routing
 
 import (
 	"fmt"
-	"github.com/Centny/Cny4go/util"
+	"github.com/Centny/gwf/util"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -25,7 +25,7 @@ func TestRouting(t *testing.T) {
 // 	"code.google.com/p/go-uuid/uuid"
 // 	"code.google.com/p/go.net/publicsuffix"
 // 	"fmt"
-// 	"github.com/Centny/Cny4go/util"
+// 	"github.com/Centny/gwf/util"
 // 	"net/http"
 // 	"net/http/cookiejar"
 // 	"sync"

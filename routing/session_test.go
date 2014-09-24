@@ -4,7 +4,7 @@ import (
 	"code.google.com/p/go.net/publicsuffix"
 	"errors"
 	"fmt"
-	"github.com/Centny/Cny4go/util"
+	"github.com/Centny/gwf/util"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"

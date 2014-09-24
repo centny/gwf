@@ -1,7 +1,7 @@
 package rsrv
 
 import (
-	"github.com/Centny/Cny4go/util"
+	"github.com/Centny/gwf/util"
 )
 
 func Run(cmd string) {

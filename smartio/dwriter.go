@@ -2,7 +2,7 @@ package smartio
 
 import (
 	"fmt"
-	"github.com/Centny/Cny4go/util"
+	"github.com/Centny/gwf/util"
 	"io"
 	"os"
 	"path/filepath"

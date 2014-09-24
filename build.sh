@@ -14,24 +14,24 @@ echo "Installing Dependence"
 #########Running Clear#########
 if [ "$1" = "-u" ];then
  echo "Running Clear"
- rm -rf $GOPATH/src/github.com/Centny/Cny4go
- go get -u github.com/Centny/Cny4go
+ rm -rf $GOPATH/src/github.com/Centny/gwf
+ go get -u github.com/Centny/gwf
 fi
 #########Running Test#########
 echo "Running Test"
 pkgs="\
- github.com/Centny/Cny4go/smartio\
- github.com/Centny/Cny4go/log\
- github.com/Centny/Cny4go/util\
- github.com/Centny/Cny4go/dbutil\
- github.com/Centny/Cny4go/igtest\
- github.com/Centny/Cny4go/routing\
- github.com/Centny/Cny4go/routing/cookie\
- github.com/Centny/Cny4go/routing/filter\
- github.com/Centny/Cny4go/routing/httptest\
- github.com/Centny/Cny4go/jcr\
- github.com/Centny/Cny4go/pathc\
- github.com/Centny/Cny4go/mcobertura\
+ github.com/Centny/gwf/smartio\
+ github.com/Centny/gwf/log\
+ github.com/Centny/gwf/util\
+ github.com/Centny/gwf/dbutil\
+ github.com/Centny/gwf/igtest\
+ github.com/Centny/gwf/routing\
+ github.com/Centny/gwf/routing/cookie\
+ github.com/Centny/gwf/routing/filter\
+ github.com/Centny/gwf/routing/httptest\
+ github.com/Centny/gwf/jcr\
+ github.com/Centny/gwf/pathc\
+ github.com/Centny/gwf/mcobertura\
 "
 echo "mode: set" > a.out
 for p in $pkgs;
@@ -48,7 +48,7 @@ cat coverage.json | gocov-xml -b $GOPATH/src > coverage.xml
 cat coverage.json | gocov-html coverage.json > coverage.html
 
 ######
-go install github.com/Centny/Cny4go/mrepo
-go install github.com/Centny/Cny4go/mcobertura
-go install github.com/Centny/Cny4go/jcr/jcr
-go install github.com/Centny/Cny4go/pathc
+go install github.com/Centny/gwf/mrepo
+go install github.com/Centny/gwf/mcobertura
+go install github.com/Centny/gwf/jcr/jcr
+go install github.com/Centny/gwf/pathc

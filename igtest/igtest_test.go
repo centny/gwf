@@ -2,7 +2,7 @@ package igtest
 
 import (
 	"fmt"
-	"github.com/Centny/Cny4go/util"
+	"github.com/Centny/gwf/util"
 	"os"
 	"testing"
 )

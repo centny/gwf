@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
-	"github.com/Centny/Cny4go/log"
-	"github.com/Centny/Cny4go/util"
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/util"
 	"io"
 	"os"
 )

@@ -3,7 +3,7 @@ package routing
 import (
 	"errors"
 	"fmt"
-	"github.com/Centny/Cny4go/util"
+	"github.com/Centny/gwf/util"
 	"net/http"
 	"net/http/httptest"
 	"os"

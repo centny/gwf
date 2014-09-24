@@ -3,7 +3,7 @@ package util
 import (
 	"errors"
 	"fmt"
-	"github.com/Centny/Cny4go/log"
+	"github.com/Centny/gwf/log"
 	"math"
 	"reflect"
 	"regexp"

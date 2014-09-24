@@ -2,8 +2,8 @@ package routing
 
 import (
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/Centny/Cny4go/log"
-	"github.com/Centny/Cny4go/util"
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/util"
 	"net/http"
 	"sync"
 	"time"

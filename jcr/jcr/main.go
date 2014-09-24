@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Centny/Cny4go/jcr"
+	"github.com/Centny/gwf/jcr"
 	"os"
 )
 

@@ -1,7 +1,7 @@
 package filter
 
 import (
-	"github.com/Centny/Cny4go/routing"
+	"github.com/Centny/gwf/routing"
 	"time"
 )
 
