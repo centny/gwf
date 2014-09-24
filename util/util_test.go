@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -175,4 +176,16 @@ func TestAppend(t *testing.T) {
 	args := []interface{}{}
 	args = Append(args, 1, nil)
 	fmt.Println(args)
+}
+
+func TestList(t *testing.T) {
+	ts := List("./", "^.*\\.txt$")
+	if len(ts) != 1 {
+		t.Error("error")
+	}
+	fmt.Println(ts)
+}
+
+func TestOs(t *testing.T) {
+	fmt.Println(runtime.GOOS)
 }

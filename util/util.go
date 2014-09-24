@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -134,4 +135,21 @@ func Append(ary []interface{}, args ...interface{}) []interface{} {
 		ary = append(ary, arg)
 	}
 	return ary
+}
+
+func List(root string, reg string) []string {
+	return ListFunc(root, reg, func(t string) string {
+		return t
+	})
+}
+func ListFunc(root string, reg string, f func(t string) string) []string {
+	pathes := []string{}
+	regx := regexp.MustCompile(reg)
+	filepath.Walk(root, func(path string, fi os.FileInfo, err error) error {
+		if regx.MatchString(path) {
+			pathes = append(pathes, f(path))
+		}
+		return nil
+	})
+	return pathes
 }
