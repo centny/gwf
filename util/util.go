@@ -153,3 +153,13 @@ func ListFunc(root string, reg string, f func(t string) string) []string {
 	})
 	return pathes
 }
+
+func FileProtocolPath(t string) (string, error) {
+	t = strings.Trim(t, " \t")
+	if strings.HasPrefix(t, "file://") {
+		return t, nil
+	}
+	t, _ = filepath.Abs(t)
+	t = strings.Replace(t, "\\", "/", -1)
+	return "file://" + t, nil
+}

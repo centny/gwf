@@ -189,3 +189,10 @@ func TestList(t *testing.T) {
 func TestOs(t *testing.T) {
 	fmt.Println(runtime.GOOS)
 }
+
+func TestFileProtocol(t *testing.T) {
+	fmt.Println(FileProtocolPath("~"))
+	fmt.Println(FileProtocolPath("sfdsf"))
+	fmt.Println(FileProtocolPath("/sdfs/sfdsf"))
+	fmt.Println(FileProtocolPath("C:\\s\\sdfs"))
+}
