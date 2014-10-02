@@ -119,6 +119,17 @@ func DbQueryI(db *sql.DB, query string, args ...interface{}) (int64, error) {
 		return ic[0], nil
 	}
 }
+func DbQueryI2(tx *sql.Tx, query string, args ...interface{}) (int64, error) {
+	ic, err := DbQueryInt2(tx, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	if len(ic) < 1 {
+		return 0, errors.New("not found")
+	} else {
+		return ic[0], nil
+	}
+}
 
 //
 func DbQueryInt(db *sql.DB, query string, args ...interface{}) ([]int64, error) {
@@ -295,4 +306,19 @@ func DbExecF2(driver, dsn, file string) error {
 	}
 	defer db.Close()
 	return DbExecF(db, file)
+}
+
+func CovInvS(vals []string) string {
+	nvals := []string{}
+	for _, v := range vals {
+		nvals = append(nvals, "'"+v+"'")
+	}
+	return strings.Join(nvals, ",")
+}
+func CovInvI(vals []int64) string {
+	nvals := []string{}
+	for _, v := range vals {
+		nvals = append(nvals, fmt.Sprintf("%v", v))
+	}
+	return strings.Join(nvals, ",")
 }

@@ -196,3 +196,13 @@ func TestFileProtocol(t *testing.T) {
 	fmt.Println(FileProtocolPath("/sdfs/sfdsf"))
 	fmt.Println(FileProtocolPath("C:\\s\\sdfs"))
 }
+func TestHome(t *testing.T) {
+	fmt.Println(os.Getenv("HOME"))
+}
+
+func TestStr2Int(t *testing.T) {
+	fmt.Println(Str2Int("abc"))
+	fmt.Println(Str2Int("11"))
+	fmt.Println(Str2Int("11,22"))
+	fmt.Println(Str2Int("11,ssd"))
+}

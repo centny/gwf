@@ -3,12 +3,14 @@ package util
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -162,4 +164,33 @@ func FileProtocolPath(t string) (string, error) {
 	t, _ = filepath.Abs(t)
 	t = strings.Replace(t, "\\", "/", -1)
 	return "file://" + t, nil
+}
+
+func Str2Int(s string) ([]int64, error) {
+	vals := []int64{}
+	ss := strings.Split(s, ",")
+	for _, str := range ss {
+		v, err := strconv.ParseInt(str, 10, 64)
+		if err == nil {
+			vals = append(vals, v)
+		} else {
+			return nil, err
+		}
+	}
+	return vals, nil
+}
+
+func Int2Str(vals []int64) string {
+	str := ""
+	for _, v := range vals {
+		str = fmt.Sprintf("%s%d,", str, v)
+	}
+	return strings.Trim(str, ",")
+}
+func Is2Ss(vals []int64) []string {
+	str := []string{}
+	for _, v := range vals {
+		str = append(str, fmt.Sprintf("%s%d,", str, v))
+	}
+	return str
 }

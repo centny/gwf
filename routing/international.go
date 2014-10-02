@@ -57,13 +57,13 @@ func (j *JsonINT) LoadJson(lang string) error {
 	fpath := filepath.Join(j.Path, lang+".json")
 	bys, err := ioutil.ReadFile(fpath)
 	if err != nil {
-		// fmt.Println(err.Error())
+		log.W("reading file(%v) error(%v)", fpath, err.Error())
 		return err
 	}
 	mv := map[string]string{}
 	err = json.Unmarshal(bys, &mv)
 	if err != nil {
-		log.D("load the lang(%s) json file(%s) error:%s", lang, fpath, err.Error())
+		log.W("load the lang(%s) json file(%s) error:%s", lang, fpath, err.Error())
 		return err
 	}
 	j.Kvs[lang] = mv
@@ -71,6 +71,7 @@ func (j *JsonINT) LoadJson(lang string) error {
 }
 func NewJsonINT(path string) (*JsonINT, error) {
 	ji := &JsonINT{}
+	ji.Path = path
 	ji.Kvs = map[string]map[string]string{}
 	ji.lock = sync.RWMutex{}
 	return ji, nil

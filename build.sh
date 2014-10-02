@@ -29,6 +29,7 @@ pkgs="\
  github.com/Centny/gwf/routing/cookie\
  github.com/Centny/gwf/routing/filter\
  github.com/Centny/gwf/routing/httptest\
+ github.com/Centny/gwf/routing/doc\
  github.com/Centny/gwf/jcr\
  github.com/Centny/gwf/pathc\
  github.com/Centny/gwf/mcobertura\
