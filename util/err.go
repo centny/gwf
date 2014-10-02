@@ -11,9 +11,18 @@ type Error struct {
 }
 
 func (e *Error) Error() string {
-	return e.Msg
+	if len(e.Msg) > 0 {
+		return e.Msg
+	}
+	if e.In == nil {
+		return ""
+	} else {
+		return e.In.Error()
+	}
 }
-
+func (e *Error) String() string {
+	return e.Error()
+}
 func NewErr(typ string, in error) *Error {
 	return &Error{
 		Type: typ,

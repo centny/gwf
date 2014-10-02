@@ -5,9 +5,9 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"github.com/Centny/TDb"
 	"github.com/Centny/gwf/test"
 	"github.com/Centny/gwf/util"
-	"github.com/Centny/TDb"
 	_ "github.com/go-sql-driver/mysql"
 	"testing"
 	"time"
@@ -97,6 +97,23 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	tx, _ = db.Begin()
+	_, err = DbQueryI2(tx, "select count(*) from ttable")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	_, err = DbQueryI2(tx, "select tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryI2(tx, "selects tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	tx.Commit()
 	fmt.Println("T-->02")
 	//
 	svs, err := DbQueryString(db, "select tname from ttable")
@@ -325,5 +342,14 @@ func TestDbExecF2(t *testing.T) {
 	err = DbExecF2("myl", test.TDbCon, "ttable.sql")
 	if err == nil {
 		t.Error("not error")
+	}
+}
+
+func TestCov(t *testing.T) {
+	if "'ab','dd'" != CovInvS([]string{"ab", "dd"}) {
+		t.Error("error")
+	}
+	if "1,2" != CovInvI([]int64{1, 2}) {
+		t.Error("error")
 	}
 }

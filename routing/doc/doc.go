@@ -7,24 +7,54 @@ import (
 	"runtime"
 )
 
-//doc visiable interface.
-type Docable interface {
-	Doc() string
-}
-
 //marked the func document.
-var Marked map[interface{}]string = map[interface{}]string{}
+var Marked map[string]*Desc = map[string]*Desc{}
 
 //mark the func document.
-func Doc(f interface{}, doc string) bool {
+func ApiV(f interface{}, doc *Desc) bool {
 	fnc := runtime.FuncForPC(reflect.ValueOf(f).Pointer())
-	Marked[fnc.Name()] = doc
+	name := fnc.Name()
+	if _, ok := Marked[name]; ok {
+		panic(name + " already registered")
+	}
+	Marked[name] = doc
 	return true
+}
+
+//api describe
+type Desc struct {
+	Title  string
+	Url    string      //example URL.
+	ArgsR  interface{} //required arguments.
+	ArgsO  interface{} //option arguments.
+	ResV   interface{} //result
+	Detail string      //detail
+}
+
+//register api.
+func (d Desc) Api(f interface{}) int {
+	if d.ArgsR == nil {
+		d.ArgsR = []map[string]string{}
+	}
+	if d.ArgsO == nil {
+		d.ArgsO = []map[string]string{}
+	}
+	if d.ResV == nil {
+		d.ResV = []map[string]string{}
+	}
+	ApiV(f, &d)
+	return 0
+}
+
+//doc visiable interface.
+type Docable interface {
+	Doc() *Desc
 }
 
 //the routing.SessionMux info.
 type Mux struct {
 	Pre          string
+	Items        []string //comment items.
 	Filters      []DocV
 	FilterFunc   []DocV
 	Handlers     []DocV
@@ -37,7 +67,7 @@ type Mux struct {
 type DocV struct {
 	Name    string
 	Pattern string
-	Doc     string
+	Doc     *Desc
 	Marked  bool
 	Pkg     string
 }
@@ -46,6 +76,7 @@ type DocV struct {
 type DocViewer struct {
 	Incs         []*regexp.Regexp
 	Excs         []*regexp.Regexp
+	Items        []string //comment items.
 	Pkg          bool
 	Filters      bool
 	FilterFunc   bool
@@ -59,6 +90,7 @@ type DocViewer struct {
 func NewDocViewer() *DocViewer {
 	return &DocViewer{
 		Pkg:          true,
+		Items:        []string{},
 		Filters:      true,
 		FilterFunc:   true,
 		Handlers:     true,
@@ -97,7 +129,7 @@ func (d *DocViewer) handler_doc(reg *regexp.Regexp, f interface{}) DocV {
 		doc.Doc = dd.Doc()
 		doc.Marked = true
 	} else {
-		doc.Doc = ""
+		doc.Doc = nil
 		doc.Marked = false
 	}
 	return doc
@@ -114,7 +146,7 @@ func (d *DocViewer) func_doc(reg *regexp.Regexp, f interface{}) DocV {
 		doc.Doc = dd
 		doc.Marked = true
 	} else {
-		doc.Doc = ""
+		doc.Doc = nil
 		doc.Marked = false
 	}
 	return doc
@@ -143,6 +175,7 @@ func (d *DocViewer) match(t *regexp.Regexp) bool {
 //build Mux by SessionMux
 func (d *DocViewer) BuildMux(smux *routing.SessionMux) *Mux {
 	tmux := &Mux{
+		Items:        d.Items,
 		Pre:          smux.Pre,
 		Filters:      []DocV{},
 		FilterFunc:   []DocV{},
@@ -202,13 +235,15 @@ func (d *DocViewer) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 }
 
 //doc
-func (d *DocViewer) Doc() string {
-	return `
-	DocViewer by Centny<br/>
-	<hr/>
-	adding mark to owner func by "var _ = doc.Doc(<function>,<doc html>)"
-	<hr/>
-	implemented Docable interface
-	<hr/>
-	`
+func (d *DocViewer) Doc() *Desc {
+	return &Desc{
+		ResV: &Mux{
+			Filters:      []DocV{DocV{}},
+			FilterFunc:   []DocV{DocV{}},
+			Handlers:     []DocV{DocV{}},
+			HandlerFunc:  []DocV{DocV{}},
+			NHandlers:    []DocV{DocV{}},
+			NHandlerFunc: []DocV{DocV{}},
+		},
+	}
 }

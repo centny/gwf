@@ -27,13 +27,13 @@ func (a *Abcd2) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 
 func (a *Abcd2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
-func (a *Abcd2) Doc() string {
-	return "sfsd"
+func (a *Abcd2) Doc() *Desc {
+	return &Desc{}
 }
 
-var _ = Doc(TT, `
-
-`)
+var _ = Desc{
+	Detail: "jjsdfsdf",
+}.Api(TT)
 
 func TT(hs *routing.HTTPSession) routing.HResult {
 	return routing.HRES_RETURN
@@ -42,9 +42,9 @@ func TT2(hs *routing.HTTPSession) routing.HResult {
 	return routing.HRES_RETURN
 }
 
-var _ = Doc(TTN, `
-
-`)
+var _ = Desc{
+	Detail: "jjsdfsdf",
+}.Api(TTN)
 
 func TTN(w http.ResponseWriter, r *http.Request) {
 
@@ -77,4 +77,16 @@ func TestTt(t *testing.T) {
 	fmt.Println(ts.G("/abd"))
 	fmt.Println("-------->\n")
 	fmt.Println(ts.G("/abe"))
+}
+
+func TestErr(t *testing.T) {
+	func() {
+		defer func() {
+			err := recover()
+			fmt.Println(err)
+		}()
+		Desc{
+			Detail: "jjsdfsdf",
+		}.Api(TTN)
+	}()
 }
