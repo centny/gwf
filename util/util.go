@@ -170,6 +170,10 @@ func Str2Int(s string) ([]int64, error) {
 	vals := []int64{}
 	ss := strings.Split(s, ",")
 	for _, str := range ss {
+		str = strings.Trim(str, "\t ")
+		if len(str) < 1 {
+			continue
+		}
 		v, err := strconv.ParseInt(str, 10, 64)
 		if err == nil {
 			vals = append(vals, v)

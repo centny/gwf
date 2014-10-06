@@ -24,11 +24,12 @@ func ApiV(f interface{}, doc *Desc) bool {
 //api describe
 type Desc struct {
 	Title  string
-	Url    string      //example URL.
-	ArgsR  interface{} //required arguments.
-	ArgsO  interface{} //option arguments.
-	ResV   interface{} //result
-	Detail string      //detail
+	Url    string                            //example URL.
+	ArgsR  interface{}                       //required arguments.
+	ArgsO  interface{}                       //option arguments.
+	Option map[string]map[string]interface{} //the argument
+	ResV   interface{}                       //result
+	Detail string                            //detail
 }
 
 //register api.

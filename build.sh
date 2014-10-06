@@ -33,6 +33,7 @@ pkgs="\
  github.com/Centny/gwf/jcr\
  github.com/Centny/gwf/pathc\
  github.com/Centny/gwf/mcobertura\
+ github.com/Centny/gwf/hooks\
 "
 echo "mode: set" > a.out
 for p in $pkgs;
