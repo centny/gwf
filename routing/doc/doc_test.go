@@ -33,6 +33,7 @@ func (a *Abcd2) Doc() *Desc {
 
 var _ = Desc{
 	Detail: "jjsdfsdf",
+	SeeV:   []interface{}{TTN, &Abcd2{}},
 }.Api(TT)
 
 func TT(hs *routing.HTTPSession) routing.HResult {
@@ -44,6 +45,7 @@ func TT2(hs *routing.HTTPSession) routing.HResult {
 
 var _ = Desc{
 	Detail: "jjsdfsdf",
+	SeeV:   []interface{}{TT},
 }.Api(TTN)
 
 func TTN(w http.ResponseWriter, r *http.Request) {

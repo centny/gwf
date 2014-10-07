@@ -1,3 +1,6 @@
+//Package for building handler api document in routing.SessionMux.
+//@Author:Centny.
+//
 package doc
 
 import (
@@ -29,7 +32,9 @@ type Desc struct {
 	ArgsO  interface{}                       //option arguments.
 	Option map[string]map[string]interface{} //the argument
 	ResV   interface{}                       //result
+	SeeV   []interface{}                     `json:"-"` //see link
 	Detail string                            //detail
+	See    []map[string]interface{}          `json:"SeeV"` //see link
 }
 
 //register api.
@@ -40,11 +45,27 @@ func (d Desc) Api(f interface{}) int {
 	if d.ArgsO == nil {
 		d.ArgsO = []map[string]string{}
 	}
+	if d.Option == nil {
+		d.Option = map[string]map[string]interface{}{}
+	}
 	if d.ResV == nil {
 		d.ResV = []map[string]string{}
 	}
+	if d.SeeV == nil {
+		d.SeeV = []interface{}{}
+	}
 	ApiV(f, &d)
 	return 0
+}
+
+func func_pkgn(f interface{}) (string, string, string) {
+	fnc := runtime.FuncForPC(reflect.ValueOf(f).Pointer())
+	fnc_n := fnc.Name()
+	return fnc_n, regexp.MustCompile("^.*\\.").ReplaceAllString(fnc.Name(), ""), regexp.MustCompile("\\.[^\\.]*$").ReplaceAllString(fnc.Name(), "")
+}
+func handle_pkgn(f interface{}) (string, string, string) {
+	typ := reflect.TypeOf(reflect.Indirect(reflect.ValueOf(f)).Interface())
+	return typ.PkgPath() + "/" + typ.Name(), typ.Name(), typ.PkgPath()
 }
 
 //doc visiable interface.
@@ -119,15 +140,15 @@ func NewDocViewerExc(exc string) *DocViewer {
 	return dv
 }
 func (d *DocViewer) handler_doc(reg *regexp.Regexp, f interface{}) DocV {
-	typ := reflect.TypeOf(reflect.Indirect(reflect.ValueOf(f)).Interface())
+	_, name, pkgp := handle_pkgn(f)
 	doc := DocV{}
-	doc.Name = typ.String()
+	doc.Name = name
 	doc.Pattern = reg.String()
 	if d.Pkg {
-		doc.Pkg = typ.PkgPath()
+		doc.Pkg = pkgp
 	}
 	if dd, ok := f.(Docable); ok {
-		doc.Doc = dd.Doc()
+		doc.Doc = d.build_see(dd.Doc())
 		doc.Marked = true
 	} else {
 		doc.Doc = nil
@@ -136,15 +157,15 @@ func (d *DocViewer) handler_doc(reg *regexp.Regexp, f interface{}) DocV {
 	return doc
 }
 func (d *DocViewer) func_doc(reg *regexp.Regexp, f interface{}) DocV {
-	fnc := runtime.FuncForPC(reflect.ValueOf(f).Pointer())
+	uname, name, pkgp := func_pkgn(f)
 	doc := DocV{}
-	doc.Name = regexp.MustCompile("^.*\\.").ReplaceAllString(fnc.Name(), "")
+	doc.Name = name
 	doc.Pattern = reg.String()
 	if d.Pkg {
-		doc.Pkg = regexp.MustCompile("\\.[^\\.]*$").ReplaceAllString(fnc.Name(), "")
+		doc.Pkg = pkgp
 	}
-	if dd, ok := Marked[fnc.Name()]; ok {
-		doc.Doc = dd
+	if dd, ok := Marked[uname]; ok {
+		doc.Doc = d.build_see(dd)
 		doc.Marked = true
 	} else {
 		doc.Doc = nil
@@ -171,6 +192,30 @@ func (d *DocViewer) match(t *regexp.Regexp) bool {
 		return true
 	}
 	return true
+}
+func (d *DocViewer) build_see(desc *Desc) *Desc {
+	if desc.SeeV == nil {
+		return desc
+	}
+	if desc.See == nil {
+		desc.See = []map[string]interface{}{}
+	}
+	var name, pkgn string
+	for _, v := range desc.SeeV {
+		typ := reflect.TypeOf(v)
+		if typ.Kind() == reflect.Func {
+			_, name, pkgn = func_pkgn(v)
+		} else {
+			_, name, pkgn = handle_pkgn(v)
+		}
+		mv := map[string]interface{}{}
+		mv["Name"] = name
+		if d.Pkg {
+			mv["Pkg"] = pkgn
+		}
+		desc.See = append(desc.See, mv)
+	}
+	return desc
 }
 
 //build Mux by SessionMux

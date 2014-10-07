@@ -205,6 +205,7 @@ func TestStr2Int(t *testing.T) {
 	fmt.Println(Str2Int("abc"))
 	fmt.Println(Str2Int("11"))
 	fmt.Println(Str2Int("11,22"))
+	fmt.Println(Str2Int("11,"))
 	fmt.Println(Str2Int("11,ssd"))
 }
 
