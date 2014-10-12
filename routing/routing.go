@@ -183,6 +183,15 @@ func (h *HTTPSession) CheckVal(key string) string {
 	}
 	return h.StrVal(key)
 }
+
+//check all value order by request,session,cookie.
+func (h *HTTPSession) CheckValA(key string) string {
+	v := h.CheckVal(key)
+	if len(v) > 0 {
+		return v
+	}
+	return h.Cookie(key)
+}
 func (h *HTTPSession) RVal(key string) string {
 	v := h.R.FormValue(key)
 	if len(v) > 0 {
