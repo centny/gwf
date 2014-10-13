@@ -1,8 +1,10 @@
 package util
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"reflect"
 	"strconv"
@@ -302,4 +304,24 @@ func (m Map) SetValP(path string, val interface{}) error {
 		))
 	}
 	return nil
+}
+
+func NewMap(f string) (Map, error) {
+	bys, err := ioutil.ReadFile(f)
+	if err != nil {
+		return nil, err
+	}
+	var kvs Map = Map{}
+	err = json.Unmarshal(bys, &kvs)
+	return kvs, err
+}
+
+func NewMaps(f string) ([]Map, error) {
+	bys, err := ioutil.ReadFile(f)
+	if err != nil {
+		return nil, err
+	}
+	var kvs []Map = []Map{}
+	err = json.Unmarshal(bys, &kvs)
+	return kvs, err
 }

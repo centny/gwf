@@ -236,3 +236,10 @@ func ApE(t *testing.T, v interface{}, err error) {
 func TestArray2(t *testing.T) {
 	fmt.Println([]int{1, 3, 5}[:3])
 }
+
+func TestNewMap(t *testing.T) {
+	fmt.Println(NewMap("map.json"))
+	fmt.Println(NewMap("map.jsn"))
+	fmt.Println(NewMaps("maps.json"))
+	fmt.Println(NewMaps("maps.jsn"))
+}
