@@ -138,6 +138,8 @@ func TestSessionMux(t *testing.T) {
 	mux.HFilterFunc("^/abc(\\?.*)?$", func(hs *HTTPSession) HResult {
 		// count = count + 1
 		fmt.Println(hs.CheckVal("ttv"))
+		fmt.Println(hs.CheckValA("ttv"))
+		fmt.Println(hs.CheckValA("ttvssss"))
 		// fmt.Println(sb.Session(hs.S.(*SrvSession).Token()))
 		return HRES_CONTINUE
 	})

@@ -89,22 +89,20 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 		session.kvs = map[string]interface{}{}
 		session.Flush()
 		//
-		s.ks_lck.Lock()
+		// s.ks_lck.Lock()
 		s.ks[c.Value] = session
-		s.ks_lck.Unlock()
+		// s.ks_lck.Unlock()
 		http.SetCookie(w, c)
 		s.evh.OnCreate(session)
 		// s.log("setting cookie %v=%v to %v", c.Name, c.Value, r.Host)
 	}
+	s.ks_lck.Lock()
+	defer s.ks_lck.Unlock()
 	if err != nil {
 		ncookie()
 	}
-	s.ks_lck.RLock()
-	defer s.ks_lck.RUnlock()
 	if _, ok := s.ks[c.Value]; !ok { //if not found,reset cookie
-		s.ks_lck.RUnlock()
 		ncookie()
-		s.ks_lck.RLock()
 	}
 	ss := s.ks[c.Value]
 	ss.Flush()
