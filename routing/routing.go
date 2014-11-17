@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Centny/gwf/hooks"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/util"
 	"io"
@@ -22,6 +23,13 @@ type HResult int
 const (
 	HRES_CONTINUE HResult = iota
 	HRES_RETURN
+)
+const (
+	ROUTING = "ROUTING"
+	F_BEG   = "F_BEG" //filter begin
+	F_END   = "F_END" //filter end
+	H_BEG   = "H_BEG" //handler begin
+	H_END   = "H_END" //handler end
 )
 
 func (h HResult) String() string {
@@ -653,16 +661,20 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 	//match filter.
 	if s.FilterEnable {
+		hooks.Call(ROUTING, F_BEG, nil, hs)
 		mrv, res := s.exec_f(hs)
 		matched = mrv
+		hooks.Call(ROUTING, F_END, nil, hs, mrv, res)
 		if res == HRES_RETURN {
 			return
 		}
 	}
 	//match handle
 	if s.HandleEnable {
+		hooks.Call(ROUTING, H_BEG, nil, hs)
 		mrv, res := s.exec_h(hs)
 		matched = matched || mrv
+		hooks.Call(ROUTING, H_END, nil, hs, mrv, res)
 		if res == HRES_RETURN {
 			return
 		}
