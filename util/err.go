@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -37,3 +38,5 @@ func NewErr2(typ string, f string, args ...interface{}) *Error {
 		Msg:  fmt.Sprintf(f, args...),
 	}
 }
+
+var NOT_FOUND = errors.New("NOT FOUND")

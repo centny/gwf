@@ -87,6 +87,11 @@ func TestDbUtil(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+	_, err = DbQueryF(db, "select count(*) from ttable")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
 	_, err = DbQueryI(db, "select tid from ttable where tid<1")
 	if err == nil {
 		t.Error("not error")
@@ -97,8 +102,23 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	_, err = DbQueryF(db, "select tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryF(db, "selects tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 	tx, _ = db.Begin()
 	_, err = DbQueryI2(tx, "select count(*) from ttable")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	_, err = DbQueryF2(tx, "select count(*) from ttable")
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -108,7 +128,17 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	_, err = DbQueryF2(tx, "select tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 	_, err = DbQueryI2(tx, "selects tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryF2(tx, "selects tid from ttable where tid<1")
 	if err == nil {
 		t.Error("not error")
 		return
@@ -184,6 +214,11 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	_, err = DbQueryFloat(db, "selectt * from ttable where tid>?", 1)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 	_, err = DbQueryString(db, "selectt * from ttable where tid>?", 1)
 	if err == nil {
 		t.Error("not error")
@@ -222,6 +257,11 @@ func TestDbUtil(t *testing.T) {
 		return
 	}
 	_, err = DbQueryInt(db, "select * from ttable where tid>?", 1, 2)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryFloat(db, "select * from ttable where tid>?", 1, 2)
 	if err == nil {
 		t.Error("not error")
 		return
@@ -265,6 +305,7 @@ func TestDbUtil(t *testing.T) {
 		return
 	}
 	DbQueryInt(nil, "select * from ttable where tid>?", 1, 2)
+	DbQueryFloat(nil, "select * from ttable where tid>?", 1, 2)
 	DbQueryString(nil, "select * from ttable where tid>?", 1, 2)
 	DbInsert(nil, "select * from ttable where tid>?", 1, 2)
 	DbUpdate(nil, "select * from ttable where tid>?", 1, 2)
@@ -272,6 +313,7 @@ func TestDbUtil(t *testing.T) {
 	DbUpdate2(nil, "select * from ttable where tid>?", 1, 2)
 	DbQuery2(nil, "select * from ttable where tid>?", 1, 2)
 	DbQueryInt2(nil, "select * from ttable where tid>?", 1, 2)
+	DbQueryFloat2(nil, "select * from ttable where tid>?", 1, 2)
 	DbQueryString2(nil, "select * from ttable where tid>?", 1, 2)
 	DbQueryS2(nil, nil, "query", 11)
 	//
@@ -321,6 +363,7 @@ func TestDbUtilErr(t *testing.T) {
 	DbUpdate(db2, "select * from ttable where tid>?", 1, 2)
 	DbQueryString(db2, "select * from ttable where tid>?", 1, 2)
 	DbQueryInt(db2, "select * from ttable where tid>?", 1, 2)
+	DbQueryFloat(db2, "select * from ttable where tid>?", 1, 2)
 }
 func TestDbExecF(t *testing.T) {
 	db, _ := sql.Open("mysql", test.TDbCon)

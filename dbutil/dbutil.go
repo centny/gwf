@@ -130,6 +130,28 @@ func DbQueryI2(tx *sql.Tx, query string, args ...interface{}) (int64, error) {
 		return ic[0], nil
 	}
 }
+func DbQueryF(db *sql.DB, query string, args ...interface{}) (float64, error) {
+	ic, err := DbQueryFloat(db, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	if len(ic) < 1 {
+		return 0, errors.New("not found")
+	} else {
+		return ic[0], nil
+	}
+}
+func DbQueryF2(tx *sql.Tx, query string, args ...interface{}) (float64, error) {
+	ic, err := DbQueryFloat2(tx, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	if len(ic) < 1 {
+		return 0, errors.New("not found")
+	} else {
+		return ic[0], nil
+	}
+}
 
 //
 func DbQueryInt(db *sql.DB, query string, args ...interface{}) ([]int64, error) {
@@ -162,6 +184,40 @@ func DbQueryInt2(tx *sql.Tx, query string, args ...interface{}) ([]int64, error)
 		var iv int64
 		rows.Scan(&iv)
 		rv = append(rv, iv)
+	}
+	return rv, nil
+}
+
+func DbQueryFloat(db *sql.DB, query string, args ...interface{}) ([]float64, error) {
+	if db == nil {
+		return nil, errors.New("db is nil")
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Commit()
+	return DbQueryFloat2(tx, query, args...)
+}
+func DbQueryFloat2(tx *sql.Tx, query string, args ...interface{}) ([]float64, error) {
+	if tx == nil {
+		return nil, errors.New("tx is nil")
+	}
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query(args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	rv := []float64{}
+	for rows.Next() {
+		var fv float64
+		rows.Scan(&fv)
+		rv = append(rv, fv)
 	}
 	return rv, nil
 }
