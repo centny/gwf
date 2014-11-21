@@ -4,10 +4,21 @@
 package doc
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/Centny/gwf/routing"
+	"github.com/Centny/gwf/util"
+	"html/template"
 	"reflect"
 	"regexp"
 	"runtime"
+	"strings"
+)
+
+const (
+	FMT_HTML = "html"
+	FMT_JSON = "json"
 )
 
 //marked the func document.
@@ -23,27 +34,34 @@ func ApiV(f interface{}, doc *Desc) bool {
 	Marked[name] = doc
 	return true
 }
+func pkgv(pkg string) string {
+	pkg = strings.Replace(pkg, "/", "_", -1)
+	pkg = strings.Replace(pkg, ".", "_", -1)
+	return pkg
+}
 
 //api describe
 type Desc struct {
-	Title  string
-	Url    string                            //example URL.
-	ArgsR  interface{}                       //required arguments.
-	ArgsO  interface{}                       //option arguments.
-	Option map[string]map[string]interface{} //the argument
-	ResV   interface{}                       //result
-	SeeV   []interface{}                     `json:"-"` //see link
-	Detail string                            //detail
-	See    []map[string]interface{}          `json:"SeeV"` //see link
+	Title   string
+	Url     []string                          //example URL.
+	ArgsR   map[string]interface{}            //required arguments.
+	ArgsO   map[string]interface{}            //option arguments.
+	Option  map[string]map[string]interface{} //the argument
+	ResV    interface{}                       //result
+	ResJSON string                            `json:"-"` //json result
+	ResHTML template.HTML                     `json:"-"` //html result
+	SeeV    []interface{}                     `json:"-"` //see link
+	Detail  string                            //detail
+	See     []map[string]interface{}          `json:"SeeV"` //see link
 }
 
 //register api.
 func (d Desc) Api(f interface{}) int {
 	if d.ArgsR == nil {
-		d.ArgsR = []map[string]string{}
+		d.ArgsR = map[string]interface{}{}
 	}
 	if d.ArgsO == nil {
-		d.ArgsO = []map[string]string{}
+		d.ArgsO = map[string]interface{}{}
 	}
 	if d.Option == nil {
 		d.Option = map[string]map[string]interface{}{}
@@ -89,6 +107,7 @@ type Mux struct {
 type DocV struct {
 	Name    string
 	Pattern string
+	Abs     string
 	Doc     *Desc
 	Marked  bool
 	Pkg     string
@@ -99,7 +118,7 @@ type DocViewer struct {
 	Incs         []*regexp.Regexp
 	Excs         []*regexp.Regexp
 	Items        []string //comment items.
-	Pkg          bool
+	HTML         string
 	Filters      bool
 	FilterFunc   bool
 	Handlers     bool
@@ -111,8 +130,8 @@ type DocViewer struct {
 //new default viewer.
 func NewDocViewer() *DocViewer {
 	return &DocViewer{
-		Pkg:          true,
 		Items:        []string{},
+		HTML:         HTML,
 		Filters:      true,
 		FilterFunc:   true,
 		Handlers:     true,
@@ -144,9 +163,8 @@ func (d *DocViewer) handler_doc(reg *regexp.Regexp, f interface{}) DocV {
 	doc := DocV{}
 	doc.Name = name
 	doc.Pattern = reg.String()
-	if d.Pkg {
-		doc.Pkg = pkgp
-	}
+	doc.Pkg = pkgp
+	doc.Abs = fmt.Sprintf("%s_%s", doc.Name, pkgv(doc.Pkg))
 	if dd, ok := f.(Docable); ok {
 		doc.Doc = d.build_see(dd.Doc())
 		doc.Marked = true
@@ -161,9 +179,8 @@ func (d *DocViewer) func_doc(reg *regexp.Regexp, f interface{}) DocV {
 	doc := DocV{}
 	doc.Name = name
 	doc.Pattern = reg.String()
-	if d.Pkg {
-		doc.Pkg = pkgp
-	}
+	doc.Pkg = pkgp
+	doc.Abs = fmt.Sprintf("%s_%s", doc.Name, pkgv(doc.Pkg))
 	if dd, ok := Marked[uname]; ok {
 		doc.Doc = d.build_see(dd)
 		doc.Marked = true
@@ -197,8 +214,16 @@ func (d *DocViewer) build_see(desc *Desc) *Desc {
 	if desc.SeeV == nil {
 		return desc
 	}
-	if desc.See == nil {
-		desc.See = []map[string]interface{}{}
+	desc.See = []map[string]interface{}{}
+	if desc.ResV != nil {
+		dst := &bytes.Buffer{}
+		json.Indent(dst, []byte(util.S2Json(desc.ResV)), "", "  ")
+		desc.ResJSON = dst.String()
+		htmlv := desc.ResJSON
+		htmlv = strings.Replace(htmlv, "\"", "&quot;", -1)
+		htmlv = strings.Replace(htmlv, " ", "&nbsp;", -1)
+		htmlv = strings.Replace(htmlv, "\n", "<br/>", -1)
+		desc.ResHTML = template.HTML(htmlv)
 	}
 	var name, pkgn string
 	for _, v := range desc.SeeV {
@@ -210,9 +235,8 @@ func (d *DocViewer) build_see(desc *Desc) *Desc {
 		}
 		mv := map[string]interface{}{}
 		mv["Name"] = name
-		if d.Pkg {
-			mv["Pkg"] = pkgn
-		}
+		mv["Pkg"] = pkgn
+		mv["Abs"] = name + "_" + pkgv(pkgn)
 		desc.See = append(desc.See, mv)
 	}
 	return desc
@@ -277,7 +301,31 @@ func (d *DocViewer) BuildMux(smux *routing.SessionMux) *Mux {
 
 //srv
 func (d *DocViewer) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
-	return hs.MsgRes(d.BuildMux(hs.Mux))
+	format := hs.CheckVal("fmt")
+	if len(format) < 1 {
+		format = FMT_HTML
+	}
+	if format == FMT_HTML {
+		t, err := template.New("DocViewer").Parse(d.HTML)
+		if err == nil {
+			mux := d.BuildMux(hs.Mux)
+			t.Execute(hs.W, map[string]interface{}{
+				"Filters":      mux.Filters,
+				"FilterFunc":   mux.FilterFunc,
+				"Handlers":     mux.Handlers,
+				"HandlerFunc":  mux.HandlerFunc,
+				"NHandlers":    mux.NHandlers,
+				"NHandlerFunc": mux.NHandlerFunc,
+			})
+		} else {
+			hs.MsgResE(1, err.Error())
+		}
+		return routing.HRES_RETURN
+	} else if format == FMT_JSON {
+		return hs.MsgRes(d.BuildMux(hs.Mux))
+	} else {
+		return hs.MsgRes("error format")
+	}
 }
 
 //doc

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"os"
@@ -136,9 +137,11 @@ func M2S(m Map, dest interface{}) {
 //map array to struct array.
 func Ms2Ss(ms interface{}, dest interface{}) {
 	if ms == nil || dest == nil {
+		fmt.Println("ms or dest is nil")
 		return
 	}
 	if reflect.TypeOf(ms).Kind() != reflect.Slice {
+		fmt.Println("not slice")
 		return
 	}
 	//get the reflect value.
@@ -166,4 +169,26 @@ func Ms2Ss(ms interface{}, dest interface{}) {
 	}
 	//reset the slice address to new.
 	rval.Set(pval)
+}
+
+func Json2S(data string, dest interface{}) error {
+	m, err := Json2Map(data)
+	if err != nil {
+		return err
+	}
+	M2S(m, dest)
+	return nil
+}
+
+func Json2Ss(data string, dest interface{}) error {
+	ms, err := Json2Ary(data)
+	if err != nil {
+		return err
+	}
+	Ms2Ss(ms, dest)
+	return nil
+}
+func S2Json(v interface{}) string {
+	bys, _ := json.Marshal(v)
+	return string(bys)
 }

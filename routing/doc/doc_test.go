@@ -57,6 +57,9 @@ func TTN2(w http.ResponseWriter, r *http.Request) {
 func TestTt(t *testing.T) {
 	ts := httptest.NewMuxServer()
 	ts.Mux.H("/abc.*", NewDocViewer())
+	dv := NewDocViewer()
+	dv.HTML = "{{sds}}"
+	ts.Mux.H("/bgt_d.*", dv)
 	ts.Mux.H("/abd.*", NewDocViewerInc(".*abccc01.*"))
 	ts.Mux.H("/abe.*", NewDocViewerExc(".*abccc01.*"))
 	//
@@ -74,11 +77,13 @@ func TestTt(t *testing.T) {
 	ts.Mux.HandleFunc("/abccc08.*", TTN2)
 	//
 	fmt.Println("-------->\n")
-	fmt.Println(ts.G("/abc"))
+	fmt.Println(ts.G("/bgt_d"))
+	fmt.Println(ts.G("/abc?fmt=json"))
 	fmt.Println("-------->\n")
-	fmt.Println(ts.G("/abd"))
+	fmt.Println(ts.G("/abd?fmt=json"))
 	fmt.Println("-------->\n")
-	fmt.Println(ts.G("/abe"))
+	fmt.Println(ts.G("/abe?fmt=json"))
+	fmt.Println(ts.G("/abe?fmt=tttt"))
 }
 
 func TestErr(t *testing.T) {

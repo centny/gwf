@@ -156,3 +156,60 @@ func TestTime(t *testing.T) {
 	fmt.Println(ti)
 	fmt.Println(time.Unix(ti/1e3, (ti % 1e3)))
 }
+
+func TestJson2S(t *testing.T) {
+	var dest S2
+	err := Json2S(`
+		{
+			"A1":1,
+			"A2":2
+		}
+		`, &dest)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	Json2S(`
+		{
+			"A1":1,sfds
+			"A2":2
+		}
+		`, &dest)
+	var dest2 []S2
+	err = Json2Ss(`
+		[{
+			"A1":1,
+			"A2":2
+		}]
+		`, &dest2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	Json2Ss(`
+		[{
+			"A1":1,fdsf
+			"A2":2
+		}]
+		`, &dest2)
+}
+
+type Sa struct {
+	A string `m2s:"A"`
+}
+
+func TestS2Json(t *testing.T) {
+	var vv Sa
+	Json2S(S2Json(&Sa{
+		A: "sfsfs",
+	}), &vv)
+	fmt.Println(vv)
+	var vary []Sa
+	Json2Ss(S2Json([]Sa{
+		Sa{
+			A: "sfsfs",
+		},
+	}), &vary)
+	fmt.Println(vary)
+	fmt.Println(S2Json(TestIs2Ss))
+}
