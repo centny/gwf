@@ -7,7 +7,7 @@ const HTML = `
 <h1 id="{{$hkey}}" style="background:#AABBCC;font-size:25px;">{{$hkey}}</h1>
 {{range $hval}}
 <div style="margin-left:10px;margin-right:10px;">
-	<h2 id="{{.Abs}}" style="background:#E0EBF5;font-size:20px;">
+	<h2 id="{{.Abs}}" style="padding:10px;background:#E0EBF5;font-size:20px;">
 		{{if .Marked}}
 			{{.Doc.Title}}
 		{{else}}

@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 )
 
@@ -95,12 +96,12 @@ type Docable interface {
 type Mux struct {
 	Pre          string
 	Items        []string //comment items.
-	Filters      []DocV
-	FilterFunc   []DocV
-	Handlers     []DocV
-	HandlerFunc  []DocV
-	NHandlers    []DocV
-	NHandlerFunc []DocV
+	Filters      DocVAry
+	FilterFunc   DocVAry
+	Handlers     DocVAry
+	HandlerFunc  DocVAry
+	NHandlers    DocVAry
+	NHandlerFunc DocVAry
 }
 
 //the doc
@@ -111,6 +112,19 @@ type DocV struct {
 	Doc     *Desc
 	Marked  bool
 	Pkg     string
+}
+type DocVAry []DocV
+
+func (d DocVAry) Len() int {
+	return len(d)
+}
+
+func (d DocVAry) Less(i, j int) bool {
+	return d[i].Pkg < d[j].Pkg || d[i].Name < d[j].Name
+}
+
+func (d DocVAry) Swap(i, j int) {
+	d[i], d[j] = d[j], d[i]
 }
 
 //the doc viewer for building the SessionMux info.
@@ -260,6 +274,7 @@ func (d *DocViewer) BuildMux(smux *routing.SessionMux) *Mux {
 				tmux.Filters = append(tmux.Filters, d.handler_doc(reg, f))
 			}
 		}
+		sort.Sort(tmux.Filters)
 	}
 	if d.FilterFunc {
 		for reg, f := range smux.FilterFunc {
@@ -267,6 +282,7 @@ func (d *DocViewer) BuildMux(smux *routing.SessionMux) *Mux {
 				tmux.FilterFunc = append(tmux.FilterFunc, d.func_doc(reg, f))
 			}
 		}
+		sort.Sort(tmux.FilterFunc)
 	}
 	if d.Handlers {
 		for reg, f := range smux.Handlers {
@@ -274,6 +290,7 @@ func (d *DocViewer) BuildMux(smux *routing.SessionMux) *Mux {
 				tmux.Handlers = append(tmux.Handlers, d.handler_doc(reg, f))
 			}
 		}
+		sort.Sort(tmux.Handlers)
 	}
 	if d.HandlerFunc {
 		for reg, f := range smux.HandlerFunc {
@@ -281,6 +298,7 @@ func (d *DocViewer) BuildMux(smux *routing.SessionMux) *Mux {
 				tmux.HandlerFunc = append(tmux.HandlerFunc, d.func_doc(reg, f))
 			}
 		}
+		sort.Sort(tmux.HandlerFunc)
 	}
 	if d.NHandlers {
 		for reg, f := range smux.NHandlers {
@@ -288,6 +306,7 @@ func (d *DocViewer) BuildMux(smux *routing.SessionMux) *Mux {
 				tmux.NHandlers = append(tmux.NHandlers, d.handler_doc(reg, f))
 			}
 		}
+		sort.Sort(tmux.NHandlers)
 	}
 	if d.NHandlerFunc {
 		for reg, f := range smux.NHandlerFunc {
@@ -295,6 +314,7 @@ func (d *DocViewer) BuildMux(smux *routing.SessionMux) *Mux {
 				tmux.NHandlerFunc = append(tmux.NHandlerFunc, d.func_doc(reg, f))
 			}
 		}
+		sort.Sort(tmux.NHandlerFunc)
 	}
 	return tmux
 }
