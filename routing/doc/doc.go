@@ -318,6 +318,94 @@ func (d *DocViewer) BuildMux(smux *routing.SessionMux) *Mux {
 	}
 	return tmux
 }
+func (d *DocViewer) build_tree(name string, vv DocVAry) map[string]interface{} {
+	mv := map[string]interface{}{}
+	ff := map[string]interface{}{
+		"P":    true,
+		"Name": name,
+		"Id":   name,
+		"Subs": []interface{}{},
+	}
+	for _, dv := range vv {
+		tmpv := ff
+		pkgs := strings.Split(dv.Pkg, "/")
+		for i := 0; i < len(pkgs); i++ {
+			mpkg := strings.Join(pkgs[:i+1], "/")
+			if v, ok := mv[mpkg]; ok {
+				tmpv = v.(map[string]interface{})
+				continue
+			}
+			subs := tmpv["Subs"].([]interface{})
+			ttv := map[string]interface{}{
+				"P":    true,
+				"Name": pkgs[i],
+				"Id":   pkgv(mpkg),
+				"Subs": []interface{}{},
+			}
+			mv[mpkg] = ttv
+			tmpv["Subs"] = append(subs, ttv)
+			tmpv = ttv
+		}
+		ttv := map[string]interface{}{
+			"P":    false,
+			"Name": dv.Name,
+			"Id":   fmt.Sprintf("%s_%s", dv.Name, pkgv(dv.Pkg)),
+			"Subs": []interface{}{},
+		}
+		subs := tmpv["Subs"].([]interface{})
+		tmpv["Subs"] = append(subs, ttv)
+	}
+	return ff
+}
+func (d *DocViewer) BuildTree(mux *Mux) []interface{} {
+	allv := []interface{}{}
+	if len(mux.Filters) > 0 {
+		allv = append(allv, d.build_tree("Filters", mux.Filters))
+	}
+	if len(mux.FilterFunc) > 0 {
+		allv = append(allv, d.build_tree("FilterFunc", mux.FilterFunc))
+	}
+	if len(mux.Handlers) > 0 {
+		allv = append(allv, d.build_tree("Handlers", mux.Handlers))
+	}
+	if len(mux.HandlerFunc) > 0 {
+		allv = append(allv, d.build_tree("HandlerFunc", mux.HandlerFunc))
+	}
+	if len(mux.NHandlers) > 0 {
+		allv = append(allv, d.build_tree("NHandlers", mux.NHandlers))
+	}
+	if len(mux.NHandlerFunc) > 0 {
+		allv = append(allv, d.build_tree("NHandlerFunc", mux.NHandlerFunc))
+	}
+	return allv
+}
+func (d *DocViewer) build_tree_html(vv []interface{}) template.HTML {
+	if vv == nil || len(vv) < 1 {
+		return ""
+	}
+	data := ""
+	for _, v := range vv {
+		mv := v.(map[string]interface{})
+		if mv["P"].(bool) {
+			data += fmt.Sprintf(`
+			<li>
+				<label for="%s">%s</label> <input type="checkbox" id="%s" /> 
+				<ol>
+					%s
+				</ol>
+			</li>`,
+				mv["Id"], mv["Name"], mv["Id"], d.build_tree_html(mv["Subs"].([]interface{})))
+		} else {
+			data += fmt.Sprintf(`
+			<li class="file"><a href="#%s">%s</a></li>`, mv["Id"], mv["Name"])
+		}
+
+	}
+	return template.HTML(data)
+}
+func (d *DocViewer) BuildTreeHTML(mux *Mux) template.HTML {
+	return d.build_tree_html(d.BuildTree(mux))
+}
 
 //srv
 func (d *DocViewer) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
@@ -330,6 +418,7 @@ func (d *DocViewer) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 		if err == nil {
 			mux := d.BuildMux(hs.Mux)
 			t.Execute(hs.W, map[string]interface{}{
+				"Tree":         d.BuildTreeHTML(mux),
 				"Filters":      mux.Filters,
 				"FilterFunc":   mux.FilterFunc,
 				"Handlers":     mux.Handlers,
@@ -343,6 +432,9 @@ func (d *DocViewer) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 		return routing.HRES_RETURN
 	} else if format == FMT_JSON {
 		return hs.MsgRes(d.BuildMux(hs.Mux))
+	} else if format == "tree" {
+		mux := d.BuildMux(hs.Mux)
+		return hs.MsgRes(d.BuildTree(mux))
 	} else {
 		return hs.MsgRes("error format")
 	}
