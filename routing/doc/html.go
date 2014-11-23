@@ -8,11 +8,6 @@ const HTML = `
 /* Just some base styles not needed for example to function */
 *, html { font-family: Verdana, Arial, Helvetica, sans-serif; }
 
-body, form, ul, li, p, h1, h2, h3, h4, h5
-{
-	margin: 0;
-	padding: 0;
-}
 body { margin: 0; }
 img { border: none; }
 p
