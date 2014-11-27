@@ -8,6 +8,11 @@ const HTML = `
 /* Just some base styles not needed for example to function */
 *, html { font-family: Verdana, Arial, Helvetica, sans-serif; }
 
+body, form, ul, li, p, h1, h2, h3, h4, h5
+{
+	margin: 0;
+	padding: 0;
+}
 body { margin: 0; }
 img { border: none; }
 p
@@ -86,12 +91,21 @@ ol.tree
 </head>
 <div id="main" style="width:1000px;margin:0px;padding:0px">
 <div style="width:300px;float:left;" class="fd">
+{{range $hkey,$hval:=.Items}}
+	<div style="margin-left:10px;"><a href="#{{$hkey}}">{{$hkey}}</a></div>
+{{end}}
 	<ol class="tree">
 		{{.Tree}}
 	</ol>
 </div>
 <div id="content" style="margin-left:300px;float:left;width:800px;">
-{{range $hkey,$hval:=.}}
+
+{{range $hkey,$hval:=.Items}}
+<h1 id="{{$hkey}}" style="background:#AABBCC;font-size:25px;">{{$hkey}}</h1>
+<div style="margin-left:10px;margin-right:10px;">{{$hval}}</div>
+<br/>
+{{end}}
+{{range $hkey,$hval:=.Apis}}
 <h1 id="{{$hkey}}" style="background:#AABBCC;font-size:25px;">{{$hkey}}</h1>
 {{range $hval}}
 <div style="margin-left:10px;margin-right:10px;">

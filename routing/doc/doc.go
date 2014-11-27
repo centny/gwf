@@ -95,7 +95,7 @@ type Docable interface {
 //the routing.SessionMux info.
 type Mux struct {
 	Pre          string
-	Items        []string //comment items.
+	Items        map[string]template.HTML //comment items.
 	Filters      DocVAry
 	FilterFunc   DocVAry
 	Handlers     DocVAry
@@ -131,7 +131,7 @@ func (d DocVAry) Swap(i, j int) {
 type DocViewer struct {
 	Incs         []*regexp.Regexp
 	Excs         []*regexp.Regexp
-	Items        []string //comment items.
+	Items        map[string]template.HTML //comment items.
 	HTML         string
 	Filters      bool
 	FilterFunc   bool
@@ -144,7 +144,7 @@ type DocViewer struct {
 //new default viewer.
 func NewDocViewer() *DocViewer {
 	return &DocViewer{
-		Items:        []string{},
+		Items:        map[string]template.HTML{},
 		HTML:         HTML,
 		Filters:      true,
 		FilterFunc:   true,
@@ -418,13 +418,16 @@ func (d *DocViewer) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 		if err == nil {
 			mux := d.BuildMux(hs.Mux)
 			t.Execute(hs.W, map[string]interface{}{
-				"Tree":         d.BuildTreeHTML(mux),
-				"Filters":      mux.Filters,
-				"FilterFunc":   mux.FilterFunc,
-				"Handlers":     mux.Handlers,
-				"HandlerFunc":  mux.HandlerFunc,
-				"NHandlers":    mux.NHandlers,
-				"NHandlerFunc": mux.NHandlerFunc,
+				"Tree":  d.BuildTreeHTML(mux),
+				"Items": mux.Items,
+				"Apis": map[string]interface{}{
+					"Filters":      mux.Filters,
+					"FilterFunc":   mux.FilterFunc,
+					"Handlers":     mux.Handlers,
+					"HandlerFunc":  mux.HandlerFunc,
+					"NHandlers":    mux.NHandlers,
+					"NHandlerFunc": mux.NHandlerFunc,
+				},
 			})
 		} else {
 			hs.MsgResE(1, err.Error())
