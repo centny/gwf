@@ -306,6 +306,10 @@ func (m Map) SetValP(path string, val interface{}) error {
 	return nil
 }
 
+func (m *Map) ValidF(f string, args ...interface{}) error {
+	return ValidAttrF(f, m.StrVal, true, args...)
+}
+
 func NewMap(f string) (Map, error) {
 	bys, err := ioutil.ReadFile(f)
 	if err != nil {

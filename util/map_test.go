@@ -243,3 +243,18 @@ func TestNewMap(t *testing.T) {
 	fmt.Println(NewMaps("maps.json"))
 	fmt.Println(NewMaps("maps.jsn"))
 }
+
+func TestValidF(t *testing.T) {
+	m, err := NewMap("map.json")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	var v1 int64
+	var v2 string
+	m.ValidF(`
+		ab1,R|I,R:0;
+		ab2,R|S,L:0;
+		`, &v1, &v2)
+	fmt.Println(v1, v2)
+}
