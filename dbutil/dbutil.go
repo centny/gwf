@@ -152,6 +152,28 @@ func DbQueryF2(tx *sql.Tx, query string, args ...interface{}) (float64, error) {
 		return ic[0], nil
 	}
 }
+func DbQueryStr(db *sql.DB, query string, args ...interface{}) (string, error) {
+	ic, err := DbQueryString(db, query, args...)
+	if err != nil {
+		return "", err
+	}
+	if len(ic) < 1 {
+		return "", errors.New("not found")
+	} else {
+		return ic[0], nil
+	}
+}
+func DbQueryStr2(tx *sql.Tx, query string, args ...interface{}) (string, error) {
+	ic, err := DbQueryString2(tx, query, args...)
+	if err != nil {
+		return "", err
+	}
+	if len(ic) < 1 {
+		return "", errors.New("not found")
+	} else {
+		return ic[0], nil
+	}
+}
 
 //
 func DbQueryInt(db *sql.DB, query string, args ...interface{}) ([]int64, error) {

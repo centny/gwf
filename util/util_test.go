@@ -213,3 +213,9 @@ func TestIs2Ss(t *testing.T) {
 	fmt.Println(Int2Str([]int64{1, 2}))
 	fmt.Println(Is2Ss([]int64{1, 2}))
 }
+
+func TestFsize(t *testing.T) {
+	f, _ := os.Open("/Users/cny/Downloads/abc.mkv")
+	fmt.Println(FormFSzie(f))
+	f.Close()
+}
