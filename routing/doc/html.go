@@ -90,13 +90,14 @@ ol.tree
 	</style>
 </head>
 <div id="main" style="width:1000px;margin:0px;padding:0px">
-<div style="width:300px;float:left;" class="fd">
+<div style="width:300px;float:left;height:100%;overflow:auto;" class="fd">
 {{range $hkey,$hval:=.Items}}
 	<div style="margin-left:10px;"><a href="#{{$hkey}}">{{$hkey}}</a></div>
 {{end}}
 	<ol class="tree">
 		{{.Tree}}
 	</ol>
+	<br/><br/><br/><br/>
 </div>
 <div id="content" style="margin-left:300px;float:left;width:800px;">
 
@@ -187,6 +188,7 @@ ol.tree
 		{{end}}
 	</div>
 </div>
+<br/><br/>
 {{end}}
 {{end}}
 </div>
