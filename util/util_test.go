@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"runtime"
 	"syscall"
@@ -214,8 +215,18 @@ func TestIs2Ss(t *testing.T) {
 	fmt.Println(Is2Ss([]int64{1, 2}))
 }
 
-func TestFsize(t *testing.T) {
-	f, _ := os.Open("/Users/cny/Downloads/abc.mkv")
-	fmt.Println(FormFSzie(f))
-	f.Close()
-}
+// func TestFsize(t *testing.T) {
+// 	f, _ := os.Open("/Users/cny/Downloads/abc.mkv")
+// 	fmt.Println(FormFSzie(f))
+// 	f.Close()
+// }
+
+// func TestAAANet(t *testing.T) {
+// 	c, err := net.Dial("tcp", "192.168.1.100:9100")
+// 	if err != nil {
+// 		t.Error(err.Error())
+// 		return
+// 	}
+// 	w := bufio.NewWriter(c)
+
+// }
