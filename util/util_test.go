@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"net"
 	"os"
 	"runtime"
 	"syscall"
