@@ -35,7 +35,11 @@ pkgs="\
  github.com/Centny/gwf/mcobertura\
  github.com/Centny/gwf/hooks\
  github.com/Centny/gwf/ini\
+ github.com/Centny/gwf/tutil\
 "
+# pkgs="\
+#  github.com/Centny/gwf/tutil\
+# "
 echo "mode: set" > a.out
 for p in $pkgs;
 do
