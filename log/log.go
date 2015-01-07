@@ -67,6 +67,9 @@ func SetSLevel(level string) {
 func D(format string, v ...interface{}) {
 	dlog.log(DEBUG, "[D] %s", fmt.Sprintf(format, v...))
 }
+func D_(d int, format string, v ...interface{}) {
+	dlog.log_(DEBUG, d, "[D] %s", fmt.Sprintf(format, v...))
+}
 
 func I(format string, v ...interface{}) {
 	dlog.log(INFO, "[I] %s", fmt.Sprintf(format, v...))
@@ -98,6 +101,9 @@ func (t *Log) SetLevel(l LogLevel) {
 func (t *Log) D(format string, v ...interface{}) {
 	t.log(DEBUG, "[D] %s", fmt.Sprintf(format, v...))
 }
+func (t *Log) D_(d int, format string, v ...interface{}) {
+	t.log_(DEBUG, d, "[D] %s", fmt.Sprintf(format, v...))
+}
 
 func (t *Log) I(format string, v ...interface{}) {
 	t.log(INFO, "[I] %s", fmt.Sprintf(format, v...))
@@ -116,4 +122,11 @@ func (t *Log) log(l LogLevel, format string, v ...interface{}) {
 		return
 	}
 	t.Output(3, fmt.Sprintf(format, v...)+"\n")
+}
+
+func (t *Log) log_(l LogLevel, d int, format string, v ...interface{}) {
+	if l < t.level {
+		return
+	}
+	t.Output(d, fmt.Sprintf(format, v...)+"\n")
 }
