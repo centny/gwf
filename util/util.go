@@ -95,12 +95,35 @@ func ReadLine(r *bufio.Reader, limit int, end bool) ([]byte, error) {
 	}
 	return bys, nil
 }
+func ReadW(r *bufio.Reader, p []byte, last *int64) error {
+	l := len(p)
+	all := 0
+	buf := p
+	for {
+		l_, err := r.Read(buf)
+		if err != nil {
+			return err
+		}
+		*last = Now()
+		all += l_
+		if all < l {
+			buf = p[all:]
+			continue
+		} else {
+			break
+		}
+	}
+	return nil
+}
 
 func Timestamp(t time.Time) int64 {
 	return t.UnixNano() / 1e6
 }
 func Time(timestamp int64) time.Time {
 	return time.Unix(0, timestamp*1e6)
+}
+func Now() int64 {
+	return Timestamp(time.Now())
 }
 func AryExist(ary interface{}, obj interface{}) bool {
 	switch reflect.TypeOf(ary).Kind() {

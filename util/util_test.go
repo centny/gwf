@@ -214,6 +214,34 @@ func TestIs2Ss(t *testing.T) {
 	fmt.Println(Is2Ss([]int64{1, 2}))
 }
 
+func TestReadW(t *testing.T) {
+	r := bufio.NewReader(&Sw{})
+	buf := make([]byte, 3)
+	ReadW(r, buf)
+	fmt.Println(string(buf))
+	fmt.Println(Now())
+	ReadW(r, buf)
+}
+
+type Sw struct {
+	i int
+}
+
+func (s *Sw) Read(p []byte) (n int, err error) {
+	if s.i < 1 {
+		s.i = 1
+		p[0] = 'A'
+		return 1, nil
+	} else if s.i < 2 {
+		s.i = 2
+		p[0] = 'B'
+		p[1] = 'C'
+		return 2, nil
+	} else {
+		return 0, Err("ssdsd")
+	}
+}
+
 // func TestFsize(t *testing.T) {
 // 	f, _ := os.Open("/Users/cny/Downloads/abc.mkv")
 // 	fmt.Println(FormFSzie(f))
