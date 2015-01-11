@@ -37,9 +37,10 @@ echo "Running Test"
 #  github.com/Centny/gwf/ini\
 #  github.com/Centny/gwf/tutil\
 #  github.com/Centny/gwf/pool\
+#  github.com/Centny/gwf/netw\
 # "
 pkgs="\
- github.com/Centny/gwf/netw\
+ github.com/Centny/gwf/netw/handler\
 "
 echo "mode: set" > a.out
 for p in $pkgs;

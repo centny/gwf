@@ -5,11 +5,13 @@ import (
 	"net"
 )
 
+//the client connection pool.
 type NConPool struct {
-	Addr string
-	*LConPool
+	Addr      string //target address.
+	*LConPool        //base connection pool.
 }
 
+//new client connection pool.
 func NewNConPool(p *pool.BytePool, addr string, h CmdHandler) *NConPool {
 	return &NConPool{
 		Addr:     addr,
@@ -17,6 +19,7 @@ func NewNConPool(p *pool.BytePool, addr string, h CmdHandler) *NConPool {
 	}
 }
 
+//dail one connection.
 func (n *NConPool) Dail() error {
 	con, err := net.Dial("tcp", n.Addr)
 	if err != nil {
@@ -24,8 +27,4 @@ func (n *NConPool) Dail() error {
 	}
 	n.RunC(con)
 	return nil
-}
-
-func (n *NConPool) Wait() {
-	<-n.LConPool.Wc
 }

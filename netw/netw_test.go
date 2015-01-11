@@ -30,6 +30,9 @@ func (t *th_s) OnCmd(c *Cmd) {
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
 }
+func (t *th_s) OnClose(c *Con) {
+
+}
 
 type th_c struct {
 }
@@ -44,6 +47,9 @@ func (t *th_c) OnCmd(c *Cmd) {
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
 }
+func (t *th_c) OnClose(c *Con) {
+
+}
 
 type th_c2 struct {
 	tt bool
@@ -53,6 +59,9 @@ func (t *th_c2) OnConn(c *Con) bool {
 	return t.tt
 }
 func (t *th_c2) OnCmd(c *Cmd) {
+}
+func (t *th_c2) OnClose(c *Con) {
+
 }
 
 //

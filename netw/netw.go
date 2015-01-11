@@ -1,3 +1,8 @@
+//Package netw provide the base transfer protocol for TCP
+//
+//it contain the client and server base struct that can be extended by event handler.
+//
+//Protocol:mod->len->data
 package netw
 
 import (
@@ -13,6 +18,7 @@ import (
 	"time"
 )
 
+//whether show debug log or not.
 var ShowLog bool = false
 
 func log_d(f string, args ...interface{}) {
@@ -21,26 +27,36 @@ func log_d(f string, args ...interface{}) {
 	}
 }
 
+//the protocol modes
 const H_MOD = "^~^"
+
+//the connection for not data receive
 const CON_TIMEOUT int64 = 5000
 
+//the connect data event handler.
 type CmdHandler interface {
+	//calling when the connection have been connected.
 	OnConn(c *Con) bool
+	//calling when one entire command have been received.
 	OnCmd(c *Cmd)
+	//calling when the connection have been closed.
 	OnClose(c *Con)
 }
 
+//the connection struct.
+//it will be created when client connected or server received one connection.
 type Con struct {
-	P       *pool.BytePool
-	C       net.Conn
-	R       *bufio.Reader
-	W       *bufio.Writer
-	Last    int64
-	waiting int32
-	buf     []byte
-	c_l     sync.RWMutex
+	P       *pool.BytePool //the memory pool
+	C       net.Conn       //the base connection
+	R       *bufio.Reader  //the buffer reader
+	W       *bufio.Writer  //the buffer writer.
+	Last    int64          //the last update time for data transfer
+	waiting int32          //whether in waiting status.
+	buf     []byte         //the buffer.
+	c_l     sync.RWMutex   //connection lock.
 }
 
+//new connection.
 func NewCon(p *pool.BytePool, con net.Conn) *Con {
 	return &Con{
 		P:       p,
@@ -51,6 +67,10 @@ func NewCon(p *pool.BytePool, con net.Conn) *Con {
 		buf:     make([]byte, 2),
 	}
 }
+
+//set the connection waiting status.
+//if true,the connection will keep forever.
+//if false,the connection will be closed after timeout when not data receive.
 func (c *Con) SetWait(t bool) {
 	if t {
 		atomic.StoreInt32(&c.waiting, 1)
@@ -58,39 +78,55 @@ func (c *Con) SetWait(t bool) {
 		atomic.StoreInt32(&c.waiting, 0)
 	}
 }
+
+//read the number of the data in p
 func (c *Con) ReadW(p []byte) error {
 	return util.ReadW(c.R, p, &c.Last)
 }
-func (c *Con) Write(bys []byte) error {
+
+//sending data.
+//Data:mod|len|bys...
+func (c *Con) Write(bys ...[]byte) error {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
 	c.W.Write([]byte(H_MOD))
-	binary.BigEndian.PutUint16(c.buf, uint16(len(bys)))
+	var tlen uint16 = 0
+	for _, b := range bys {
+		tlen += uint16(len(b))
+	}
+	binary.BigEndian.PutUint16(c.buf, tlen)
 	c.W.Write(c.buf)
-	c.W.Write(bys)
+	for _, b := range bys {
+		c.W.Write(b)
+	}
 	return c.W.Flush()
 }
 
+//the data commend.
 type Cmd struct {
-	*Con
-	Data []byte
+	*Con         //base connection.
+	Data  []byte //received data
+	data_ []byte
 }
 
+//free the memory(Data []byte)
 func (c *Cmd) Done() {
 	c.P.Free(c.Data)
 }
 
+//the connection pool
 type LConPool struct {
-	T      int64
-	P      *pool.BytePool
-	Wg     sync.WaitGroup
-	H      CmdHandler
-	Wc     chan int
+	T      int64          //the timeout of not data received
+	P      *pool.BytePool //the memory pool
+	Wg     sync.WaitGroup //wait group.
+	H      CmdHandler     //command handler
+	Wc     chan int       //the wait chan.
 	t_r    bool
 	cons   map[net.Conn]*Con
 	cons_l sync.RWMutex
 }
 
+//new connection pool.
 func NewLConPool(p *pool.BytePool, h CmdHandler) *LConPool {
 	return &LConPool{
 		T:    CON_TIMEOUT,
@@ -100,6 +136,8 @@ func NewLConPool(p *pool.BytePool, h CmdHandler) *LConPool {
 		cons: map[net.Conn]*Con{},
 	}
 }
+
+//looping the connection timeout.
 func (l *LConPool) LoopTimeout() {
 	l.t_r = true
 	for l.t_r {
@@ -113,6 +151,7 @@ func (l *LConPool) LoopTimeout() {
 				cons = append(cons, con)
 			}
 		}
+		log_d("closing %v connection for timeout", len(cons))
 		for _, con := range cons {
 			con.Close()
 		}
@@ -120,6 +159,8 @@ func (l *LConPool) LoopTimeout() {
 	}
 	l.Wc <- 0
 }
+
+//close all connection
 func (l *LConPool) Close() {
 	l.t_r = false
 	l.cons_l.Lock()
@@ -141,11 +182,18 @@ func (l *LConPool) del_c(c *Con) {
 	delete(l.cons, c.C)
 	l.cons_l.Unlock()
 }
+
+//run one connection by async.
 func (l *LConPool) RunC(con net.Conn) {
 	go l.RunC_(con)
 }
+
+//run on connection by sync.
 func (l *LConPool) RunC_(con net.Conn) {
-	defer con.Close()
+	defer func() {
+		con.Close()
+		log_d("closing connection(%v)", con.RemoteAddr().String())
+	}()
 	c := NewCon(l.P, con)
 	if !l.H.OnConn(c) {
 		return
@@ -160,16 +208,16 @@ func (l *LConPool) RunC_(con net.Conn) {
 	for {
 		err := c.ReadW(buf)
 		if err != nil {
-			log.W("read head mod from(%v) error:%v", con.RemoteAddr().String(), err.Error())
+			log_d("read head mod from(%v) error:%v", con.RemoteAddr().String(), err.Error())
 			break
 		}
 		if !bytes.HasPrefix(buf, mod) {
-			log.W("reading invalid mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
+			log_d("reading invalid mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
 			continue
 		}
 		dlen := binary.BigEndian.Uint16(buf[mod_l:])
 		if dlen < 1 {
-			log.W("reading invalid data len for mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
+			log_d("reading invalid data len for mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
 			continue
 		}
 		dbuf := l.P.Alloc(int(dlen))
@@ -179,8 +227,9 @@ func (l *LConPool) RunC_(con net.Conn) {
 			break
 		}
 		l.H.OnCmd(&Cmd{
-			Con:  c,
-			Data: dbuf,
+			Con:   c,
+			Data:  dbuf,
+			data_: dbuf,
 		})
 	}
 	l.H.OnClose(c)

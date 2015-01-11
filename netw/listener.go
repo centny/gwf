@@ -7,14 +7,16 @@ import (
 	"net"
 )
 
+//the TCP server listener.
 type Listener struct {
-	*LConPool
-	Port    string
-	L       net.Listener
-	Running bool
-	Wc      chan int
+	*LConPool              //the connection pool.
+	Port      string       //the listen port.
+	L         net.Listener //the base listener.
+	Running   bool         //whether running accept.
+	Wc        chan int     //the wait chan.
 }
 
+//new one listener.
 func NewListener(p *pool.BytePool, port string, h CmdHandler) *Listener {
 	return &Listener{
 		Port:     port,
@@ -23,6 +25,7 @@ func NewListener(p *pool.BytePool, port string, h CmdHandler) *Listener {
 	}
 }
 
+//listen on the special port.
 func (l *Listener) Listen() error {
 	if len(l.Port) < 1 {
 		return errors.New("port is empty")
@@ -36,6 +39,7 @@ func (l *Listener) Listen() error {
 	return nil
 }
 
+//run all async.
 func (l *Listener) Run() error {
 	err := l.Listen()
 	if err != nil {
@@ -46,6 +50,8 @@ func (l *Listener) Run() error {
 	go l.LoopTimeout()
 	return nil
 }
+
+//looping the accept
 func (l *Listener) LoopAccept() {
 	l.Running = true
 	for l.Running {
@@ -60,10 +66,14 @@ func (l *Listener) LoopAccept() {
 	l.Running = false
 	l.Wc <- 0
 }
+
+//close the listener.
 func (l *Listener) Close() {
 	l.LConPool.Close()
 	l.L.Close()
 }
+
+//wait the listener close.
 func (l *Listener) Wait() {
 	<-l.LConPool.Wc
 	<-l.Wc

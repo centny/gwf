@@ -6,6 +6,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"net/http"
+	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -45,21 +46,24 @@ func (t *th_c) OnClose(c *netw.Con) {
 
 }
 
-var wg sync.WaitGroup
+var Addr string = "127.0.0.1:7686"
 var mc_l sync.RWMutex
 var mc map[*th_c]*netw.NConPool = map[*th_c]*netw.NConPool{}
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	if len(os.Args) > 1 {
+		Addr = os.Args[1]
+	}
 	go run_c(fmt.Sprintf("BC-%v", 1))
-	go run_api()
+	run_api()
 	time.Sleep(time.Millisecond)
-	wg.Wait()
 }
 func run_api() {
 	mux := routing.NewSessionMux2("")
 	mux.HFunc("^/add_c.*", add_c)
 	mux.HFunc("^/list_c.*", list_c)
+	fmt.Println("running http server in %v", 9987)
 	http.ListenAndServe(":9987", mux)
 }
 func list_c(hs *routing.HTTPSession) routing.HResult {
@@ -67,11 +71,11 @@ func list_c(hs *routing.HTTPSession) routing.HResult {
 	var msgc_s int64 = 0
 	var all_tc []map[string]interface{} = []map[string]interface{}{}
 	for tc, _ := range mc {
-		all_tc = append(all_tc, map[string]interface{}{
-			"name":   tc.name,
-			"msgc_r": tc.count,
-			"msgc_s": tc.iii,
-		})
+		// all_tc = append(all_tc, map[string]interface{}{
+		// 	"name":   tc.name,
+		// 	"msgc_r": tc.count,
+		// 	"msgc_s": tc.iii,
+		// })
 		msgc_s += int64(tc.iii)
 		msgc_r += int64(tc.count)
 	}
@@ -90,30 +94,36 @@ func add_c(hs *routing.HTTPSession) routing.HResult {
 	if err != nil {
 		return hs.MsgResE(1, err.Error())
 	}
-	var i int64
-	for i = 0; i < ic; i++ {
-		go run_c(fmt.Sprintf("C-%v", i))
-	}
+	go func() {
+		var i int64
+		for i = 0; i < ic; i++ {
+			run_c(fmt.Sprintf("C-%v", i))
+			time.Sleep(5 * time.Millisecond)
+		}
+	}()
 	return hs.MsgRes("OK")
 }
 func run_c(name string) {
-	wg.Add(1)
+	fmt.Println("running client by name(%v)", name)
 	tc := &th_c{name: name}
 	p := pool.NewBytePool(8, 1024)
-	c := netw.NewNConPool(p, "127.0.0.1:7686", tc)
-	err := c.Dail()
+	c := netw.NewNConPool(p, Addr, tc)
+	var err error = nil
+	for i := 0; i < 10; i++ {
+		err = c.Dail()
+		if err == nil {
+			break
+		} else {
+			time.Sleep(100 * time.Millisecond)
+			fmt.Println("retry connecting for err:", err.Error())
+		}
+	}
 	if err != nil {
-		panic(err.Error())
-	}
-	if tc == nil {
-		panic("nil")
-	}
-	if c == nil {
-		panic("ccccc")
+		fmt.Println("connect fail")
+		return
 	}
 	mc_l.Lock()
 	mc[tc] = c
 	mc_l.Unlock()
-	c.Wait()
-	wg.Done()
+	// c.Wait()
 }

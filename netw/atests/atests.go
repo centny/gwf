@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"runtime"
 	"sync"
+	"time"
 )
 
 type th_s struct {
@@ -21,6 +22,7 @@ func (t *th_s) OnConn(c *netw.Con) bool {
 	vkey := fmt.Sprintf("%v", len(t.ccs))
 	t.ccs[vkey] = c
 	t.ccs_r[c] = vkey
+	fmt.Println("Count>>:", len(t.ccs_r))
 	return true
 }
 func (t *th_s) OnCmd(c *netw.Cmd) {
@@ -46,13 +48,22 @@ func (t *th_s) OnClose(c *netw.Con) {
 	delete(t.ccs, t.ccs_r[c])
 	delete(t.ccs_r, c)
 }
+func (t *th_s) Show() {
+	for {
+		fmt.Println("Count:", len(t.ccs_r))
+		time.Sleep(5 * time.Second)
+	}
+}
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	netw.ShowLog = false
 	p := pool.NewBytePool(8, 1024)
-	l := netw.NewListener(p, ":7686", &th_s{
+	ts := &th_s{
 		ccs:   map[string]*netw.Con{},
 		ccs_r: map[*netw.Con]string{},
-	})
+	}
+	l := netw.NewListener(p, ":7686", ts)
+	go ts.Show()
 	err := l.Run()
 	if err != nil {
 		panic(err.Error())
