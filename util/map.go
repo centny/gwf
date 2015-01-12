@@ -309,7 +309,9 @@ func (m Map) SetValP(path string, val interface{}) error {
 func (m *Map) ValidF(f string, args ...interface{}) error {
 	return ValidAttrF(f, m.StrVal, true, args...)
 }
-
+func (m *Map) ToS(dest interface{}) {
+	M2S(*m, dest)
+}
 func NewMap(f string) (Map, error) {
 	bys, err := ioutil.ReadFile(f)
 	if err != nil {

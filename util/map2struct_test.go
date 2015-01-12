@@ -143,6 +143,8 @@ func TestM2SErr(t *testing.T) {
 	M2S(nil, &dest)
 	M2S(m, nil)
 	M2S(m3, &dest)
+	mm := Map(m)
+	mm.ToS(dest)
 	//
 	var dests []S1
 	Ms2Ss(nil, &dests)

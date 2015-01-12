@@ -217,10 +217,11 @@ func TestIs2Ss(t *testing.T) {
 func TestReadW(t *testing.T) {
 	r := bufio.NewReader(&Sw{})
 	buf := make([]byte, 3)
-	ReadW(r, buf)
+	var las int64
+	ReadW(r, buf, &las)
 	fmt.Println(string(buf))
 	fmt.Println(Now())
-	ReadW(r, buf)
+	ReadW(r, buf, &las)
 }
 
 type Sw struct {

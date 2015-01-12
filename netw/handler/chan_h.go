@@ -38,11 +38,11 @@ func (ch *ChanH) Running() bool {
 func (ch *ChanH) OnConn(c *netw.Con) bool {
 	return ch.H.OnConn(c)
 }
-func (ch *ChanH) OnCmd(c *netw.Cmd) {
-	ch.cc <- c
-}
 func (ch *ChanH) OnClose(c *netw.Con) {
 	ch.H.OnClose(c)
+}
+func (ch *ChanH) OnCmd(c *netw.Cmd) {
+	ch.cc <- c
 }
 
 //run target number of gorutine to process command.

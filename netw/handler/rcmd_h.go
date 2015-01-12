@@ -154,12 +154,9 @@ func (r *RC_Cmd) Write(bys []byte) error {
 
 //the extended command handler.
 type RC_H interface {
-	//calling when the connection have been connected.
-	OnConn(c *netw.Con) bool
+	netw.ConHandler
 	//calling when one entire command have been received.
 	OnCmd(rc *RC_Cmd)
-	//calling when the connection have been closed.
-	OnClose(c *netw.Con)
 }
 
 //the remote command server handler.
@@ -176,6 +173,9 @@ func NewRC_S(h RC_H) *RC_S {
 func (r *RC_S) OnConn(c *netw.Con) bool {
 	return r.H.OnConn(c)
 }
+func (r *RC_S) OnClose(c *netw.Con) {
+	r.H.OnClose(c)
+}
 func (r *RC_S) OnCmd(c *netw.Cmd) {
 	rid, data := c.Data[:2], c.Data[2:]
 	c.Data = data
@@ -183,7 +183,4 @@ func (r *RC_S) OnCmd(c *netw.Cmd) {
 		Cmd: c,
 		rid: rid,
 	})
-}
-func (r *RC_S) OnClose(c *netw.Con) {
-	r.OnClose(c)
 }

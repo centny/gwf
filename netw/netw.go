@@ -33,14 +33,19 @@ const H_MOD = "^~^"
 //the connection for not data receive
 const CON_TIMEOUT int64 = 5000
 
-//the connect data event handler.
-type CmdHandler interface {
+//the base connection event handler
+type ConHandler interface {
 	//calling when the connection have been connected.
 	OnConn(c *Con) bool
-	//calling when one entire command have been received.
-	OnCmd(c *Cmd)
 	//calling when the connection have been closed.
 	OnClose(c *Con)
+}
+
+//the connect data event handler.
+type CmdHandler interface {
+	ConHandler
+	//calling when one entire command have been received.
+	OnCmd(c *Cmd)
 }
 
 //the connection struct.
@@ -50,10 +55,11 @@ type Con struct {
 	C       net.Conn       //the base connection
 	R       *bufio.Reader  //the buffer reader
 	W       *bufio.Writer  //the buffer writer.
-	Last    int64          //the last update time for data transfer
-	waiting int32          //whether in waiting status.
-	buf     []byte         //the buffer.
-	c_l     sync.RWMutex   //connection lock.
+	Kvs     util.Map
+	Last    int64        //the last update time for data transfer
+	waiting int32        //whether in waiting status.
+	buf     []byte       //the buffer.
+	c_l     sync.RWMutex //connection lock.
 }
 
 //new connection.
@@ -63,6 +69,7 @@ func NewCon(p *pool.BytePool, con net.Conn) *Con {
 		C:       con,
 		R:       bufio.NewReader(con),
 		W:       bufio.NewWriter(con),
+		Kvs:     util.Map{},
 		waiting: 0,
 		buf:     make([]byte, 2),
 	}
