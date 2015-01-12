@@ -21,8 +21,8 @@ type ChanH struct {
 func NewChanH(h netw.CmdHandler) *ChanH {
 	return &ChanH{
 		H:     h,
-		cc:    make(chan *netw.Cmd),
-		Sleep: 100,
+		cc:    make(chan *netw.Cmd, 10000),
+		Sleep: 200,
 	}
 }
 
@@ -61,7 +61,7 @@ func (ch *ChanH) run_c() {
 		select {
 		case cmd = <-ch.cc:
 			ch.H.OnCmd(cmd)
-		case <-time.Tick(ch.Sleep):
+		case <-time.Tick(ch.Sleep * time.Millisecond):
 		}
 	}
 	atomic.AddInt32(&ch.count_, -1)

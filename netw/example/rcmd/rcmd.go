@@ -6,10 +6,11 @@ import (
 	"github.com/Centny/gwf/netw/handler"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
+	"math/rand"
 	"os"
 	"runtime"
-	"strings"
-	"time"
+	"sync"
+	// "sync/atomic"
 )
 
 /*--------------------------*/
@@ -28,9 +29,11 @@ type RC_V_M_s struct {
 }
 
 func (r *RC_V_M_s) OnConn(c *netw.Con) bool {
+	c.SetWait(true)
 	return true
 }
 func (r *RC_V_M_s) OnClose(c *netw.Con) {
+	fmt.Println("closing ", c.C.RemoteAddr().String())
 }
 func (r *RC_V_M_s) FNAME(rc *handler.RC_V_Cmd) (string, error) {
 	return rc.StrVal("name"), nil
@@ -46,36 +49,24 @@ func main() {
 		fmt.Println("less 2")
 		return
 	}
-	if os.Args[1] == "-s" {
+	switch os.Args[1] {
+	case "-s":
 		run_s()
-		return
+	case "-c":
+		run_c()
 	}
-	if len(os.Args) < 4 {
-		fmt.Println("less 4")
-		return
-	}
-	run_c(os.Args[1], os.Args[2], os.Args[3])
 }
 
 func run_s() {
 	p := pool.NewBytePool(8, 1024)
 	vms := handler.NewRC_V_M_S(&RC_V_M_s{})
-	vms.AddHFunc("join", join)
-	vms.AddHFunc("replace", replace)
+	vms.AddHFunc("plus", plus)
+	vms.AddHFunc("sub", sub)
+	netw.ShowLog = true
 	ts := handler.NewChan_Json_S(vms)
 	l := netw.NewListener(p, ":7686", ts)
-	l.T = 500
-	vms.AddHFunc("exit", func(r *handler.RC_V_M_S, rc *handler.RC_V_Cmd, args *util.Map) (interface{}, error) {
-		go func() {
-			time.Sleep(time.Second)
-			ts.Stop()
-			l.Close()
-		}()
-		return &res_v{
-			Res: "OK",
-		}, nil
-	})
-	ts.Run(5)
+	l.T = 3000
+	ts.Run(runtime.NumCPU())
 	err := l.Run()
 	if err != nil {
 		panic(err.Error())
@@ -83,31 +74,46 @@ func run_s() {
 	ts.Wait()
 	l.Wait()
 }
-func join(r *handler.RC_V_M_S, rc *handler.RC_V_Cmd, args *util.Map) (interface{}, error) {
+func plus(r *handler.RC_V_M_S, rc *handler.RC_V_Cmd, args *util.Map) (interface{}, error) {
 	var arg arg_v
-	args.ToS(&arg)
-	return &res_v{
-		Res: arg.A + arg.B,
-	}, nil
+	err := args.ValidF(`
+		a,R|I,R:0;
+		b,R|I,R:0;
+		`, &arg.A, &arg.B)
+	if err == nil {
+		// fmt.Println(arg)
+		return &res_v{
+			Res: arg.A + arg.B,
+		}, nil
+	} else {
+		// fmt.Println("err:", err.Error())
+		return nil, err
+	}
 }
-func replace(r *handler.RC_V_M_S, rc *handler.RC_V_Cmd, args *util.Map) (interface{}, error) {
+func sub(r *handler.RC_V_M_S, rc *handler.RC_V_Cmd, args *util.Map) (interface{}, error) {
 	var arg arg_v
-	args.ToS(&arg)
-	return &res_v{
-		Res: strings.Replace(arg.A, arg.B, "+++", -1),
-	}, nil
+	err := args.ValidF(`
+		a,R|I,R:0;
+		b,R|I,R:0;
+		`, &arg.A, &arg.B)
+	if err == nil {
+		return &res_v{
+			Res: arg.A - arg.B,
+		}, nil
+	} else {
+		return nil, err
+	}
 }
 
 type arg_v struct {
-	A string `m2s:"a" json:"a"`
-	B string `m2s:"b" json:"b"`
+	A int64 `m2s:"a" json:"a"`
+	B int64 `m2s:"b" json:"b"`
 }
 type res_v struct {
-	Res string `m2s:"res" json:"res"`
+	Res int64 `m2s:"res" json:"res"`
 }
 
-func run_c(name, a, b string) {
-	fmt.Println("R:", name, a, b)
+func run_c() {
 	p := pool.NewBytePool(8, 1024)
 	tc := NewRC()
 	c := netw.NewNConPool(p, "127.0.0.1:7686", tc)
@@ -116,14 +122,59 @@ func run_c(name, a, b string) {
 		panic(err.Error())
 	}
 	tc.Start()
-	var res res_v
-	err = tc.Exec(name, &arg_v{
-		A: a,
-		B: b,
-	}, &res)
-	if err != nil {
-		panic(err.Error())
+	beg := util.Now()
+	var errc int64 = 0
+	var ecount int64 = 0
+	wg := sync.WaitGroup{}
+	// wg.Add(50000 * 2)
+	// var adddd_ int64 = 0
+	for i := 0; i < 80000; i++ {
+		go func() {
+			wg.Add(1)
+			// atomic.AddInt64(&adddd_, 1)
+			var res res_v
+			arg := &arg_v{
+				A: int64(rand.Intn(1000) + 1),
+				B: int64(rand.Intn(1000) + 1),
+			}
+			err = tc.Exec("plus", arg, &res)
+			if err != nil {
+				// fmt.Println(err.Error(), errc)
+				errc++
+			} else if res.Res != (arg.A + arg.B) {
+				fmt.Println(res.Res, arg.A, arg.B)
+				ecount++
+			}
+			wg.Done()
+			// atomic.AddInt64(&adddd_, -1)
+		}()
+		go func() {
+			wg.Add(1)
+			// atomic.AddInt64(&adddd_, 1)
+			var res res_v
+			arg := &arg_v{
+				A: int64(rand.Intn(1000) + 1),
+				B: int64(rand.Intn(1000) + 1),
+			}
+			err = tc.Exec("sub", arg, &res)
+			if err != nil {
+				// fmt.Println(err.Error(), errc)
+				errc++
+			} else if res.Res != (arg.A - arg.B) {
+				fmt.Println(res.Res, arg.A, arg.B)
+				ecount++
+			}
+			wg.Done()
+			// atomic.AddInt64(&adddd_, -1)
+		}()
 	}
-	fmt.Println(res.Res)
+	wg.Wait()
+	// fmt.Println("----->:", adddd_)
+	end := util.Now()
+	fmt.Println("beg:", beg)
+	fmt.Println("end:", end)
+	fmt.Println("used:", end-beg)
+	fmt.Println("ecount:", ecount)
+	fmt.Println("errc:", errc)
 	fmt.Println("...end...")
 }

@@ -32,15 +32,16 @@ type RC_C struct {
 	req_c chan *chan_c //require chan.
 	//
 	running bool
+	err     error
 }
 
 //new on remote command caller.
 func NewRC_C() *RC_C {
 	return &RC_C{
 		Sleep:  100,
-		c_:     make(chan int),
-		back_c: make(chan *netw.Cmd),
-		req_c:  make(chan *chan_c),
+		c_:     make(chan int, 5),
+		back_c: make(chan *netw.Cmd, 10000),
+		req_c:  make(chan *chan_c, 10000),
 	}
 }
 
@@ -67,6 +68,7 @@ func (r *RC_C) Exec(data []byte) (*netw.Cmd, error) {
 func (r *RC_C) OnConn(c *netw.Con) bool {
 	r.Con = c
 	r.c_ <- 0
+	r.SetWait(true)
 	return true
 }
 
@@ -106,19 +108,10 @@ func (r *RC_C) Run_() {
 	cm := map[uint16]*chan_c{}
 	buf := make([]byte, 2)
 	r.running = true
-	for r.running && r.Con != nil {
+	var trun bool = true
+	for trun {
 		con := r.Con
 		select {
-		case tc := <-r.req_c:
-			binary.BigEndian.PutUint16(buf, r.exec_id)
-			tc.Err = con.Write(buf, tc.Data)
-			if tc.Err == nil {
-				cm[r.exec_id] = tc
-				r.exec_c++
-				r.exec_id++
-			} else {
-				tc.C <- false
-			}
 		case cmd := <-r.back_c:
 			if len(cmd.Data) < 2 {
 				log.W("response data is less 2,%v", cmd.Data)
@@ -135,8 +128,26 @@ func (r *RC_C) Run_() {
 			} else {
 				log.W("back chan not found by id:%v", tid)
 			}
+		case tc := <-r.req_c:
+			binary.BigEndian.PutUint16(buf, r.exec_id)
+			tc.Err = con.Write(buf, tc.Data)
+			if tc.Err == nil {
+				cm[r.exec_id] = tc
+				r.exec_c++
+				r.exec_id++
+			} else {
+				r.err = tc.Err
+				tc.C <- false
+			}
 		case <-time.Tick(r.Sleep * time.Millisecond):
+			trun = r.running && r.Con != nil
 		}
+	}
+	log.D("clearing all waiting exec(%v),err(%v)", len(cm), r.err)
+	//clear all waiting.
+	for _, tc := range cm {
+		tc.Err = util.Err("stopped")
+		tc.C <- false
 	}
 	r.running = false
 }
