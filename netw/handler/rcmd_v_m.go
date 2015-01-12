@@ -81,8 +81,11 @@ func (r *RC_V_M_S) OnCmd(rc *RC_V_Cmd) (interface{}, error) {
 	}
 	var con bool = false
 	var vv interface{} = nil
-	for _, f := range r.filter_a {
-		con, vv, err = r.filter_m[f](r, rc, args, vv)
+	for _, reg := range r.filter_a {
+		if !reg.MatchString(fname) {
+			continue
+		}
+		con, vv, err = r.filter_m[reg](r, rc, args, vv)
 		if err != nil || !con {
 			return vv, err
 		}

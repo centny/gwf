@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/util"
@@ -93,16 +94,15 @@ func (r *RC_V_S) OnClose(c *netw.Con) {
 }
 func (r *RC_V_S) w_v(c *RC_Cmd, v interface{}) {
 	bys, err := r.V2B(v)
-	if err != nil {
+	if err == nil {
+		c.Write(bys)
+	} else {
 		log.E("RC_V_S V2B error:%v", err.Error())
-		return
+		r.w_err(c, err)
 	}
-	c.Write(bys)
 }
 func (r *RC_V_S) w_err(c *RC_Cmd, err error) {
-	r.w_v(c, map[string]interface{}{
-		"err": err.Error(),
-	})
+	c.Write([]byte(fmt.Sprintf(`{"err":"%v"}`, err.Error())))
 }
 func (r *RC_V_S) OnCmd(c *RC_Cmd) {
 	var mv util.Map

@@ -177,6 +177,10 @@ func (r *RC_S) OnClose(c *netw.Con) {
 	r.H.OnClose(c)
 }
 func (r *RC_S) OnCmd(c *netw.Cmd) {
+	if len(c.Data) < 2 {
+		log.W("receive invalid command:%v", c.Data)
+		return
+	}
 	rid, data := c.Data[:2], c.Data[2:]
 	c.Data = data
 	r.H.OnCmd(&RC_Cmd{
