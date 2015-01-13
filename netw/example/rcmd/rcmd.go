@@ -9,7 +9,10 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
+	"runtime/debug"
+	"runtime/pprof"
 	"sync"
+	"time"
 	// "sync/atomic"
 )
 
@@ -53,30 +56,50 @@ func main() {
 	case "-s":
 		run_s()
 	case "-c":
-		run_c()
+		if len(os.Args) < 4 {
+			fmt.Println("use:rcmd -c addr loop|run")
+			return
+		}
+		run_c(os.Args[2], os.Args[3])
 	}
 }
 
 func run_s() {
 	p := pool.NewBytePool(8, 1024)
+	p.T = 10000
+	go p.GC()
 	vms := handler.NewRC_V_M_S(&RC_V_M_s{})
 	vms.AddHFunc("plus", plus)
 	vms.AddHFunc("sub", sub)
+	vms.AddHFunc("panic", panic_c)
+	vms.AddHFunc("gc", func(r *handler.RC_H_CMD) (interface{}, error) {
+		v1, v2 := p.GC()
+		return &res_v{
+			Msg: fmt.Sprintf("%v--%v", v1, v2),
+		}, nil
+	})
 	netw.ShowLog = true
 	ts := handler.NewChan_Json_S(vms)
 	l := netw.NewListener(p, ":7686", ts)
 	l.T = 3000
-	ts.Run(runtime.NumCPU())
+	ts.Run(2)
 	err := l.Run()
 	if err != nil {
 		panic(err.Error())
 	}
+	// go func() {
+	// 	for {
+	// 		time.Sleep(5 * time.Second)
+	// 		os.Stderr.WriteString("<-------------------------------------------------------------------------------------------------------------------------------->")
+	// 		pprof.Lookup("goroutine").WriteTo(os.Stderr, 1)
+	// 	}
+	// }()
 	ts.Wait()
 	l.Wait()
 }
-func plus(r *handler.RC_V_M_S, rc *handler.RC_V_Cmd, args *util.Map) (interface{}, error) {
+func plus(r *handler.RC_H_CMD) (interface{}, error) {
 	var arg arg_v
-	err := args.ValidF(`
+	err := r.ValidF(`
 		a,R|I,R:0;
 		b,R|I,R:0;
 		`, &arg.A, &arg.B)
@@ -90,9 +113,9 @@ func plus(r *handler.RC_V_M_S, rc *handler.RC_V_Cmd, args *util.Map) (interface{
 		return nil, err
 	}
 }
-func sub(r *handler.RC_V_M_S, rc *handler.RC_V_Cmd, args *util.Map) (interface{}, error) {
+func sub(r *handler.RC_H_CMD) (interface{}, error) {
 	var arg arg_v
-	err := args.ValidF(`
+	err := r.ValidF(`
 		a,R|I,R:0;
 		b,R|I,R:0;
 		`, &arg.A, &arg.B)
@@ -104,31 +127,73 @@ func sub(r *handler.RC_V_M_S, rc *handler.RC_V_Cmd, args *util.Map) (interface{}
 		return nil, err
 	}
 }
+func panic_c(r *handler.RC_H_CMD) (interface{}, error) {
+	pprof.Lookup("goroutine").WriteTo(os.Stderr, 1)
+	return &res_v{
+		Msg: "SSS->\n" + string(debug.Stack()),
+	}, nil
+}
 
 type arg_v struct {
 	A int64 `m2s:"a" json:"a"`
 	B int64 `m2s:"b" json:"b"`
 }
 type res_v struct {
-	Res int64 `m2s:"res" json:"res"`
+	Res int64  `m2s:"res" json:"res"`
+	Msg string `m2s:"msg" json:"msg"`
 }
 
-func run_c() {
+func run_c(addr, cmd string) {
 	p := pool.NewBytePool(8, 1024)
 	tc := NewRC()
-	c := netw.NewNConPool(p, "127.0.0.1:7686", tc)
+	c := netw.NewNConPool(p, addr, tc)
+	go p.GC()
 	err := c.Dail()
 	if err != nil {
 		panic(err.Error())
 	}
+	defer c.Close()
 	tc.Start()
-	beg := util.Now()
+	defer tc.Stop()
 	var errc int64 = 0
 	var ecount int64 = 0
-	wg := sync.WaitGroup{}
+	var used int64 = 0
+	switch cmd {
+	case "run":
+		errc, ecount, used = run_go(tc, 80000)
+	case "loop":
+		for {
+			fmt.Println(run_go(tc, 10000))
+			time.Sleep(time.Second)
+		}
+	case "panic":
+		var res res_v
+		tc.Exec("panic", nil, &res)
+		fmt.Println(res.Msg)
+	case "gc":
+		var res res_v
+		tc.Exec("gc", nil, &res)
+		fmt.Println(res.Msg)
+	default:
+		return
+	}
 	// wg.Add(50000 * 2)
 	// var adddd_ int64 = 0
-	for i := 0; i < 80000; i++ {
+
+	// fmt.Println("----->:", adddd_)
+	fmt.Println("used:", used)
+	fmt.Println("ecount:", ecount)
+	fmt.Println("errc:", errc)
+	fmt.Println("...end...")
+
+}
+
+func run_go(tc *handler.RC_V_M_C, count int) (int64, int64, int64) {
+	beg := util.Now()
+	var ecount int64 = 0
+	var errc int64 = 0
+	wg := sync.WaitGroup{}
+	for i := 0; i < count; i++ {
 		go func() {
 			wg.Add(1)
 			// atomic.AddInt64(&adddd_, 1)
@@ -137,7 +202,7 @@ func run_c() {
 				A: int64(rand.Intn(1000) + 1),
 				B: int64(rand.Intn(1000) + 1),
 			}
-			err = tc.Exec("plus", arg, &res)
+			err := tc.Exec("plus", arg, &res)
 			if err != nil {
 				// fmt.Println(err.Error(), errc)
 				errc++
@@ -156,7 +221,7 @@ func run_c() {
 				A: int64(rand.Intn(1000) + 1),
 				B: int64(rand.Intn(1000) + 1),
 			}
-			err = tc.Exec("sub", arg, &res)
+			err := tc.Exec("sub", arg, &res)
 			if err != nil {
 				// fmt.Println(err.Error(), errc)
 				errc++
@@ -169,12 +234,6 @@ func run_c() {
 		}()
 	}
 	wg.Wait()
-	// fmt.Println("----->:", adddd_)
 	end := util.Now()
-	fmt.Println("beg:", beg)
-	fmt.Println("end:", end)
-	fmt.Println("used:", end-beg)
-	fmt.Println("ecount:", ecount)
-	fmt.Println("errc:", errc)
-	fmt.Println("...end...")
+	return errc, ecount, end - beg
 }

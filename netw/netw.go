@@ -118,7 +118,7 @@ type Cmd struct {
 
 //free the memory(Data []byte)
 func (c *Cmd) Done() {
-	c.P.Free(c.Data)
+	c.P.Free(c.data_)
 }
 
 //the connection pool
@@ -192,7 +192,9 @@ func (l *LConPool) del_c(c *Con) {
 
 //run one connection by async.
 func (l *LConPool) RunC(con net.Conn) {
+	// go func(lll *LConPool, conn net.Conn) {
 	go l.RunC_(con)
+	// }(l, con)
 }
 
 //run on connection by sync.
@@ -201,6 +203,7 @@ func (l *LConPool) RunC_(con net.Conn) {
 		con.Close()
 		log_d("closing connection(%v)", con.RemoteAddr().String())
 	}()
+	log_d("running connection(%v)", con.RemoteAddr().String())
 	c := NewCon(l.P, con)
 	if !l.H.OnConn(c) {
 		return

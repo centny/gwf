@@ -64,7 +64,7 @@ func run_s() {
 	ts := NewChan_Json_S(vms)
 	l := netw.NewListener(p, ":7686", ts)
 	l.T = 500
-	vms.AddHFunc("exit", func(r *RC_V_M_S, rc *RC_V_Cmd, args *util.Map) (interface{}, error) {
+	vms.AddHFunc("exit", func(r *RC_H_CMD) (interface{}, error) {
 		go func() {
 			time.Sleep(time.Second)
 			ts.Stop()
@@ -82,29 +82,29 @@ func run_s() {
 	ts.Wait()
 	l.Wait()
 }
-func no_f(r *RC_V_M_S, rc *RC_V_Cmd, args *util.Map, vv interface{}) (bool, interface{}, error) {
+func no_f(r *RC_H_CMD, vv interface{}) (bool, interface{}, error) {
 	return false, &res_v{
 		Res: "return",
 	}, nil
 }
-func join(r *RC_V_M_S, rc *RC_V_Cmd, args *util.Map) (interface{}, error) {
+func join(r *RC_H_CMD) (interface{}, error) {
 	var arg arg_v
-	args.ToS(&arg)
+	r.ToS(&arg)
 	return &res_v{
 		Res: arg.A + arg.B,
 	}, nil
 }
-func replace(r *RC_V_M_S, rc *RC_V_Cmd, args *util.Map) (interface{}, error) {
+func replace(r *RC_H_CMD) (interface{}, error) {
 	var arg arg_v
-	args.ToS(&arg)
+	r.ToS(&arg)
 	return &res_v{
 		Res: strings.Replace(arg.A, arg.B, "+++", -1),
 	}, nil
 }
-func no(r *RC_V_M_S, rc *RC_V_Cmd, args *util.Map) (interface{}, error) {
+func no(r *RC_H_CMD) (interface{}, error) {
 	return nil, nil
 }
-func ferr(r *RC_V_M_S, rc *RC_V_Cmd, args *util.Map) (interface{}, error) {
+func ferr(r *RC_H_CMD) (interface{}, error) {
 	return no, nil
 }
 

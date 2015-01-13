@@ -105,6 +105,7 @@ func (r *RC_V_S) w_err(c *RC_Cmd, err error) {
 	c.Write([]byte(fmt.Sprintf(`{"err":"%v"}`, err.Error())))
 }
 func (r *RC_V_S) OnCmd(c *RC_Cmd) {
+	defer c.Done()
 	var mv util.Map
 	err := r.B2V(c.Data, &mv)
 	if err != nil {

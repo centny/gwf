@@ -34,14 +34,19 @@ func (r *RC_V_M_C) Exec(fname string, args interface{}, dest interface{}) error 
 	}
 }
 
-type RC_V_M_FFUNC func(r *RC_V_M_S, rc *RC_V_Cmd, args *util.Map, vv interface{}) (bool, interface{}, error)
-type RC_V_M_HFUNC func(r *RC_V_M_S, rc *RC_V_Cmd, args *util.Map) (interface{}, error)
+type RC_V_M_FFUNC func(r *RC_H_CMD, vv interface{}) (bool, interface{}, error)
+type RC_V_M_HFUNC func(r *RC_H_CMD) (interface{}, error)
 
 //the extended command handler.
 type RC_V_M_H interface {
 	netw.ConHandler
 	FNAME(rc *RC_V_Cmd) (string, error)
 	FARGS(rc *RC_V_Cmd) (*util.Map, error)
+}
+type RC_H_CMD struct {
+	R  *RC_V_M_S
+	Rc *RC_V_Cmd
+	*util.Map
 }
 
 //the remote command server handler.
@@ -81,17 +86,22 @@ func (r *RC_V_M_S) OnCmd(rc *RC_V_Cmd) (interface{}, error) {
 	}
 	var con bool = false
 	var vv interface{} = nil
+	rr := &RC_H_CMD{
+		R:   r,
+		Rc:  rc,
+		Map: args,
+	}
 	for _, reg := range r.filter_a {
 		if !reg.MatchString(fname) {
 			continue
 		}
-		con, vv, err = r.filter_m[reg](r, rc, args, vv)
+		con, vv, err = r.filter_m[reg](rr, vv)
 		if err != nil || !con {
 			return vv, err
 		}
 	}
 	if h, ok := r.routes_[fname]; ok {
-		return h(r, rc, args)
+		return h(rr)
 	} else {
 		return nil, util.Err("function not found by %v", fname)
 	}

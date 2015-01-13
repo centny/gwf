@@ -22,7 +22,7 @@ func NewChanH(h netw.CmdHandler) *ChanH {
 	return &ChanH{
 		H:     h,
 		cc:    make(chan *netw.Cmd, 10000),
-		Sleep: 200,
+		Sleep: 300,
 	}
 }
 

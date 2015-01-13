@@ -189,6 +189,7 @@ func (r *RC_S) OnClose(c *netw.Con) {
 }
 func (r *RC_S) OnCmd(c *netw.Cmd) {
 	if len(c.Data) < 2 {
+		c.Done()
 		log.W("receive invalid command:%v", c.Data)
 		return
 	}
