@@ -20,11 +20,18 @@ func NewNConPool(p *pool.BytePool, addr string, h CmdHandler) *NConPool {
 }
 
 //dail one connection.
-func (n *NConPool) Dail() error {
+func (n *NConPool) Dail() (*Con, error) {
 	con, err := net.Dial("tcp", n.Addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	n.RunC(con)
-	return nil
+	cc := NewCon(n.P, con)
+	n.RunC(cc)
+	return cc, nil
+}
+
+func Dail(p *pool.BytePool, addr string, h CmdHandler) (*NConPool, *Con, error) {
+	nc := NewNConPool(p, addr, h)
+	cc, err := nc.Dail()
+	return nc, cc, err
 }

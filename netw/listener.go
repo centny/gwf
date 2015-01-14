@@ -61,7 +61,7 @@ func (l *Listener) LoopAccept() {
 			break
 		}
 		log_d("accept tcp connect from %s", con.RemoteAddr().String())
-		l.RunC(con)
+		l.RunC(NewCon(l.P, con))
 	}
 	l.Running = false
 	l.Wc <- 0

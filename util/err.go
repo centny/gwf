@@ -5,6 +5,10 @@ import (
 	"fmt"
 )
 
+const (
+	ET_NOT_FOUND = "NOT_FOUND"
+)
+
 type Error struct {
 	Type string `json:"type"`
 	In   error  `json:"in"`
@@ -40,3 +44,15 @@ func NewErr2(typ string, f string, args ...interface{}) *Error {
 }
 
 var NOT_FOUND = errors.New("NOT FOUND")
+
+func IsNotFound(e error) bool {
+	if nf, ok := e.(*Error); ok {
+		return nf.Type == ET_NOT_FOUND
+	} else {
+		return false
+	}
+}
+
+func NewNotFound(f string, args ...interface{}) *Error {
+	return NewErr2(ET_NOT_FOUND, f, args...)
+}

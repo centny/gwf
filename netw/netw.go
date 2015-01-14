@@ -51,22 +51,22 @@ type CmdHandler interface {
 //the connection struct.
 //it will be created when client connected or server received one connection.
 type Con struct {
-	P       *pool.BytePool //the memory pool
-	C       net.Conn       //the base connection
-	R       *bufio.Reader  //the buffer reader
-	W       *bufio.Writer  //the buffer writer.
-	Kvs     util.Map
-	Last    int64        //the last update time for data transfer
-	waiting int32        //whether in waiting status.
-	buf     []byte       //the buffer.
-	c_l     sync.RWMutex //connection lock.
+	net.Conn                //the base connection
+	P        *pool.BytePool //the memory pool
+	R        *bufio.Reader  //the buffer reader
+	W        *bufio.Writer  //the buffer writer.
+	Kvs      util.Map
+	Last     int64        //the last update time for data transfer
+	waiting  int32        //whether in waiting status.
+	buf      []byte       //the buffer.
+	c_l      sync.RWMutex //connection lock.
 }
 
 //new connection.
 func NewCon(p *pool.BytePool, con net.Conn) *Con {
 	return &Con{
 		P:       p,
-		C:       con,
+		Conn:    con,
 		R:       bufio.NewReader(con),
 		W:       bufio.NewWriter(con),
 		Kvs:     util.Map{},
@@ -180,43 +180,42 @@ func (l *LConPool) Close() {
 func (l *LConPool) add_c(c *Con) {
 	l.cons_l.Lock()
 	l.Wg.Add(1)
-	l.cons[c.C] = c
+	l.cons[c.Conn] = c
 	l.cons_l.Unlock()
 }
 func (l *LConPool) del_c(c *Con) {
 	l.cons_l.Lock()
 	l.Wg.Done()
-	delete(l.cons, c.C)
+	delete(l.cons, c.Conn)
 	l.cons_l.Unlock()
 }
 
 //run one connection by async.
-func (l *LConPool) RunC(con net.Conn) {
+func (l *LConPool) RunC(con *Con) {
 	// go func(lll *LConPool, conn net.Conn) {
 	go l.RunC_(con)
 	// }(l, con)
 }
 
 //run on connection by sync.
-func (l *LConPool) RunC_(con net.Conn) {
+func (l *LConPool) RunC_(con *Con) {
 	defer func() {
 		con.Close()
 		log_d("closing connection(%v)", con.RemoteAddr().String())
 	}()
 	log_d("running connection(%v)", con.RemoteAddr().String())
-	c := NewCon(l.P, con)
-	if !l.H.OnConn(c) {
+	if !l.H.OnConn(con) {
 		return
 	}
-	l.add_c(c)
-	defer l.del_c(c)
+	l.add_c(con)
+	defer l.del_c(con)
 	//
 	buf := make([]byte, 5)
 	mod := []byte(H_MOD)
 	mod_l := len(mod)
 	//
 	for {
-		err := c.ReadW(buf)
+		err := con.ReadW(buf)
 		if err != nil {
 			log_d("read head mod from(%v) error:%v", con.RemoteAddr().String(), err.Error())
 			break
@@ -231,16 +230,16 @@ func (l *LConPool) RunC_(con net.Conn) {
 			continue
 		}
 		dbuf := l.P.Alloc(int(dlen))
-		err = c.ReadW(dbuf)
+		err = con.ReadW(dbuf)
 		if err != nil {
 			log_d("read data from(%v) error:%v", con.RemoteAddr().String(), err.Error())
 			break
 		}
 		l.H.OnCmd(&Cmd{
-			Con:   c,
+			Con:   con,
 			Data:  dbuf,
 			data_: dbuf,
 		})
 	}
-	l.H.OnClose(c)
+	l.H.OnClose(con)
 }

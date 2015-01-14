@@ -62,6 +62,7 @@ func (r *RC_C) Exec(data []byte) (*netw.Cmd, error) {
 	}
 	r.req_c <- tc
 	<-tc.C
+	close(tc.C)
 	return tc.Back, tc.Err
 }
 
@@ -109,6 +110,7 @@ func (r *RC_C) Run_() {
 	buf := make([]byte, 2)
 	r.running = true
 	var trun bool = true
+	tk := time.Tick(r.Sleep * time.Millisecond)
 	for trun {
 		con := r.Con
 		select {
@@ -139,7 +141,7 @@ func (r *RC_C) Run_() {
 				r.err = tc.Err
 				tc.C <- false
 			}
-		case <-time.Tick(r.Sleep * time.Millisecond):
+		case <-tk:
 			trun = r.running && r.Con != nil
 		}
 	}

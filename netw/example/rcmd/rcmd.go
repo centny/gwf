@@ -36,7 +36,7 @@ func (r *RC_V_M_s) OnConn(c *netw.Con) bool {
 	return true
 }
 func (r *RC_V_M_s) OnClose(c *netw.Con) {
-	fmt.Println("closing ", c.C.RemoteAddr().String())
+	fmt.Println("closing ", c.RemoteAddr().String())
 }
 func (r *RC_V_M_s) FNAME(rc *handler.RC_V_Cmd) (string, error) {
 	return rc.StrVal("name"), nil
@@ -148,7 +148,7 @@ func run_c(addr, cmd string) {
 	tc := NewRC()
 	c := netw.NewNConPool(p, addr, tc)
 	go p.GC()
-	err := c.Dail()
+	_, err := c.Dail()
 	if err != nil {
 		panic(err.Error())
 	}
