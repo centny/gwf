@@ -7,6 +7,8 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"math/rand"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -78,6 +80,7 @@ func run_s() {
 			Msg: fmt.Sprintf("%v--%v", v1, v2),
 		}, nil
 	})
+	vms.AddHFunc("heap", dump_heap)
 	netw.ShowLog = true
 	ts := handler.NewChan_Json_S(vms)
 	l := netw.NewListener(p, ":7686", ts)
@@ -94,6 +97,7 @@ func run_s() {
 	// 		pprof.Lookup("goroutine").WriteTo(os.Stderr, 1)
 	// 	}
 	// }()
+	http.ListenAndServe(":8899", nil)
 	ts.Wait()
 	l.Wait()
 }
@@ -134,6 +138,23 @@ func panic_c(r *handler.RC_H_CMD) (interface{}, error) {
 	}, nil
 }
 
+var f_cc int = 0
+
+func dump_heap(r *handler.RC_H_CMD) (interface{}, error) {
+	fmt.Println("----->")
+	f_cc++
+	f, err := os.Create(fmt.Sprintf("heap-%v.prof", f_cc))
+	if err != nil {
+		fmt.Println("----->", err)
+		return nil, err
+	}
+	defer f.Close()
+	err = pprof.WriteHeapProfile(f)
+	return &res_v{
+		Msg: "OK",
+	}, err
+}
+
 type arg_v struct {
 	A int64 `m2s:"a" json:"a"`
 	B int64 `m2s:"b" json:"b"`
@@ -163,16 +184,20 @@ func run_c(addr, cmd string) {
 		errc, ecount, used = run_go(tc, 80000)
 	case "loop":
 		for {
-			fmt.Println(run_go(tc, 10000))
+			fmt.Println(run_go(tc, 100000))
 			time.Sleep(time.Second)
 		}
 	case "panic":
 		var res res_v
-		tc.Exec("panic", nil, &res)
+		fmt.Println(tc.Exec("panic", nil, &res))
 		fmt.Println(res.Msg)
 	case "gc":
 		var res res_v
-		tc.Exec("gc", nil, &res)
+		fmt.Println(tc.Exec("gc", nil, &res))
+		fmt.Println(res.Msg)
+	case "heap":
+		var res res_v
+		fmt.Println(tc.Exec("heap", nil, &res))
 		fmt.Println(res.Msg)
 	default:
 		return

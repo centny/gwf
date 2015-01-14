@@ -116,6 +116,7 @@ func (r *RC_C) Run_() {
 		select {
 		case cmd := <-r.back_c:
 			if len(cmd.Data) < 2 {
+				cmd.Done()
 				log.W("response data is less 2,%v", cmd.Data)
 				break
 			}
@@ -128,6 +129,7 @@ func (r *RC_C) Run_() {
 				tc.Back = cmd
 				tc.C <- true
 			} else {
+				cmd.Done()
 				log.W("back chan not found by id:%v", tid)
 			}
 		case tc := <-r.req_c:

@@ -62,7 +62,7 @@ func (b *ByteSlice) Free(bys []byte) {
 func (b *ByteSlice) Size() int64 {
 	// b.ls_l.Lock()
 	// defer b.ls_l.Unlock()
-	return int64(b.ls_.Len()) * int64(b.size_)
+	return int64(b.ls_.Len()-1) * int64(b.size_)
 }
 func (b *ByteSlice) GC() (int, int64) {
 	b.ls_l.Lock()

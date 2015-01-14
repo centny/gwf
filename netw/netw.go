@@ -200,8 +200,8 @@ func (l *LConPool) RunC(con *Con) {
 //run on connection by sync.
 func (l *LConPool) RunC_(con *Con) {
 	defer func() {
-		con.Close()
 		log_d("closing connection(%v)", con.RemoteAddr().String())
+		con.Close()
 	}()
 	log_d("running connection(%v)", con.RemoteAddr().String())
 	if !l.H.OnConn(con) {
