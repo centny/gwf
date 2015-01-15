@@ -1,4 +1,4 @@
-package handler
+package impl
 
 import (
 	"github.com/Centny/gwf/log"

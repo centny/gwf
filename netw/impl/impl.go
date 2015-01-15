@@ -3,7 +3,7 @@
 //ChanH: the chan handler provide the feature of distributing command.
 //
 //RCH_*: the remove command handler provide the feature of remote command call.
-package handler
+package impl
 
 import (
 	"github.com/Centny/gwf/log"
