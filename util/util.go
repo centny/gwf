@@ -221,3 +221,10 @@ func Is2Ss(vals []int64) []string {
 	}
 	return str
 }
+
+func SplitTwo(bys []byte, idx int) ([]byte, []byte) {
+	return bys[:idx], bys[idx:]
+}
+func SplitThree(bys []byte, idxa, idxb int) ([]byte, []byte, []byte) {
+	return bys[:idxa], bys[idxa:idxb], bys[idxb:]
+}

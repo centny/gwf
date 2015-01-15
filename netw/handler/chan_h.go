@@ -10,7 +10,7 @@ import (
 //the chan handler struct.
 type ChanH struct {
 	H       netw.CmdHandler
-	cc      chan *netw.Cmd
+	cc      chan netw.Cmd
 	Wg      sync.WaitGroup
 	Sleep   time.Duration
 	count_  int32
@@ -21,7 +21,7 @@ type ChanH struct {
 func NewChanH(h netw.CmdHandler) *ChanH {
 	return &ChanH{
 		H:     h,
-		cc:    make(chan *netw.Cmd, 100),
+		cc:    make(chan netw.Cmd, 100),
 		Sleep: 300,
 	}
 }
@@ -35,13 +35,7 @@ func (ch *ChanH) Count() int {
 func (ch *ChanH) Running() bool {
 	return ch.running
 }
-func (ch *ChanH) OnConn(c *netw.Con) bool {
-	return ch.H.OnConn(c)
-}
-func (ch *ChanH) OnClose(c *netw.Con) {
-	ch.H.OnClose(c)
-}
-func (ch *ChanH) OnCmd(c *netw.Cmd) {
+func (ch *ChanH) OnCmd(c netw.Cmd) {
 	ch.cc <- c
 }
 
@@ -56,7 +50,7 @@ func (ch *ChanH) run_c() {
 	defer ch.Wg.Done()
 	atomic.AddInt32(&ch.count_, 1)
 	ch.running = true
-	var cmd *netw.Cmd = nil
+	var cmd netw.Cmd = nil
 	tk := time.Tick(ch.Sleep * time.Millisecond)
 	for ch.running {
 		select {

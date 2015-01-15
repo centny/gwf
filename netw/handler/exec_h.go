@@ -1,0 +1,278 @@
+package handler
+
+import (
+	"encoding/binary"
+	"fmt"
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/netw"
+	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/util"
+	"math"
+	"net"
+	"time"
+)
+
+func B2V_Copy(bys []byte, v interface{}) (interface{}, error) {
+	tbys := make([]byte, len(bys))
+	copy(tbys, bys)
+	return tbys, nil
+}
+func V2B_Byte(v interface{}) ([]byte, error) {
+	if bys, ok := v.([]byte); ok {
+		return bys, nil
+	} else {
+		return nil, util.Err("only []byte support")
+	}
+}
+
+type rc_h_cmd struct {
+	netw.Cmd
+	mark  byte
+	rid   []byte
+	data_ []byte
+}
+
+func (r *rc_h_cmd) Data() []byte {
+	return r.data_
+}
+
+func (r *rc_h_cmd) Writeb(bys ...[]byte) (int, error) {
+	tbys := [][]byte{r.rid, []byte{r.mark}}
+	tbys = append(tbys, bys...)
+	return r.Cmd.Writeb(tbys...)
+}
+func (r *rc_h_cmd) Writev(val interface{}) (int, error) {
+	return netw.Writev(r, val)
+}
+func (r *rc_h_cmd) V(dest interface{}) (interface{}, error) {
+	return netw.V(r, dest)
+}
+func (r *rc_h_cmd) Err(code byte, f string, args ...interface{}) {
+	r.mark = code
+	r.Writeb([]byte(fmt.Sprintf(f, args...)))
+	r.Cmd.Err(code, f, args...)
+}
+
+type RC_C struct {
+	back_c chan *rc_h_cmd //remote command back chan.
+}
+
+func NewRC_C() *RC_C {
+	return &RC_C{
+		back_c: make(chan *rc_h_cmd, 10000),
+	}
+}
+func (r *RC_C) OnCmd(c netw.Cmd) {
+	if len(c.Data()) < 3 {
+		c.Done()
+		c.Err(1, "the cmd []byte(%v) len less 3, expect more", c.Data())
+		return
+	}
+	rid, ms, data := util.SplitThree(c.Data(), 2, 3)
+	r.back_c <- &rc_h_cmd{
+		Cmd:   c,
+		mark:  ms[0],
+		rid:   rid,
+		data_: data,
+	}
+}
+
+//the chan command for each calling.
+type chan_c struct {
+	C    chan bool //call back chan
+	Data []byte    //the calling data.
+	Back netw.Cmd  //the call back command.
+	Err  error     //the occur error
+}
+
+//the remote command caller.
+type RC_Con struct {
+	Sleep time.Duration //select sleep time.
+	//
+	netw.Con //base connection
+	//
+
+	exec_c  uint16 //exec count.
+	exec_id uint16 //exec id
+	//
+	bc *RC_C //remote command back chan.
+	//
+	req_c chan *chan_c //require chan.
+	//
+	running bool
+	err     error
+}
+
+//new on remote command caller.
+func NewRC_Con(con netw.Con, bc *RC_C) *RC_Con {
+	return &RC_Con{
+		Sleep: 100,
+		Con:   con,
+		bc:    bc,
+		req_c: make(chan *chan_c, 10000),
+	}
+}
+
+//execute one command.
+func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
+	if args == nil {
+		return nil, util.Err("arg val is nil")
+	}
+	if r.Con == nil {
+		return nil, util.Err("not connected")
+	}
+	if r.exec_c >= math.MaxUint16 {
+		return nil, util.Err("two many exector")
+	}
+	bys, err := r.V2B()(args)
+	if err != nil {
+		return nil, err
+	}
+	tc := &chan_c{
+		C:    make(chan bool),
+		Data: bys,
+	}
+	r.req_c <- tc
+	<-tc.C
+	close(tc.C)
+	if tc.Err == nil {
+		defer tc.Back.Done()
+		return r.B2V()(tc.Back.Data(), dest)
+	} else {
+		return nil, tc.Err
+	}
+}
+
+func (r *RC_Con) OnConn(c netw.Con) bool {
+	return true
+}
+func (r *RC_Con) OnClose(c netw.Con) {
+	r.Stop()
+}
+
+//run the process of send/receive command(async).
+func (r *RC_Con) Start() {
+	go r.Run_()
+}
+
+//stop gorutine
+func (r *RC_Con) Stop() {
+	r.running = false
+}
+
+//run the process of send/receive command(sync).
+func (r *RC_Con) Run_() {
+	cm := map[uint16]*chan_c{}
+	buf := make([]byte, 3)
+	r.running = true
+	var trun bool = true
+	tk := time.Tick(r.Sleep * time.Millisecond)
+	for trun {
+		con := r.Con
+		select {
+		case cmd := <-r.bc.back_c:
+			tid := binary.BigEndian.Uint16(cmd.rid)
+			if tc, ok := cm[tid]; ok {
+				r.exec_c--
+				delete(cm, tid)
+				tc.Back = cmd
+				if cmd.mark == 0 {
+					tc.C <- true
+				} else {
+					tc.Err = util.Err("RC error(%v):%v", cmd.mark, string(cmd.Data()))
+					tc.C <- false
+				}
+			} else {
+				cmd.Done()
+				log.W("back chan not found by id:%v", tid)
+			}
+		case tc := <-r.req_c:
+			binary.BigEndian.PutUint16(buf, r.exec_id)
+			buf[2] = 0
+			_, tc.Err = con.Writeb(buf, tc.Data)
+			if tc.Err == nil {
+				cm[r.exec_id] = tc
+				r.exec_c++
+				r.exec_id++
+			} else {
+				r.err = tc.Err
+				tc.C <- false
+			}
+		case <-tk:
+			trun = r.running && r.Con != nil
+		}
+	}
+	log.D("clearing all waiting exec(%v),err(%v)", len(cm), r.err)
+	//clear all waiting.
+	for _, tc := range cm {
+		tc.Err = util.Err("stopped")
+		tc.C <- false
+	}
+	r.running = false
+}
+
+func ExecDail(p *pool.BytePool, addr string) (*netw.NConPool, *RC_Con, error) {
+	return ExecDail2(p, addr, V2B_Byte, B2V_Copy)
+}
+func ExecDail2(p *pool.BytePool, addr string, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
+	tc := NewRC_C()
+	return ExecDailN(p, addr, tc, tc, v2b, b2v)
+}
+func ExecDailN(p *pool.BytePool, addr string, h netw.CmdHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
+	cch := netw.NewCCH(nil, h)
+	np := netw.NewNConPool(p, addr, cch)
+	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+		cc := netw.NewCon_(cp, p, con)
+		cc.V2B_, cc.B2V_ = v2b, b2v
+		rcc := NewRC_Con(cc, tc)
+		cch.Con = rcc
+		return rcc
+	}
+	con, err := np.Dail()
+	if err == nil {
+		return np, con.(*RC_Con), err
+	} else {
+		return nil, nil, err
+	}
+}
+
+/*
+
+
+*/
+//the remote command server handler.
+type RC_S struct {
+	H netw.CmdHandler
+}
+
+//new remote command server handler.
+func NewRC_S(h netw.CmdHandler) *RC_S {
+	return &RC_S{
+		H: h,
+	}
+}
+func (r *RC_S) OnCmd(c netw.Cmd) {
+	if len(c.Data()) < 3 {
+		c.Done()
+		c.Err(1, "the cmd []byte(%v) len less 3, expect more", c.Data())
+		return
+	}
+	rid, ms, data := util.SplitThree(c.Data(), 2, 3)
+	r.H.OnCmd(&rc_h_cmd{
+		Cmd:   c,
+		mark:  ms[0],
+		rid:   rid,
+		data_: data,
+	})
+}
+func NewExecListener(p *pool.BytePool, port string, h netw.CCHandler) *netw.Listener {
+	return NewExecListenerN(p, port, h, V2B_Byte, B2V_Copy)
+}
+func NewExecListenerN(p *pool.BytePool, port string, h netw.CCHandler, v2b netw.V2Byte, b2v netw.Byte2V) *netw.Listener {
+	return netw.NewListenerN(p, port, netw.NewCCH(h, NewRC_S(h)), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+		cc := netw.NewCon_(cp, p, con)
+		cc.V2B_ = v2b
+		cc.B2V_ = b2v
+		return cc
+	})
+}

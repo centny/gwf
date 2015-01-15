@@ -17,12 +17,17 @@ type Listener struct {
 }
 
 //new one listener.
-func NewListener(p *pool.BytePool, port string, h CmdHandler) *Listener {
-	return &Listener{
+func NewListener(p *pool.BytePool, port string, h CCHandler) *Listener {
+	return NewListenerN(p, port, h, NewCon)
+}
+func NewListenerN(p *pool.BytePool, port string, h CCHandler, ncf NewConF) *Listener {
+	ls := &Listener{
 		Port:     port,
 		LConPool: NewLConPool(p, h),
 		Wc:       make(chan int),
 	}
+	ls.NewCon = ncf
+	return ls
 }
 
 //listen on the special port.
@@ -60,8 +65,11 @@ func (l *Listener) LoopAccept() {
 			log_d("accept %s error:%s", l.Port, err.Error())
 			break
 		}
-		log_d("accept tcp connect from %s", con.RemoteAddr().String())
-		l.RunC(NewCon(l.P, con))
+		log_d("accepting tcp connect from %s", con.RemoteAddr().String())
+		tcon := l.NewCon(l, l.P, con)
+		if l.H.OnConn(tcon) {
+			l.RunC(tcon)
+		}
 	}
 	l.Running = false
 	l.Wc <- 0

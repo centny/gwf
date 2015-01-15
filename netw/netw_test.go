@@ -13,7 +13,7 @@ type th_s struct {
 	i int
 }
 
-func (t *th_s) OnConn(c *Con) bool {
+func (t *th_s) OnConn(c Con) bool {
 	if t.i == 0 {
 		c.SetWait(true)
 		t.i = 1
@@ -24,30 +24,33 @@ func (t *th_s) OnConn(c *Con) bool {
 	}
 	return true
 }
-func (t *th_s) OnCmd(c *Cmd) {
-	fmt.Println("C->" + string(c.Data))
-	c.Con.Write([]byte("S-A"))
+func (t *th_s) OnCmd(c Cmd) {
+	fmt.Println("C->" + string(c.Data()))
+	c.Writeb([]byte("S-A"))
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
 }
-func (t *th_s) OnClose(c *Con) {
+func (t *th_s) OnClose(c Con) {
 
 }
 
 type th_c struct {
 }
 
-func (t *th_c) OnConn(c *Con) bool {
-	c.Write([]byte("start"))
+func (t *th_c) OnConn(c Con) bool {
+	c.Writeb([]byte("start"))
+	c.Exec(nil, nil)
 	return true
 }
-func (t *th_c) OnCmd(c *Cmd) {
-	fmt.Println("S->" + string(c.Data))
-	c.Con.Write([]byte("C-A"))
+func (t *th_c) OnCmd(c Cmd) {
+	c.Writev(nil)
+	c.V(nil)
+	fmt.Println("S->" + string(c.Data()))
+	c.Writeb([]byte("C-A"))
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
 }
-func (t *th_c) OnClose(c *Con) {
+func (t *th_c) OnClose(c Con) {
 
 }
 
@@ -55,12 +58,16 @@ type th_c2 struct {
 	tt bool
 }
 
-func (t *th_c2) OnConn(c *Con) bool {
+func (t *th_c2) OnConn(c Con) bool {
+	c.R()
+	c.Kvs()
+	c.W()
+	c.Writev(nil)
 	return t.tt
 }
-func (t *th_c2) OnCmd(c *Cmd) {
+func (t *th_c2) OnCmd(c Cmd) {
 }
-func (t *th_c2) OnClose(c *Con) {
+func (t *th_c2) OnClose(c Con) {
 
 }
 
@@ -78,7 +85,7 @@ func TestNetw(t *testing.T) {
 	}
 	tc := &th_c{}
 	c := NewNConPool(p, "127.0.0.1:7686", tc)
-	err = c.Dail()
+	_, err = c.Dail()
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -92,6 +99,13 @@ func TestNetw(t *testing.T) {
 		tt: false,
 	}
 	c2 := NewNConPool(p, "127.0.0.1:7686", tc2)
+	c2.NewCon = func(cp ConPool, l *pool.BytePool, con net.Conn) Con {
+		cc := NewCon_(cp, p, con)
+		cc.V2B_ = func(v interface{}) ([]byte, error) {
+			return []byte{1}, nil
+		}
+		return cc
+	}
 	c2.Dail()
 	c3 := NewNConPool(p, "127.0.0.1:7686", tc3)
 	c3.Dail()
@@ -134,4 +148,5 @@ func TestNetw(t *testing.T) {
 	NewNConPool(p, "skfjs:dsfs", tc).Dail()
 	NewListener(p, "", &th_s{}).Run()
 	NewListener(p, "ssfs:dsf", &th_s{}).Run()
+	Dail(p, "addr", nil)
 }

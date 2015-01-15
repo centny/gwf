@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/pool"
@@ -15,96 +14,72 @@ import (
 /*--------------------------*/
 /*------Simple json RC------*/
 //
-func NewT_RC() *RC_V_M_C {
-	return NewRC_Json_M_C(func(rc *RC_V_M_C, fname string, args interface{}) (interface{}, error) {
-		if fname == "cnerr" {
-			return nil, util.Err("name error")
-		}
-		return map[string]interface{}{
-			"name": fname,
-			"args": args,
-		}, nil
-	})
-}
 
 type RC_V_M_s struct {
 }
 
-func (r *RC_V_M_s) OnConn(c *netw.Con) bool {
+func (r *RC_V_M_s) OnConn(c netw.Con) bool {
 	return true
 }
-func (r *RC_V_M_s) OnClose(c *netw.Con) {
-}
-func (r *RC_V_M_s) FNAME(rc *RC_V_Cmd) (string, error) {
-	name := rc.StrVal("name")
-	if name == "nerr" {
-		return "", util.Err("name error")
-	} else {
-		return name, nil
-	}
-}
-func (r *RC_V_M_s) FARGS(rc *RC_V_Cmd) (*util.Map, error) {
-	name := rc.StrVal("name")
-	if name == "aerr" {
-		return nil, util.Err("args error")
-	} else {
-		mv := rc.MapVal("args")
-		return &mv, nil
-	}
+func (r *RC_V_M_s) OnClose(c netw.Con) {
 }
 
 func run_s() {
 	p := pool.NewBytePool(8, 1024)
-	vms := NewRC_V_M_S(&RC_V_M_s{})
+	l, vms := NewExecListener_m_j(p, ":7686", &RC_V_M_s{})
 	vms.AddHFunc("join", join)
 	vms.AddHFunc("replace", replace)
 	vms.AddFFunc("^no$", no_f)
+	vms.AddFFunc("^to$", to_f)
 	vms.AddHFunc("no", no)
 	vms.AddHFunc("ferr", ferr)
-	ts := NewChan_Json_S(vms)
-	l := netw.NewListener(p, ":7686", ts)
-	l.T = 500
-	vms.AddHFunc("exit", func(r *RC_H_CMD) (interface{}, error) {
+	vms.AddHFunc("terr", terr)
+	vms.AddHFunc("exit", func(r *RCM_Cmd, vv interface{}) (interface{}, error) {
 		go func() {
 			time.Sleep(time.Second)
-			ts.Stop()
 			l.Close()
 		}()
 		return &res_v{
 			Res: "OK",
 		}, nil
 	})
-	ts.Run(5)
+	l.T = 500
 	err := l.Run()
 	if err != nil {
 		panic(err.Error())
 	}
-	ts.Wait()
 	l.Wait()
+	NewExecListener_m(p, "ssss", nil, nil, nil)
 }
-func no_f(r *RC_H_CMD, vv interface{}) (bool, interface{}, error) {
+func no_f(r *RCM_Cmd, vv interface{}) (bool, interface{}, error) {
 	return false, &res_v{
 		Res: "return",
 	}, nil
 }
-func join(r *RC_H_CMD) (interface{}, error) {
+func to_f(r *RCM_Cmd, vv interface{}) (bool, interface{}, error) {
+	return false, nil, util.Err("filter error")
+}
+func join(r *RCM_Cmd, vv interface{}) (interface{}, error) {
 	var arg arg_v
 	r.ToS(&arg)
 	return &res_v{
 		Res: arg.A + arg.B,
 	}, nil
 }
-func replace(r *RC_H_CMD) (interface{}, error) {
+func replace(r *RCM_Cmd, vv interface{}) (interface{}, error) {
 	var arg arg_v
 	r.ToS(&arg)
 	return &res_v{
 		Res: strings.Replace(arg.A, arg.B, "+++", -1),
 	}, nil
 }
-func no(r *RC_H_CMD) (interface{}, error) {
+func no(r *RCM_Cmd, vv interface{}) (interface{}, error) {
 	return nil, nil
 }
-func ferr(r *RC_H_CMD) (interface{}, error) {
+func terr(r *RCM_Cmd, vv interface{}) (interface{}, error) {
+	return nil, util.Err("rrrrr error")
+}
+func ferr(r *RCM_Cmd, vv interface{}) (interface{}, error) {
 	return no, nil
 }
 
@@ -116,9 +91,9 @@ type res_v struct {
 	Res string `m2s:"res" json:"res"`
 }
 
-func exec_c(tc *RC_V_M_C, name, a, b string) {
+func exec_c(tc *RCM_Con, name, a, b string) {
 	var res res_v
-	err := tc.Exec(name, &arg_v{
+	_, err := tc.Exec(name, &arg_v{
 		A: a,
 		B: b,
 	}, &res)
@@ -129,9 +104,9 @@ func exec_c(tc *RC_V_M_C, name, a, b string) {
 	}
 
 }
-func exec_c2(tc *RC_V_M_C, name, a, b string) {
+func exec_c2(tc *RCM_Con, name, a, b string) {
 	var res util.Map
-	err := tc.Exec(name, &arg_v{
+	_, err := tc.Exec(name, &arg_v{
 		A: a,
 		B: b,
 	}, &res)
@@ -142,9 +117,7 @@ func exec_c2(tc *RC_V_M_C, name, a, b string) {
 }
 func run_c() {
 	p := pool.NewBytePool(8, 1024)
-	tc := NewT_RC()
-	c := netw.NewNConPool(p, "127.0.0.1:7686", tc)
-	err := c.Dail()
+	np, tc, err := ExecDail_m_j(p, "127.0.0.1:7686")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -154,27 +127,34 @@ func run_c() {
 	exec_c(tc, "replace", "aaabb", "b")
 	exec_c2(tc, "replace", "aaabb", "b")
 	exec_c(tc, "no", "a", "b")
+	exec_c(tc, "to", "a", "b")
 	exec_c(tc, "nerr", "a", "b")
 	exec_c(tc, "ferr", "a", "b")
+	exec_c(tc, "terr", "a", "b")
 	exec_c(tc, "cnerr", "a", "b")
 	exec_c(tc, "aerr", "a", "b")
 	exec_c(tc, "not_found", "a", "b")
-	//
-	tc.RC_C.Write([]byte{1})
-	tc.RC_C.Exec([]byte{1})
-	tc.RC_V_C.Exec(no, nil)
-	// exec_c(tc, "exit", "a", "b")
-	c.Close()
+	tc.NAV = func(rc *RCM_Con, name string, args interface{}) (interface{}, error) {
+		return nil, util.Err("errrr")
+	}
+	exec_c(tc, "no", "a", "b")
+	tc.NAV = json_NAV_
+	// //
+	exec_c(tc, "exit", "a", "b")
+	fmt.Println(tc.RC_Con.Exec([]byte{1}, nil))
+	fmt.Println(tc.RC_Con.Exec(map[string]interface{}{}, nil))
+	np.Close()
 	exec_c(tc, "no", "a", "b")
 	tc.Stop()
 	fmt.Println("...end...")
+	ExecDail_m(p, "addr", nil, nil, nil)
 }
 
-func TestVM(t *testing.T) {
+func TestExecM(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	ShowLog = true
 	go run_s()
 	time.Sleep(100 * time.Millisecond)
 	run_c()
 	time.Sleep(2 * time.Second)
-	NewRC_V_M_C(nil, json.Marshal, json.Unmarshal)
 }
