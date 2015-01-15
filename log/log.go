@@ -128,5 +128,5 @@ func (t *Log) log_(l LogLevel, d int, format string, v ...interface{}) {
 	if l < t.level {
 		return
 	}
-	t.Output(d, fmt.Sprintf(format, v...)+"\n")
+	t.Output(d+3, fmt.Sprintf(format, v...)+"\n")
 }
