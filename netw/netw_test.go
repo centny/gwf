@@ -15,6 +15,9 @@ type th_s struct {
 
 func (t *th_s) OnConn(c Con) bool {
 	if t.i == 0 {
+		cwh := NewCWH(true)
+		cwh.OnConn(c)
+		cwh.OnClose(c)
 		c.SetWait(true)
 		t.i = 1
 	} else if t.i == 1 {

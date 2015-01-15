@@ -81,6 +81,28 @@ func (cch *CCH) OnCmd(c Cmd) {
 	cch.Cmd.OnCmd(c)
 }
 
+/*
+
+*/
+//the command wait handler impl netw.ConHandler.
+type CWH struct {
+	Wait bool
+}
+
+func NewCWH(w bool) *CWH {
+	return &CWH{
+		Wait: w,
+	}
+}
+func (cwh *CWH) OnConn(c Con) bool {
+	if cwh.Wait {
+		c.SetWait(cwh.Wait)
+	}
+	return true
+}
+func (cwh *CWH) OnClose(c Con) {
+}
+
 //the connection struct.
 //it will be created when client connected or server received one connection.
 type Con interface {

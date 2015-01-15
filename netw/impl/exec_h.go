@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
-	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"math"
-	"net"
 	"time"
 )
 
@@ -211,31 +209,6 @@ func (r *RC_Con) Run_() {
 	r.running = false
 }
 
-func ExecDail(p *pool.BytePool, addr string) (*netw.NConPool, *RC_Con, error) {
-	return ExecDail2(p, addr, V2B_Byte, B2V_Copy)
-}
-func ExecDail2(p *pool.BytePool, addr string, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
-	tc := NewRC_C()
-	return ExecDailN(p, addr, tc, tc, v2b, b2v)
-}
-func ExecDailN(p *pool.BytePool, addr string, h netw.CmdHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
-	cch := netw.NewCCH(nil, h)
-	np := netw.NewNConPool(p, addr, cch)
-	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
-		cc := netw.NewCon_(cp, p, con)
-		cc.V2B_, cc.B2V_ = v2b, b2v
-		rcc := NewRC_Con(cc, tc)
-		cch.Con = rcc
-		return rcc
-	}
-	con, err := np.Dail()
-	if err == nil {
-		return np, con.(*RC_Con), err
-	} else {
-		return nil, nil, err
-	}
-}
-
 /*
 
 
@@ -263,16 +236,5 @@ func (r *RC_S) OnCmd(c netw.Cmd) {
 		mark:  ms[0],
 		rid:   rid,
 		data_: data,
-	})
-}
-func NewExecListener(p *pool.BytePool, port string, h netw.CCHandler) *netw.Listener {
-	return NewExecListenerN(p, port, h, V2B_Byte, B2V_Copy)
-}
-func NewExecListenerN(p *pool.BytePool, port string, h netw.CCHandler, v2b netw.V2Byte, b2v netw.Byte2V) *netw.Listener {
-	return netw.NewListenerN(p, port, netw.NewCCH(h, NewRC_S(h)), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
-		cc := netw.NewCon_(cp, p, con)
-		cc.V2B_ = v2b
-		cc.B2V_ = b2v
-		return cc
 	})
 }

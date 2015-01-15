@@ -34,7 +34,7 @@ func run_s() {
 	vms.AddHFunc("no", no)
 	vms.AddHFunc("ferr", ferr)
 	vms.AddHFunc("terr", terr)
-	vms.AddHFunc("exit", func(r *RCM_Cmd, vv interface{}) (interface{}, error) {
+	vms.AddHFunc("exit", func(r *RCM_Cmd) (interface{}, error) {
 		go func() {
 			time.Sleep(time.Second)
 			l.Close()
@@ -51,35 +51,35 @@ func run_s() {
 	l.Wait()
 	NewExecListener_m(p, "ssss", nil, nil, nil)
 }
-func no_f(r *RCM_Cmd, vv interface{}) (bool, interface{}, error) {
+func no_f(r *RCM_Cmd) (bool, interface{}, error) {
 	return false, &res_v{
 		Res: "return",
 	}, nil
 }
-func to_f(r *RCM_Cmd, vv interface{}) (bool, interface{}, error) {
+func to_f(r *RCM_Cmd) (bool, interface{}, error) {
 	return false, nil, util.Err("filter error")
 }
-func join(r *RCM_Cmd, vv interface{}) (interface{}, error) {
+func join(r *RCM_Cmd) (interface{}, error) {
 	var arg arg_v
 	r.ToS(&arg)
 	return &res_v{
 		Res: arg.A + arg.B,
 	}, nil
 }
-func replace(r *RCM_Cmd, vv interface{}) (interface{}, error) {
+func replace(r *RCM_Cmd) (interface{}, error) {
 	var arg arg_v
 	r.ToS(&arg)
 	return &res_v{
 		Res: strings.Replace(arg.A, arg.B, "+++", -1),
 	}, nil
 }
-func no(r *RCM_Cmd, vv interface{}) (interface{}, error) {
+func no(r *RCM_Cmd) (interface{}, error) {
 	return nil, nil
 }
-func terr(r *RCM_Cmd, vv interface{}) (interface{}, error) {
+func terr(r *RCM_Cmd) (interface{}, error) {
 	return nil, util.Err("rrrrr error")
 }
-func ferr(r *RCM_Cmd, vv interface{}) (interface{}, error) {
+func ferr(r *RCM_Cmd) (interface{}, error) {
 	return no, nil
 }
 
