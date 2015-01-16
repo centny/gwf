@@ -60,11 +60,11 @@ func NewRC_C() *RC_C {
 		back_c: make(chan *rc_h_cmd, 10000),
 	}
 }
-func (r *RC_C) OnCmd(c netw.Cmd) {
+func (r *RC_C) OnCmd(c netw.Cmd) int {
 	if len(c.Data()) < 3 {
 		c.Done()
 		c.Err(1, "the cmd []byte(%v) len less 3, expect more", c.Data())
-		return
+		return -1
 	}
 	rid, ms, data := util.SplitThree(c.Data(), 2, 3)
 	r.back_c <- &rc_h_cmd{
@@ -73,6 +73,7 @@ func (r *RC_C) OnCmd(c netw.Cmd) {
 		rid:   rid,
 		data_: data,
 	}
+	return 0
 }
 
 //the chan command for each calling.
@@ -224,14 +225,14 @@ func NewRC_S(h netw.CmdHandler) *RC_S {
 		H: h,
 	}
 }
-func (r *RC_S) OnCmd(c netw.Cmd) {
+func (r *RC_S) OnCmd(c netw.Cmd) int {
 	if len(c.Data()) < 3 {
 		c.Done()
 		c.Err(1, "the cmd []byte(%v) len less 3, expect more", c.Data())
-		return
+		return -1
 	}
 	rid, ms, data := util.SplitThree(c.Data(), 2, 3)
-	r.H.OnCmd(&rc_h_cmd{
+	return r.H.OnCmd(&rc_h_cmd{
 		Cmd:   c,
 		mark:  ms[0],
 		rid:   rid,

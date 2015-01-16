@@ -27,11 +27,12 @@ func (t *th_s) OnConn(c Con) bool {
 	}
 	return true
 }
-func (t *th_s) OnCmd(c Cmd) {
+func (t *th_s) OnCmd(c Cmd) int {
 	fmt.Println("C->" + string(c.Data()))
 	c.Writeb([]byte("S-A"))
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
+	return 0
 }
 func (t *th_s) OnClose(c Con) {
 
@@ -45,13 +46,14 @@ func (t *th_c) OnConn(c Con) bool {
 	c.Exec(nil, nil)
 	return true
 }
-func (t *th_c) OnCmd(c Cmd) {
+func (t *th_c) OnCmd(c Cmd) int {
 	c.Writev(nil)
 	c.V(nil)
 	fmt.Println("S->" + string(c.Data()))
 	c.Writeb([]byte("C-A"))
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
+	return 0
 }
 func (t *th_c) OnClose(c Con) {
 
@@ -68,7 +70,8 @@ func (t *th_c2) OnConn(c Con) bool {
 	c.Writev(nil)
 	return t.tt
 }
-func (t *th_c2) OnCmd(c Cmd) {
+func (t *th_c2) OnCmd(c Cmd) int {
+	return 0
 }
 func (t *th_c2) OnClose(c Con) {
 

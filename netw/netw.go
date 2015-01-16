@@ -53,7 +53,7 @@ type ConHandler interface {
 //the connect data event handler.
 type CmdHandler interface {
 	//calling when one entire command have been received.
-	OnCmd(c Cmd)
+	OnCmd(c Cmd) int
 }
 type CCHandler interface {
 	ConHandler
@@ -77,8 +77,8 @@ func (cch *CCH) OnConn(c Con) bool {
 func (cch *CCH) OnClose(c Con) {
 	cch.Con.OnClose(c)
 }
-func (cch *CCH) OnCmd(c Cmd) {
-	cch.Cmd.OnCmd(c)
+func (cch *CCH) OnCmd(c Cmd) int {
+	return cch.Cmd.OnCmd(c)
 }
 
 /*

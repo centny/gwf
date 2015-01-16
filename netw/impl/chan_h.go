@@ -35,8 +35,9 @@ func (ch *ChanH) Count() int {
 func (ch *ChanH) Running() bool {
 	return ch.running
 }
-func (ch *ChanH) OnCmd(c netw.Cmd) {
+func (ch *ChanH) OnCmd(c netw.Cmd) int {
 	ch.cc <- c
+	return 0
 }
 
 //run target number of gorutine to process command.

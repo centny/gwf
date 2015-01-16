@@ -55,21 +55,22 @@ func NewOBDH() *OBDH {
 		HS: map[byte]netw.CmdHandler{},
 	}
 }
-func (o *OBDH) OnCmd(c netw.Cmd) {
+func (o *OBDH) OnCmd(c netw.Cmd) int {
 	if len(c.Data()) < 2 {
 		c.Done()
 		log.W("receive empty command data from %v", c.RemoteAddr().String())
-		return
+		return -1
 	}
 	mark, data := util.SplitTwo(c.Data(), 1)
 	if hh, ok := o.HS[mark[0]]; ok {
-		hh.OnCmd(&obdh_cmd{
+		return hh.OnCmd(&obdh_cmd{
 			Cmd:   c,
 			data_: data,
 		})
 	} else {
 		c.Done()
 		log.W("mark not found(%v) from %v", mark, c.RemoteAddr().String())
+		return -1
 	}
 }
 

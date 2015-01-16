@@ -63,17 +63,17 @@ func NewRCM_S(nd ND_F, vna VNA_F) *RCM_S {
 	}
 }
 
-func (r *RCM_S) OnCmd(c netw.Cmd) {
+func (r *RCM_S) OnCmd(c netw.Cmd) int {
 	defer c.Done()
 	tv, err := c.V(r.ND())
 	if err != nil {
 		c.Err(1, "cmd convert to V err:%v", err.Error())
-		return
+		return -1
 	}
 	fname, args, err := r.VNA(r, c, tv)
 	if err != nil {
 		c.Err(1, "find func name/args for V error:%v", err.Error())
-		return
+		return -1
 	}
 	log_d("ExecM name(%v) args(%v)", fname, args)
 	var con bool = false
@@ -89,23 +89,26 @@ func (r *RCM_S) OnCmd(c netw.Cmd) {
 		con, vv, err = r.filter_m[reg](rcm)
 		if err != nil {
 			rcm.Err(1, "exec filter(%v) val(%v) errr:%v", reg.String(), vv, err.Error())
-			return
+			return -1
 		}
 		rcm.Vv = vv
 		if !con {
 			r.writev(rcm, vv)
-			return
+			return 0
 		}
 	}
 	if h, ok := r.routes_[fname]; ok {
 		val, err := h(rcm)
 		if err == nil {
 			r.writev(rcm, val)
+			return 0
 		} else {
 			rcm.Err(1, "exec handler func(%v) error:%v", fname, err.Error())
+			return -1
 		}
 	} else {
 		rcm.Err(1, "function not found by name(%v)", fname)
+		return -1
 	}
 }
 func (r *RCM_S) writev(c *RCM_Cmd, val interface{}) {

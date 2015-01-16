@@ -24,25 +24,26 @@ func (t *exec_s_c) OnConn(c netw.Con) bool {
 func (t *exec_s_c) OnClose(c netw.Con) {
 
 }
-func (t *exec_s) OnCmd(c netw.Cmd) {
+func (t *exec_s) OnCmd(c netw.Cmd) int {
 	defer c.Done()
 	if c.Data()[0] == 1 {
 		(c.(*rc_h_cmd)).Cmd.Writeb([]byte{1})
-		return
+		return 0
 	} else if c.Data()[0] == 2 {
 		c.Writeb([]byte{11, 22, 3})
 		c.Writeb([]byte{11, 22, 3, 33, 33})
-		return
+		return 0
 	} else if c.Data()[0] == 3 {
 		c.Err(1, "abcc")
-		return
+		return 0
 	} else if c.Data()[0] == 4 {
-		return
+		return 0
 	}
 
 	c.V(nil)
 	c.Writeb([]byte("S-A"))
 	time.Sleep(100 * time.Millisecond)
+	return 0
 }
 
 func TestExec(t *testing.T) {

@@ -21,11 +21,12 @@ func (t *th_c_c) OnConn(c netw.Con) bool {
 func (t *th_c_c) OnClose(c netw.Con) {
 
 }
-func (t *th_c) OnCmd(c netw.Cmd) {
+func (t *th_c) OnCmd(c netw.Cmd) int {
 	fmt.Println("S->" + string(c.Data()))
 	c.Writeb([]byte("C-A"))
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
+	return 0
 }
 
 type th_s_c struct {
@@ -48,11 +49,12 @@ func (t *th_s_c) OnConn(c netw.Con) bool {
 func (t *th_s_c) OnClose(c netw.Con) {
 
 }
-func (t *th_s) OnCmd(c netw.Cmd) {
+func (t *th_s) OnCmd(c netw.Cmd) int {
 	fmt.Println("C->" + string(c.Data()))
 	c.Writeb([]byte("S-A"))
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
+	return 0
 }
 
 func TestChan(t *testing.T) {
