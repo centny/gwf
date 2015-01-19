@@ -56,6 +56,7 @@ func (b *ByteSlice) Free(bys []byte) {
 	b.ls_l.Lock()
 	defer b.ls_l.Unlock()
 	if tv, ok := b.ls_m_[&bys[0]]; ok {
+		tv.T = util.Now()
 		b.ls_.MoveToFront(tv.E)
 	}
 }
@@ -68,18 +69,21 @@ func (b *ByteSlice) GC() (int, int64) {
 	b.ls_l.Lock()
 	defer b.ls_l.Unlock()
 	tn := util.Now()
-	rval := []interface{}{}
-	for rv, vv := range b.ls_m_ {
-		if tn-vv.T > b.P.T {
-			rval = append(rval, rv)
+	var rc int = 0
+	for {
+		tv := b.ls_.Front()
+		if tv == b.zero_ {
+			break
+		}
+		bys := tv.Value.([]byte)
+		rv := &bys[0]
+		if (tn - b.ls_m_[rv].T) > b.P.T {
+			b.ls_.Remove(tv)
+			delete(b.ls_m_, rv)
+			rc++
 		}
 	}
-	for _, rv := range rval {
-		vv := b.ls_m_[rv]
-		delete(b.ls_m_, rv)
-		b.ls_.Remove(vv.E)
-	}
-	return len(rval), b.Size()
+	return rc, b.Size()
 }
 
 type BytePool struct {
