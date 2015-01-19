@@ -70,8 +70,8 @@ func TestChan(t *testing.T) {
 		return
 	}
 	tc := &th_c{}
-	c := netw.NewNConPool(p, "127.0.0.1:7686", netw.NewCCH(&th_c_c{}, tc))
-	_, err = c.Dail()
+	c := netw.NewNConPool(p, netw.NewCCH(&th_c_c{}, tc))
+	_, err = c.Dail("127.0.0.1:7686")
 	if err != nil {
 		t.Error(err.Error())
 		return

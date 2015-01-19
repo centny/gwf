@@ -40,6 +40,7 @@ echo "Running Test"
 #  github.com/Centny/gwf/netw\
 # "
 pkgs="\
+ github.com/Centny/gwf/netw\
  github.com/Centny/gwf/netw/impl\
 "
 echo "mode: set" > a.out

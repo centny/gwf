@@ -37,10 +37,19 @@ func (o *OBDH_Con) Exec(dest interface{}, args interface{}) (interface{}, error)
 type obdh_cmd struct {
 	netw.Cmd
 	data_ []byte
+	mark  byte
 }
 
 func (o *obdh_cmd) Data() []byte {
 	return o.data_
+}
+func (o *obdh_cmd) Writeb(bys ...[]byte) (int, error) {
+	tbys := [][]byte{[]byte{o.mark}}
+	tbys = append(tbys, bys...)
+	return o.Cmd.Writeb(tbys...)
+}
+func (o *obdh_cmd) Writev(val interface{}) (int, error) {
+	return netw.Writev(o, val)
 }
 func (o *obdh_cmd) V(dest interface{}) (interface{}, error) {
 	return netw.V(o, dest)
@@ -61,15 +70,17 @@ func (o *OBDH) OnCmd(c netw.Cmd) int {
 		log.W("receive empty command data from %v", c.RemoteAddr().String())
 		return -1
 	}
+	log_d("OBDH receive data:%v", string(c.Data()))
 	mark, data := util.SplitTwo(c.Data(), 1)
 	if hh, ok := o.HS[mark[0]]; ok {
 		return hh.OnCmd(&obdh_cmd{
 			Cmd:   c,
 			data_: data,
+			mark:  mark[0],
 		})
 	} else {
 		c.Done()
-		log.W("mark not found(%v) from %v", mark, c.RemoteAddr().String())
+		log.W("mark(%v,%v) not found in(%v) from %v", mark[0], string(c.Data()), o.HS, c.RemoteAddr().String())
 		return -1
 	}
 }

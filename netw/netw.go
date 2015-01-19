@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
@@ -17,6 +18,9 @@ import (
 	"sync/atomic"
 	"time"
 )
+
+var con_idc uint64 = 0
+var pool_idc uint64 = 0
 
 //whether show debug log or not.
 var ShowLog bool = false
@@ -59,10 +63,34 @@ type CCHandler interface {
 	ConHandler
 	CmdHandler
 }
+type QueueConH struct {
+	CS []ConHandler
+}
+
+func NewQueueConH(cs ...ConHandler) *QueueConH {
+	return &QueueConH{
+		CS: cs,
+	}
+}
+func (q *QueueConH) OnConn(c Con) bool {
+	for _, cc := range q.CS {
+		if cc.OnConn(c) {
+			continue
+		}
+		return false
+	}
+	return true
+}
+func (q *QueueConH) OnClose(c Con) {
+	for _, cc := range q.CS {
+		cc.OnClose(c)
+	}
+}
 
 type CCH struct {
 	Con ConHandler
 	Cmd CmdHandler
+	// RCC uint64
 }
 
 func NewCCH(con ConHandler, cmd CmdHandler) *CCH {
@@ -78,7 +106,24 @@ func (cch *CCH) OnClose(c Con) {
 	cch.Con.OnClose(c)
 }
 func (cch *CCH) OnCmd(c Cmd) int {
+	// atomic.AddUint64(&cch.RCC, 1)
 	return cch.Cmd.OnCmd(c)
+}
+
+type DoNoH struct {
+}
+
+func NewDoNoH() *DoNoH {
+	return &DoNoH{}
+}
+func (cch *DoNoH) OnConn(c Con) bool {
+	return true
+}
+func (cch *DoNoH) OnClose(c Con) {
+}
+func (cch *DoNoH) OnCmd(c Cmd) int {
+	log.W("DoNoH receiving command (%v)", c)
+	return 0
 }
 
 /*
@@ -109,8 +154,10 @@ type Con interface {
 	net.Conn //the base connection
 	CP() ConPool
 	P() *pool.BytePool //the memory pool
-	R() *bufio.Reader  //the buffer reader
-	W() *bufio.Writer  //the buffer writer.
+	// R() *bufio.Reader  //the buffer reader
+	// W() *bufio.Writer  //the buffer writer.
+	Id() string
+	SetId(id string)
 	Kvs() util.Map
 	Last() int64 //the last update time for data transfer
 	SetWait(t bool)
@@ -137,6 +184,8 @@ type Con_ struct {
 	buf      []byte
 	V2B_     V2Byte
 	B2V_     Byte2V
+	ID_      string
+	// r_l      sync.RWMutex
 }
 
 func NewCon(cp ConPool, p *pool.BytePool, con net.Conn) Con {
@@ -160,6 +209,7 @@ func NewCon_(cp ConPool, p *pool.BytePool, con net.Conn) *Con_ {
 		B2V_: func(bys []byte, v interface{}) (interface{}, error) {
 			return nil, util.Err("B2V not implemeted")
 		},
+		ID_: fmt.Sprintf("C%v", atomic.AddUint64(&con_idc, 1)),
 	}
 }
 func (c *Con_) CP() ConPool {
@@ -168,12 +218,13 @@ func (c *Con_) CP() ConPool {
 func (c *Con_) P() *pool.BytePool {
 	return c.P_
 }
-func (c *Con_) R() *bufio.Reader {
-	return c.R_
-}
-func (c *Con_) W() *bufio.Writer {
-	return c.W_
-}
+
+// func (c *Con_) R() *bufio.Reader {
+// 	return c.R_
+// }
+// func (c *Con_) W() *bufio.Writer {
+// 	return c.W_
+// }
 func (c *Con_) Kvs() util.Map {
 	return c.Kvs_
 }
@@ -197,7 +248,14 @@ func (c *Con_) Waiting() bool {
 
 //read the number of the data in p
 func (c *Con_) ReadW(p []byte) error {
+	// c.r_l.Lock()
+	// defer c.r_l.Unlock()
 	return util.ReadW(c.R_, p, &c.Last_)
+}
+
+//rewrite to forbiden call.
+func (c *Con_) Write(b []byte) (n int, err error) {
+	panic("invalid call for connection Write")
 }
 
 //sending data.
@@ -205,14 +263,14 @@ func (c *Con_) ReadW(p []byte) error {
 func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
-	c.W_.Write([]byte(H_MOD))
+	total, _ := c.W_.Write([]byte(H_MOD))
 	var tlen uint16 = 0
 	for _, b := range bys {
 		tlen += uint16(len(b))
 	}
 	binary.BigEndian.PutUint16(c.buf, tlen)
-	total, _ := c.W_.Write(c.buf)
-	var tv int = 0
+	tv, _ := c.W_.Write(c.buf)
+	total += tv
 	for _, b := range bys {
 		tv, _ = c.W_.Write(b)
 		total += tv
@@ -234,10 +292,17 @@ func (c *Con_) V2B() V2Byte {
 func (c *Con_) B2V() Byte2V {
 	return c.B2V_
 }
+func (c *Con_) Id() string {
+	return c.ID_
+}
+func (c *Con_) SetId(id string) {
+	c.ID_ = id
+}
 
 type Cmd interface {
 	//get the connect.
 	Con
+	BaseCon() Con
 	//get the command data.
 	Data() []byte
 	//done the command, the data []byte will free.
@@ -254,6 +319,9 @@ type Cmd_ struct {
 	data_ []byte
 }
 
+func (c *Cmd_) BaseCon() Con {
+	return c.Con
+}
 func (c *Cmd_) Data() []byte {
 	return c.Data_
 }
@@ -274,6 +342,9 @@ type ConPool interface {
 	Close()
 	RunC(c Con)
 	Err() CmdErrF
+	Find(id string) Con
+	Id() string
+	SetId(id string)
 }
 
 //the connection pool
@@ -285,9 +356,10 @@ type LConPool struct {
 	Wc     chan int       //the wait chan.
 	NewCon NewConF
 	t_r    bool
-	cons   map[net.Conn]Con
+	cons   map[string]Con
 	cons_l sync.RWMutex
 	Err_   CmdErrF
+	Id_    string
 }
 
 //new connection pool.
@@ -297,11 +369,12 @@ func NewLConPool(p *pool.BytePool, h CCHandler) *LConPool {
 		P:      p,
 		H:      h,
 		Wc:     make(chan int),
-		cons:   map[net.Conn]Con{},
+		cons:   map[string]Con{},
 		NewCon: NewCon,
 		Err_: func(c Cmd, code byte, f string, args ...interface{}) {
 			log.D_(2, f, args...)
 		},
+		Id_: fmt.Sprintf("P%v", atomic.AddUint64(&pool_idc, 1)),
 	}
 }
 
@@ -309,14 +382,14 @@ func NewLConPool(p *pool.BytePool, h CCHandler) *LConPool {
 func (l *LConPool) LoopTimeout() {
 	l.t_r = true
 	for l.t_r {
-		cons := []net.Conn{}
+		cons := []Con{}
 		tn := util.Now()
-		for con, c := range l.cons {
+		for _, c := range l.cons {
 			if c.Waiting() {
 				continue
 			}
 			if (tn - c.Last()) > l.T {
-				cons = append(cons, con)
+				cons = append(cons, c)
 			}
 		}
 		log_d("closing %v connection for timeout", len(cons))
@@ -332,23 +405,35 @@ func (l *LConPool) LoopTimeout() {
 func (l *LConPool) Close() {
 	l.t_r = false
 	l.cons_l.Lock()
-	for c, _ := range l.cons {
+	for _, c := range l.cons {
 		c.Close()
 	}
-	l.cons = map[net.Conn]Con{}
+	l.cons = map[string]Con{}
 	l.cons_l.Unlock()
 }
 func (l *LConPool) add_c(c Con) {
 	l.cons_l.Lock()
+	defer l.cons_l.Unlock()
+	if _, ok := l.cons[c.Id()]; ok {
+		panic(fmt.Sprintf("conection by id(%v) already added", c.Id()))
+	}
 	l.Wg.Add(1)
-	l.cons[c] = c
-	l.cons_l.Unlock()
+	l.cons[c.Id()] = c
+	log_d("add connect(%v) to pool(%v)", c.Id(), l.Id())
 }
 func (l *LConPool) del_c(c Con) {
 	l.cons_l.Lock()
+	defer l.cons_l.Unlock()
 	l.Wg.Done()
-	delete(l.cons, c)
-	l.cons_l.Unlock()
+	delete(l.cons, c.Id())
+	log_d("del connect(%v) from pool(%v)", c.Id(), l.Id())
+}
+func (l *LConPool) Find(id string) Con {
+	if c, ok := l.cons[id]; ok {
+		return c
+	} else {
+		return nil
+	}
 }
 
 //run one connection by async.
@@ -361,10 +446,10 @@ func (l *LConPool) RunC(con Con) {
 //run on connection by sync.
 func (l *LConPool) RunC_(con Con) {
 	defer func() {
-		log_d("closing connection(%v)", con.RemoteAddr().String())
+		log_d("closing connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())
 		con.Close()
 	}()
-	log_d("running connection(%v)", con.RemoteAddr().String())
+	log_d("running connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())
 	l.add_c(con)
 	defer l.del_c(con)
 	//
@@ -403,4 +488,11 @@ func (l *LConPool) RunC_(con Con) {
 }
 func (l *LConPool) Err() CmdErrF {
 	return l.Err_
+}
+
+func (l *LConPool) Id() string {
+	return l.Id_
+}
+func (l *LConPool) SetId(id string) {
+	l.Id_ = id
 }

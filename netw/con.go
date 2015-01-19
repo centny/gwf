@@ -6,40 +6,51 @@ import (
 	"net"
 )
 
+type NCon struct {
+	Addr string
+	Con
+}
+
+func NewNCon(con Con, addr string) *NCon {
+	return &NCon{
+		Con:  con,
+		Addr: addr,
+	}
+}
+
 //the client connection pool.
 type NConPool struct {
-	Addr      string //target address.
-	*LConPool        //base connection pool.
+	*LConPool //base connection pool.
 }
 
 //new client connection pool.
-func NewNConPool(p *pool.BytePool, addr string, h CCHandler) *NConPool {
+func NewNConPool(p *pool.BytePool, h CCHandler) *NConPool {
 	return &NConPool{
-		Addr:     addr,
 		LConPool: NewLConPool(p, h),
 	}
 }
 
 //dail one connection.
-func (n *NConPool) Dail() (Con, error) {
-	con, err := net.Dial("tcp", n.Addr)
+func (n *NConPool) Dail(addr string) (*NCon, error) {
+	con, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 	cc := n.NewCon(n, n.P, con)
 	if !n.H.OnConn(cc) {
-		return nil, util.Err("OnConn return false for %v", n.Addr)
+		return nil, util.Err("OnConn return false for %v", addr)
 	}
-	n.RunC(cc)
-	return cc, nil
+	nc := NewNCon(cc, addr)
+	n.RunC(nc)
+	return nc, nil
 }
 
 func Dail(p *pool.BytePool, addr string, h CCHandler) (*NConPool, Con, error) {
 	return DailN(p, addr, h, NewCon)
 }
 func DailN(p *pool.BytePool, addr string, h CCHandler, ncf NewConF) (*NConPool, Con, error) {
-	nc := NewNConPool(p, addr, h)
+	nc := NewNConPool(p, h)
 	nc.NewCon = ncf
-	cc, err := nc.Dail()
+	cc, err := nc.Dail(addr)
 	return nc, cc, err
 }

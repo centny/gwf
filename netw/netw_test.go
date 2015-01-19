@@ -19,6 +19,7 @@ func (t *th_s) OnConn(c Con) bool {
 		cwh.OnConn(c)
 		cwh.OnClose(c)
 		c.SetWait(true)
+		c.SetId("---->1")
 		t.i = 1
 	} else if t.i == 1 {
 		c.SetWait(false)
@@ -64,9 +65,9 @@ type th_c2 struct {
 }
 
 func (t *th_c2) OnConn(c Con) bool {
-	c.R()
+	// c.R()
 	c.Kvs()
-	c.W()
+	// c.W()
 	c.Writev(nil)
 	return t.tt
 }
@@ -90,8 +91,8 @@ func TestNetw(t *testing.T) {
 		return
 	}
 	tc := &th_c{}
-	c := NewNConPool(p, "127.0.0.1:7686", tc)
-	_, err = c.Dail()
+	c := NewNConPool(p, tc)
+	_, err = c.Dail("127.0.0.1:7686")
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -104,7 +105,7 @@ func TestNetw(t *testing.T) {
 	tc3 := &th_c2{
 		tt: false,
 	}
-	c2 := NewNConPool(p, "127.0.0.1:7686", tc2)
+	c2 := NewNConPool(p, tc2)
 	c2.NewCon = func(cp ConPool, l *pool.BytePool, con net.Conn) Con {
 		cc := NewCon_(cp, p, con)
 		cc.V2B_ = func(v interface{}) ([]byte, error) {
@@ -112,9 +113,9 @@ func TestNetw(t *testing.T) {
 		}
 		return cc
 	}
-	c2.Dail()
-	c3 := NewNConPool(p, "127.0.0.1:7686", tc3)
-	c3.Dail()
+	c2.Dail("127.0.0.1:7686")
+	c3 := NewNConPool(p, tc3)
+	c3.Dail("127.0.0.1:7686")
 	time.Sleep(2 * time.Second)
 	c.Close()
 	c2.Close()
@@ -151,8 +152,12 @@ func TestNetw(t *testing.T) {
 	l.Close()
 	l.Wait()
 	//
-	NewNConPool(p, "skfjs:dsfs", tc).Dail()
+	NewNConPool(p, tc).Dail("skfjs:dsfs")
 	NewListener(p, "", &th_s{}).Run()
 	NewListener(p, "ssfs:dsf", &th_s{}).Run()
 	Dail(p, "addr", nil)
+}
+
+func TestPp(t *testing.T) {
+	fmt.Println(fmt.Sprintf("%p", &th_s{}))
 }

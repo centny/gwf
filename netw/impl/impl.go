@@ -33,18 +33,18 @@ func ExecDail2(p *pool.BytePool, addr string, v2b netw.V2Byte, b2v netw.Byte2V) 
 	return ExecDailN(p, addr, tc, tc, v2b, b2v)
 }
 func ExecDailN(p *pool.BytePool, addr string, h netw.CmdHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
-	cch := netw.NewCCH(nil, h)
-	np := netw.NewNConPool(p, addr, cch)
+	cch := netw.NewCCH(NewRC_C_H(), h)
+	np := netw.NewNConPool(p, cch)
 	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		cc := netw.NewCon_(cp, p, con)
 		cc.V2B_, cc.B2V_ = v2b, b2v
 		rcc := NewRC_Con(cc, tc)
-		cch.Con = rcc
+		// cch.Con = rcc
 		return rcc
 	}
-	con, err := np.Dail()
+	con, err := np.Dail(addr)
 	if err == nil {
-		return np, con.(*RC_Con), err
+		return np, con.Con.(*RC_Con), err
 	} else {
 		return nil, nil, err
 	}
@@ -108,18 +108,18 @@ func NewChanExecListenerN_m_r(p *pool.BytePool, port string, h netw.ConHandler, 
 */
 func ExecDail_m_j(p *pool.BytePool, addr string) (*netw.NConPool, *RCM_Con, error) {
 	tc := NewRC_C()
-	return ExecDailN_m(p, addr, tc, tc, json_V2B, json_B2V, json_NAV_)
+	return ExecDailN_m(p, addr, tc, tc, Json_V2B, Json_B2V, Json_NAV_)
 }
 
 func NewRCM_S_j() *RCM_S {
-	return NewRCM_S(json_ND, json_VNA)
+	return NewRCM_S(Json_ND, Json_VNA)
 }
 func NewExecListener_m_j(p *pool.BytePool, port string, h netw.ConHandler) (*netw.Listener, *RCM_S) {
 	rc := NewRCM_S_j()
-	return NewExecListenerN_m_r(p, port, h, rc, json_V2B, json_B2V), rc
+	return NewExecListenerN_m_r(p, port, h, rc, Json_V2B, Json_B2V), rc
 }
 func NewChanExecListener_m_j(p *pool.BytePool, port string, h netw.ConHandler) (*netw.Listener, *ChanH, *RCM_S) {
 	rc := NewRCM_S_j()
-	l, cc := NewChanExecListenerN_m_r(p, port, h, rc, json_V2B, json_B2V)
+	l, cc := NewChanExecListenerN_m_r(p, port, h, rc, Json_V2B, Json_B2V)
 	return l, cc, rc
 }

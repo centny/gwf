@@ -7,8 +7,14 @@ import (
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/util"
 	"math"
+	"sync/atomic"
 	"time"
 )
+
+type Runner interface {
+	Start()
+	Stop()
+}
 
 func B2V_Copy(bys []byte, v interface{}) (interface{}, error) {
 	tbys := make([]byte, len(bys))
@@ -52,6 +58,7 @@ func (r *rc_h_cmd) Err(code byte, f string, args ...interface{}) {
 }
 
 type RC_C struct {
+	RCC    uint64
 	back_c chan *rc_h_cmd //remote command back chan.
 }
 
@@ -61,6 +68,7 @@ func NewRC_C() *RC_C {
 	}
 }
 func (r *RC_C) OnCmd(c netw.Cmd) int {
+	atomic.AddUint64(&r.RCC, 1)
 	if len(c.Data()) < 3 {
 		c.Done()
 		c.Err(1, "the cmd []byte(%v) len less 3, expect more", c.Data())
@@ -161,6 +169,10 @@ func (r *RC_Con) Stop() {
 
 //run the process of send/receive command(sync).
 func (r *RC_Con) Run_() {
+	if r.running {
+		log.W("RC_Con already running....")
+		return
+	}
 	cm := map[uint16]*chan_c{}
 	buf := make([]byte, 3)
 	r.running = true
@@ -209,6 +221,37 @@ func (r *RC_Con) Run_() {
 	}
 	r.running = false
 }
+
+type RC_C_H struct {
+}
+
+func NewRC_C_H() *RC_C_H {
+	return &RC_C_H{}
+}
+func (r *RC_C_H) OnClose(c netw.Con) {
+	if r, ok := c.(Runner); ok {
+		r.Stop()
+	}
+}
+func (r *RC_C_H) OnConn(c netw.Con) bool {
+	if r, ok := c.(Runner); ok {
+		r.Start()
+	}
+	return true
+}
+
+// func NewExecConPool(p *pool.BytePool, h netw.CmdHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V) *netw.NConPool {
+// 	cch := netw.NewCCH(NewRC_C_H(), h)
+// 	np := netw.NewNConPool(p, cch)
+// 	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+// 		cc := netw.NewCon_(cp, p, con)
+// 		cc.V2B_, cc.B2V_ = v2b, b2v
+// 		rcc := NewRC_Con(cc, tc)
+// 		// cch.Con = rcc
+// 		return rcc
+// 	}
+// 	return np
+// }
 
 /*
 

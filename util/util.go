@@ -99,6 +99,13 @@ func ReadW(r *bufio.Reader, p []byte, last *int64) error {
 	l := len(p)
 	all := 0
 	buf := p
+	defer func() {
+		err := recover()
+		if err != nil {
+			fmt.Println(err, buf, l, all, len(buf), "-------------------><<<<<")
+			panic(err)
+		}
+	}()
 	for {
 		l_, err := r.Read(buf)
 		if err != nil {

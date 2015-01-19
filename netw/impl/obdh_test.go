@@ -73,7 +73,7 @@ func TestOBDM(t *testing.T) {
 		return
 	}
 	tc := &obdh_c{}
-	c := netw.NewNConPool(p, "127.0.0.1:7686", netw.NewCCH(&obdh_c_c{}, tc))
+	c := netw.NewNConPool(p, netw.NewCCH(&obdh_c_c{}, tc))
 	c.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		con_ := netw.NewCon_(cp, p, con)
 		con_.V2B_ = func(v interface{}) ([]byte, error) {
@@ -85,7 +85,7 @@ func TestOBDM(t *testing.T) {
 		}
 		return NewOBDH_Con(1, con_)
 	}
-	_, err = c.Dail()
+	_, err = c.Dail("127.0.0.1:7686")
 	if err != nil {
 		t.Error(err.Error())
 		return
