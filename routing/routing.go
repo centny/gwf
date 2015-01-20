@@ -39,11 +39,10 @@ const (
 	//
 	//filter end,
 	//the hook parameter
-	// val:nil
+	// val: the HTTTPSession.V, it will be converted by SessionMux.FIND_V returned function.
 	// args[]:
 	//  *HTTTPSession	the HTTTPSession
 	//  matched(bool)	if having filter matched.
-	//  HResult			the execute result.
 	HK_R_END = "R_END"
 
 	//
@@ -461,6 +460,8 @@ type SessionMux struct {
 	HandleEnable bool
 	ShowLog      bool
 	INT          International
+	//provide the convert function to convert HTTPSesion.V as the hook HK_R_END value argument.
+	FIND_V func(hs *HTTPSession) func(v interface{}) interface{}
 }
 
 func NewSessionMux2(pre string) *SessionMux {
@@ -711,6 +712,11 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			s.slog("not matchd any filter:%s", r.URL.Path)
 			http.NotFound(w, r)
 		}
+		var tv interface{} = hs.V
+		if s.FIND_V != nil {
+			tv = s.FIND_V(hs)(hs.V)
+		}
+		hooks.Call(HK_ROUTING, HK_R_END, tv, hs, matched)
 	}()
 	hooks.Call(HK_ROUTING, HK_R_BEG, nil, hs)
 	//match filter.
@@ -729,9 +735,5 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		mrv, res := s.exec_h(hs)
 		matched = matched || mrv
 		hooks.Call(HK_ROUTING, HK_H_END, nil, hs, mrv, res)
-		if res == HRES_RETURN {
-			return
-		}
 	}
-	hooks.Call(HK_ROUTING, HK_R_END, nil, hs)
 }

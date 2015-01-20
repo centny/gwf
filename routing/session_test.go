@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/go.net/publicsuffix"
 	"errors"
 	"fmt"
+	"github.com/Centny/gwf/hooks"
 	"github.com/Centny/gwf/util"
 	"net/http"
 	"net/http/cookiejar"
@@ -381,3 +382,54 @@ func TestMatch(t *testing.T) {
 
 // 	time.Sleep(300 * time.Second)
 // }
+
+type hk_hs struct {
+	Name string
+}
+
+func (h *hk_hs) Call(v interface{}, args ...interface{}) (interface{}, error) {
+	hs := args[0].(*HTTPSession)
+	fmt.Println(h.Name, hs.R.URL.Path, v, args)
+	return nil, nil
+}
+
+func TestHook(t *testing.T) {
+	sb := NewSrvSessionBuilder("", "/", "rtest2", 2000, 500)
+	// sb.ShowLog = true
+	mux := NewSessionMux("/t", sb)
+	mux.FIND_V = func(hs *HTTPSession) func(v interface{}) interface{} {
+		if hs.R.URL.Path == "/a" {
+			return func(v interface{}) interface{} {
+				return "AAA"
+			}
+		} else {
+			return func(v interface{}) interface{} {
+				return v
+			}
+		}
+	}
+	// mux.ShowLog = true
+	mux.HFunc("^/a$", func(hs *HTTPSession) HResult {
+		return hs.MsgRes("aaaa")
+	})
+	mux.HFunc("^/b$", func(hs *HTTPSession) HResult {
+		return hs.MsgRes2(200, "bbbb")
+	})
+	mux.HFunc("^/c$", func(hs *HTTPSession) HResult {
+		return hs.MsgResE(1, "cccc")
+	})
+	nk := hooks.NewNameHooks()
+	nk.AddHook(HK_F_BEG, &hk_hs{Name: HK_F_BEG})
+	nk.AddHook(HK_F_END, &hk_hs{Name: HK_F_END})
+	nk.AddHook(HK_H_BEG, &hk_hs{Name: HK_H_BEG})
+	nk.AddHook(HK_H_END, &hk_hs{Name: HK_H_END})
+	nk.AddHook(HK_R_BEG, &hk_hs{Name: HK_R_BEG})
+	nk.AddHook(HK_R_END, &hk_hs{Name: HK_R_END})
+	hooks.AddHook(HK_ROUTING, nk)
+	ts := httptest.NewServer(mux)
+	util.HGet("%s/t/a", ts.URL)
+	fmt.Println("<---M--->\n")
+	util.HGet("%s/t/b", ts.URL)
+	fmt.Println("<---M--->\n")
+	util.HGet("%s/t/c", ts.URL)
+}
