@@ -44,7 +44,7 @@ func ExecDailN(p *pool.BytePool, addr string, h netw.CmdHandler, tc *RC_C, v2b n
 	}
 	con, err := np.Dail(addr)
 	if err == nil {
-		return np, con.Con.(*RC_Con), err
+		return np, con.(*RC_Con), err
 	} else {
 		return nil, nil, err
 	}

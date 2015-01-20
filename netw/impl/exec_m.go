@@ -150,9 +150,7 @@ func (r *RCM_S) writev(c *RCM_Cmd, val interface{}) {
 	}
 }
 func (r *RCM_S) AddFFunc(reg string, ff RC_M_FFUNC) {
-	reg_ := regexp.MustCompile(reg)
-	r.filter_a = append(r.filter_a, reg_)
-	r.filter_m[reg_] = RC_M_FH(ff)
+	r.AddFH(reg, RC_M_FH(ff))
 }
 func (r *RCM_S) AddFH(reg string, fh RC_M_FH) {
 	reg_ := regexp.MustCompile(reg)
@@ -160,7 +158,7 @@ func (r *RCM_S) AddFH(reg string, fh RC_M_FH) {
 	r.filter_m[reg_] = fh
 }
 func (r *RCM_S) AddHFunc(name string, hf RC_M_HFUNC) {
-	r.routes_[name] = RC_M_HH(hf)
+	r.AddHH(name, RC_M_HH(hf))
 }
 func (r *RCM_S) AddHH(name string, hh RC_M_HH) {
 	r.routes_[name] = hh

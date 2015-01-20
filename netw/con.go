@@ -6,17 +6,17 @@ import (
 	"net"
 )
 
-type NCon struct {
-	Addr string
-	Con
-}
+// type NCon struct {
+// 	Addr string
+// 	Con
+// }
 
-func NewNCon(con Con, addr string) *NCon {
-	return &NCon{
-		Con:  con,
-		Addr: addr,
-	}
-}
+// func NewNCon(con Con, addr string) Con {
+// 	return &NCon{
+// 		Con:  con,
+// 		Addr: addr,
+// 	}
+// }
 
 //the client connection pool.
 type NConPool struct {
@@ -31,7 +31,7 @@ func NewNConPool(p *pool.BytePool, h CCHandler) *NConPool {
 }
 
 //dail one connection.
-func (n *NConPool) Dail(addr string) (*NCon, error) {
+func (n *NConPool) Dail(addr string) (Con, error) {
 	con, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -40,9 +40,8 @@ func (n *NConPool) Dail(addr string) (*NCon, error) {
 	if !n.H.OnConn(cc) {
 		return nil, util.Err("OnConn return false for %v", addr)
 	}
-	nc := NewNCon(cc, addr)
-	n.RunC(nc)
-	return nc, nil
+	n.RunC(cc)
+	return cc, nil
 }
 
 func Dail(p *pool.BytePool, addr string, h CCHandler) (*NConPool, Con, error) {

@@ -11,9 +11,16 @@ import (
 
 type th_s struct {
 	i int
+	C CmdHandler
 }
 
 func (t *th_s) OnConn(c Con) bool {
+	//testing queue falise reutrn
+	dn := NewDoNoH()
+	dn.C = false
+	NewQueueConH(dn).OnConn(c)
+
+	//
 	if t.i == 0 {
 		cwh := NewCWH(true)
 		cwh.OnConn(c)
@@ -33,6 +40,7 @@ func (t *th_s) OnCmd(c Cmd) int {
 	c.Writeb([]byte("S-A"))
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
+	t.C.OnCmd(c)
 	return 0
 }
 func (t *th_s) OnClose(c Con) {
@@ -54,6 +62,10 @@ func (t *th_c) OnCmd(c Cmd) int {
 	c.Writeb([]byte("C-A"))
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
+	c.CP()
+	c.Err(1, "f")
+	c.BaseCon()
+
 	return 0
 }
 func (t *th_c) OnClose(c Con) {
@@ -83,7 +95,8 @@ func TestNetw(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	ShowLog = true
 	p := pool.NewBytePool(8, 1024)
-	l := NewListener(p, ":7686", &th_s{})
+	ts := &th_s{C: NewDoNoH()}
+	l := NewListener(p, ":7686", NewCCH(NewQueueConH(ts, NewDoNoH()), ts))
 	l.T = 500
 	err := l.Run()
 	if err != nil {
@@ -92,13 +105,15 @@ func TestNetw(t *testing.T) {
 	}
 	tc := &th_c{}
 	c := NewNConPool(p, tc)
-	_, err = c.Dail("127.0.0.1:7686")
+	cc_con, err := c.Dail("127.0.0.1:7686")
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
 	time.Sleep(200 * time.Millisecond)
-
+	c.SetId("LLL")
+	c.Find(cc_con.Id())
+	c.Find("----->")
 	tc2 := &th_c2{
 		tt: true,
 	}
@@ -129,6 +144,19 @@ func TestNetw(t *testing.T) {
 	cc.Write([]byte("jkk"))
 	cc.Write([]byte{0, 0})
 	time.Sleep(100 * time.Millisecond)
+	go func() { //testing add twice for same connection.
+		defer func() {
+			fmt.Println(recover())
+		}()
+		c.add_c(cc_con)
+		c.add_c(cc_con)
+	}()
+	go func() { //testing the write forbiden.
+		defer func() {
+			fmt.Println(recover())
+		}()
+		cc_con.Write([]byte{1})
+	}()
 	cc.Close()
 	cc2, err := net.Dial("tcp", "127.0.0.1:7686")
 	if err != nil {

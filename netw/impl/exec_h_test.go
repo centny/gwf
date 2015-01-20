@@ -61,7 +61,10 @@ func TestExec(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	con.Start()
+	// if _, ok := (interface{}(con)).(Runner); ok {
+	// 	panic("kkk")
+	// }
+	// con.Start()
 	time.Sleep(100 * time.Millisecond)
 	go func() {
 		go con.Con.Writeb([]byte{1})
@@ -76,6 +79,7 @@ func TestExec(t *testing.T) {
 	}()
 	time.Sleep(time.Second)
 	con.Close()
+	time.Sleep(time.Second)
 	go con.Exec([]byte{22}, nil)
 	go func() {
 		time.Sleep(2 * time.Second)

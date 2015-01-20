@@ -40,6 +40,7 @@ func execPer_run_s(vv chan int) {
 	l, cc, vms := NewChanExecListener_m_j(p, ":7686", &execPer{})
 	vms.AddHFunc("plus", execPer_plus)
 	vms.AddHFunc("sub", execPer_sub)
+	vms.AddHFunc("res", execPer_res)
 	l.T = 3000
 	cc.Run(2)
 	err := l.Run()
@@ -53,6 +54,9 @@ func execPer_run_s(vv chan int) {
 	}()
 	cc.Wait()
 	l.Wait()
+
+	//
+	Json_NewCon(nil, nil, nil)
 }
 func execPer_plus(r *RCM_Cmd) (interface{}, error) {
 	var arg ex_arg_v
@@ -83,6 +87,9 @@ func execPer_sub(r *RCM_Cmd) (interface{}, error) {
 	} else {
 		return nil, err
 	}
+}
+func execPer_res(r *RCM_Cmd) (interface{}, error) {
+	return r.CRes(0, "OKK")
 }
 
 type ex_arg_v struct {
@@ -120,6 +127,11 @@ func execPer_run_go(tc *RCM_Con, count int) (int64, int64, int64) {
 	beg := util.Now()
 	var ecount int64 = 0
 	var errc int64 = 0
+	res, err := tc.ExecRes("res", nil)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(res.Res, "----->")
 	wg := sync.WaitGroup{}
 	for i := 0; i < count; i++ {
 		go func() {

@@ -150,21 +150,23 @@ func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
 	}
 }
 
-func (r *RC_Con) OnConn(c netw.Con) bool {
-	return true
-}
-func (r *RC_Con) OnClose(c netw.Con) {
-	r.Stop()
-}
+// func (r *RC_Con) OnConn(c netw.Con) bool {
+// 	return true
+// }
+// func (r *RC_Con) OnClose(c netw.Con) {
+// 	r.Stop()
+// }
 
 //run the process of send/receive command(async).
 func (r *RC_Con) Start() {
+	log_d("RC_Con starting...")
 	go r.Run_()
 }
 
 //stop gorutine
 func (r *RC_Con) Stop() {
 	r.running = false
+	log_d("RC_Con stopping...")
 }
 
 //run the process of send/receive command(sync).

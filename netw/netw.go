@@ -111,13 +111,14 @@ func (cch *CCH) OnCmd(c Cmd) int {
 }
 
 type DoNoH struct {
+	C bool //whether allow connect
 }
 
 func NewDoNoH() *DoNoH {
-	return &DoNoH{}
+	return &DoNoH{C: true}
 }
 func (cch *DoNoH) OnConn(c Con) bool {
-	return true
+	return cch.C
 }
 func (cch *DoNoH) OnClose(c Con) {
 }
