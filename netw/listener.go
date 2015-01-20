@@ -1,6 +1,7 @@
 package netw
 
 import (
+	"code.google.com/p/go.net/websocket"
 	"errors"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/pool"
@@ -74,6 +75,13 @@ func (l *Listener) LoopAccept() {
 	l.Running = false
 	l.Wc <- 0
 }
+func (l *Listener) accept_ws(con *websocket.Conn) {
+	log_d("accepting ws connect(%v) in pool(%v)", con.RemoteAddr().String(), l.Id())
+	tcon := l.NewCon(l, l.P, con)
+	if l.H.OnConn(tcon) {
+		l.RunC_(tcon)
+	}
+}
 
 //close the listener.
 func (l *Listener) Close() {
@@ -85,4 +93,9 @@ func (l *Listener) Close() {
 func (l *Listener) Wait() {
 	<-l.LConPool.Wc
 	<-l.Wc
+}
+
+//create websocket handler
+func (l *Listener) WsH() websocket.Handler {
+	return websocket.Handler(l.accept_ws)
 }

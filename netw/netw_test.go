@@ -1,10 +1,14 @@
 package netw
 
 import (
+	"code.google.com/p/go.net/websocket"
 	"fmt"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/routing/httptest"
 	"net"
+	"net/http"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -98,6 +102,7 @@ func TestNetw(t *testing.T) {
 	ts := &th_s{C: NewDoNoH()}
 	l := NewListener(p, ":7686", NewCCH(NewQueueConH(ts, NewDoNoH()), ts))
 	l.T = 500
+	go http.ListenAndServe(":7687", l.WsH())
 	err := l.Run()
 	if err != nil {
 		t.Error(err.Error())
@@ -114,6 +119,8 @@ func TestNetw(t *testing.T) {
 	c.SetId("LLL")
 	c.Find(cc_con.Id())
 	c.Find("----->")
+	//
+	//
 	tc2 := &th_c2{
 		tt: true,
 	}
@@ -188,4 +195,37 @@ func TestNetw(t *testing.T) {
 
 func TestPp(t *testing.T) {
 	fmt.Println(fmt.Sprintf("%p", &th_s{}))
+}
+
+func TestWs(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	ShowLog = true
+	p := pool.NewBytePool(8, 1024)
+	ts_h := &th_s{C: NewDoNoH()}
+	l := NewListener(p, ":7688", NewCCH(NewQueueConH(ts_h, NewDoNoH()), ts_h))
+	err := l.Run()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	defer l.Close()
+	time.Sleep(100 * time.Millisecond)
+	ts := httptest.NewMuxServer()
+	ts.Mux.Handler("^/.*$", l.WsH())
+	fmt.Println(ts.S.URL)
+	origin := ts.S.URL
+	url := strings.Replace(origin, "http://", "ws://", -1)
+	con, err := websocket.Dial(url, "", origin)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	tv, err := Writeb(con, []byte("AAXX"))
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(tv)
+	time.Sleep(1 * time.Second)
+	con.Close()
 }

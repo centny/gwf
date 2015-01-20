@@ -264,18 +264,7 @@ func (c *Con_) Write(b []byte) (n int, err error) {
 func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
-	total, _ := c.W_.Write([]byte(H_MOD))
-	var tlen uint16 = 0
-	for _, b := range bys {
-		tlen += uint16(len(b))
-	}
-	binary.BigEndian.PutUint16(c.buf, tlen)
-	tv, _ := c.W_.Write(c.buf)
-	total += tv
-	for _, b := range bys {
-		tv, _ = c.W_.Write(b)
-		total += tv
-	}
+	total, _ := Writeb(c.W_, bys...)
 	return total, c.Flush()
 }
 func (c *Con_) Writev(val interface{}) (int, error) {
