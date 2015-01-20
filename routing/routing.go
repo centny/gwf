@@ -25,11 +25,62 @@ const (
 	HRES_RETURN
 )
 const (
-	ROUTING = "ROUTING"
-	F_BEG   = "F_BEG" //filter begin
-	F_END   = "F_END" //filter end
-	H_BEG   = "H_BEG" //handler begin
-	H_END   = "H_END" //handler end
+	//the hook name
+	HK_ROUTING = "ROUTING"
+
+	//
+	//filter begin,
+	//the hook parameter
+	// val:nil
+	// args[]:
+	//  *HTTTPSession	the HTTTPSession
+	HK_R_BEG = "R_BEG"
+
+	//
+	//filter end,
+	//the hook parameter
+	// val:nil
+	// args[]:
+	//  *HTTTPSession	the HTTTPSession
+	//  matched(bool)	if having filter matched.
+	//  HResult			the execute result.
+	HK_R_END = "R_END"
+
+	//
+	//filter begin,
+	//the hook parameter
+	// val:nil
+	// args[]:
+	//  *HTTTPSession	the HTTTPSession
+	HK_F_BEG = "F_BEG"
+
+	//
+	//filter end,
+	//the hook parameter
+	// val:nil
+	// args[]:
+	//  *HTTTPSession	the HTTTPSession
+	//  matched(bool)	if having filter matched.
+	//  HResult			the execute result.
+	HK_F_END = "F_END" //filter end
+
+	//
+	//handler begin,
+	//the hook parameter
+	// val:nil
+	// args[]:
+	//  *HTTTPSession	the HTTTPSession
+	HK_H_BEG = "H_BEG"
+
+	//
+	//handler end,
+	//the hook parameter
+	// val:nil
+	// args[]:
+	//  *HTTTPSession	the HTTTPSession
+	//  matched(bool)	if having filter matched.
+	//  HResult			the execute result.
+	HK_H_END = "H_END"
 )
 
 func (h HResult) String() string {
@@ -79,6 +130,7 @@ type HTTPSession struct {
 	Mux *SessionMux
 	Kvs map[string]interface{}
 	INT International
+	V   interface{} //response value.
 }
 
 func (h *HTTPSession) SetCookie(key string, val string) {
@@ -284,7 +336,15 @@ func http_res(code int, data interface{}, msg string, dmsg string) util.Map {
 // 	dbys, _ := json.Marshal(res)
 // 	return dbys
 // }
+func (h *HTTPSession) JRes(data interface{}) HResult {
+	err := h.JsonRes(data)
+	if err != nil {
+		log.E("JRes convert value(%v) to json err:%v", data, err)
+	}
+	return HRES_RETURN
+}
 func (h *HTTPSession) JsonRes(data interface{}) error {
+	h.V = data
 	dbys, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -293,36 +353,29 @@ func (h *HTTPSession) JsonRes(data interface{}) error {
 	return nil
 }
 func (h *HTTPSession) MsgRes(data interface{}) HResult {
-	h.JsonRes(http_res(0, data, "", ""))
-	return HRES_RETURN
+	return h.JRes(http_res(0, data, "", ""))
 }
 
 func (h *HTTPSession) MsgRes2(code int, data interface{}) HResult {
-	h.JsonRes(http_res(code, data, "", ""))
-	return HRES_RETURN
+	return h.JRes(http_res(code, data, "", ""))
 }
 
 func (h *HTTPSession) MsgResE(code int, msg string) HResult {
-	h.JsonRes(http_res(code, "", msg, ""))
-	return HRES_RETURN
+	return h.JRes(http_res(code, "", msg, ""))
 }
 func (h *HTTPSession) MsgResE2(code int, msg string, dmsg string) HResult {
-	h.JsonRes(http_res(code, "", msg, dmsg))
-	return HRES_RETURN
+	return h.JRes(http_res(code, "", msg, dmsg))
 }
 func (h *HTTPSession) MsgResE3(code int, key string, dmsg string) HResult {
-	h.JsonRes(http_res(code, "", h.LocalVal(key), dmsg))
-	return HRES_RETURN
+	return h.JRes(http_res(code, "", h.LocalVal(key), dmsg))
 }
 func (h *HTTPSession) MsgResErr(code int, msg string, err error) HResult {
-	h.JsonRes(http_res(code, "", msg, err.Error()))
-	return HRES_RETURN
+	return h.JRes(http_res(code, "", msg, err.Error()))
 }
 
 //using the local value by key for error message.
 func (h *HTTPSession) MsgResErr2(code int, key string, err error) HResult {
-	h.JsonRes(http_res(code, "", h.LocalVal(key), err.Error()))
-	return HRES_RETURN
+	return h.JRes(http_res(code, "", h.LocalVal(key), err.Error()))
 }
 
 /* International */
@@ -659,24 +712,26 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 		}
 	}()
+	hooks.Call(HK_ROUTING, HK_R_BEG, nil, hs)
 	//match filter.
 	if s.FilterEnable {
-		hooks.Call(ROUTING, F_BEG, nil, hs)
+		hooks.Call(HK_ROUTING, HK_F_BEG, nil, hs)
 		mrv, res := s.exec_f(hs)
 		matched = mrv
-		hooks.Call(ROUTING, F_END, nil, hs, mrv, res)
+		hooks.Call(HK_ROUTING, HK_F_END, nil, hs, mrv, res)
 		if res == HRES_RETURN {
 			return
 		}
 	}
 	//match handle
 	if s.HandleEnable {
-		hooks.Call(ROUTING, H_BEG, nil, hs)
+		hooks.Call(HK_ROUTING, HK_H_BEG, nil, hs)
 		mrv, res := s.exec_h(hs)
 		matched = matched || mrv
-		hooks.Call(ROUTING, H_END, nil, hs, mrv, res)
+		hooks.Call(HK_ROUTING, HK_H_END, nil, hs, mrv, res)
 		if res == HRES_RETURN {
 			return
 		}
 	}
+	hooks.Call(HK_ROUTING, HK_R_END, nil, hs)
 }
