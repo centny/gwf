@@ -714,7 +714,9 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		var tv interface{} = hs.V
 		if s.FIND_V != nil {
-			tv = s.FIND_V(hs)(hs.V)
+			if fv := s.FIND_V(hs); fv != nil {
+				tv = fv(hs.V)
+			}
 		}
 		hooks.Call(HK_ROUTING, HK_R_END, tv, hs, matched)
 	}()
