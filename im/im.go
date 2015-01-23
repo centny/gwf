@@ -2,6 +2,7 @@ package im
 
 import (
 	"code.google.com/p/go-uuid/uuid"
+	"fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
@@ -139,13 +140,14 @@ type Listener struct {
 	DIM     *DIM_Rh
 	Db      DbH
 	P       *pool.BytePool
-	Port    string
+	Port    int
 	Sid     string
-	PubAddr string
+	PubHost string
+	PubPort int
 	Err_    netw.CmdErrF
 }
 
-func NewListner(db DbH, sid string, p *pool.BytePool, port string, v2b netw.V2Byte, b2v netw.Byte2V, nd impl.ND_F, nav impl.NAV_F, vna impl.VNA_F) *Listener {
+func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte, b2v netw.Byte2V, nd impl.ND_F, nav impl.NAV_F, vna impl.VNA_F) *Listener {
 	//
 	//
 	obdh := impl.NewOBDH()
@@ -181,7 +183,7 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port string, v2b netw.V2By
 	}
 	dip := NewDimPool(db, sid, p, v2b, b2v, nav, ncf, dim)
 	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), obdh)
-	l := netw.NewListenerN(p, port, cch, ncf)
+	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), cch, ncf)
 	nim.SS = NewMarkConPoolSender([]byte{MK_NIM}, l, sid)
 	dim.SS = nim.SS
 	nch.SS = nim.SS
@@ -195,7 +197,8 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port string, v2b netw.V2By
 		P:        p,
 		Port:     port,
 		Sid:      sid,
-		PubAddr:  "127.0.0.1" + port,
+		PubHost:  "127.0.0.1",
+		PubPort:  port,
 	}
 	rl = tl
 	return tl
@@ -212,7 +215,8 @@ func (l *Listener) Run() error {
 	}
 	err = l.Db.AddSrv(&Srv{
 		Sid:   l.Sid,
-		Addr:  l.PubAddr,
+		Host:  l.PubHost,
+		Port:  l.PubPort,
 		Token: uuid.New(),
 	})
 	if err != nil {

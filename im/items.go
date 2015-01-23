@@ -1,6 +1,7 @@
 package im
 
 import (
+	"fmt"
 	"github.com/Centny/gwf/netw"
 )
 
@@ -43,6 +44,11 @@ type Con struct {
 //online server
 type Srv struct {
 	Sid   string `json:"sid"`   //server id
-	Addr  string `json:"addr"`  //server addr
+	Host  string `json:"host"`  //server addr
+	Port  int    `json:"port"`  //server port.
 	Token string `json:"token"` //server login token
+}
+
+func (s *Srv) Addr() string {
+	return fmt.Sprintf("%v:%v", s.Host, s.Port)
 }

@@ -147,7 +147,7 @@ func (d *DimPool) dail_(srv *Srv) error {
 	tc := impl.NewRC_C()
 	obdh.AddH(MK_DRC, tc)
 	obdh.AddH(MK_DIM, d.DIM)
-	l, con, err := netw.DailN(d.P, srv.Addr, netw.NewCCH(d, obdh), d.NewCon)
+	l, con, err := netw.DailN(d.P, srv.Addr(), netw.NewCCH(d, obdh), d.NewCon)
 	if err != nil {
 		return err
 	}

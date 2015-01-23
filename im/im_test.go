@@ -50,7 +50,7 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	ch := impl.NewChanH(obdh)
 	tcch := netw.NewCCH(netw.NewDoNoH(), ch)
 	ch.Run(5)
-	l, con, err := netw.DailN(p, srv.Addr, tcch, impl.Json_NewCon)
+	l, con, err := netw.DailN(p, srv.Addr(), tcch, impl.Json_NewCon)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -144,7 +144,7 @@ func run_c(db *MemDbH, p *pool.BytePool, rm *rec_msg) {
 func run_s(db *MemDbH, p *pool.BytePool) {
 	ls := []*Listener{}
 	for i := 0; i < 5; i++ {
-		l := NewListner(db, fmt.Sprintf("S-vv-%v", i), p, fmt.Sprintf(":989%v", i),
+		l := NewListner(db, fmt.Sprintf("S-vv-%v", i), p, 9890+i,
 			impl.Json_V2B, impl.Json_B2V, impl.Json_ND, impl.Json_NAV, impl.Json_VNA)
 		err := l.Run()
 		if err != nil {

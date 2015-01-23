@@ -111,6 +111,7 @@ func (m *MemDbH) AddSrv(srv *Srv) error {
 	m.srv_l.Lock()
 	defer m.srv_l.Unlock()
 	// srv.Token = "abc"
+	// fmt.Println(m, srv)
 	m.Srvs[srv.Sid] = srv
 	return nil
 }
@@ -134,8 +135,9 @@ func (m *MemDbH) FindSrv(token string) (*Srv, error) {
 //list all online server,exclue special server id.
 func (m *MemDbH) ListSrv(sid string) ([]Srv, error) {
 	srvs := []Srv{}
+	// fmt.Println(m, m.Srvs)
 	for _, srv := range m.Srvs {
-		if srv.Sid == sid {
+		if len(sid) > 0 && srv.Sid == sid {
 			continue
 		}
 		srvs = append(srvs, *srv)
