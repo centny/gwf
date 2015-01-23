@@ -24,6 +24,7 @@ func main() {
 	}
 	mux := routing.NewSessionMux2("")
 	mux.HFunc("/listSrv", ListSrv)
+	mux.HFunc("/listRs", ListRs)
 	mux.Handler("/ws", l.WsH())
 	mux.Handler("^.*$", http.FileServer(http.Dir("www")))
 	http.Handle("/", mux)
@@ -34,4 +35,8 @@ func main() {
 func ListSrv(hs *routing.HTTPSession) routing.HResult {
 	srv, _ := db.ListSrv("")
 	return hs.MsgRes(srv)
+}
+func ListRs(hs *routing.HTTPSession) routing.HResult {
+	usr, _ := db.ListR()
+	return hs.MsgRes(usr)
 }

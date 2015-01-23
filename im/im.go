@@ -54,6 +54,7 @@ type DbH interface {
 	//
 	//user login,return user R.
 	OnUsrLogin(c netw.Cmd, r *util.Map) (string, error)
+	OnUsrLogout(r string, args *util.Map) error
 	//
 	//
 	//update the message R status
@@ -124,6 +125,8 @@ func (m *MarkConPoolSender) SendC(con netw.Con, v interface{}) error {
 	if err != nil {
 		return err
 	}
+	// mm := v.(*Msg)
+	// fmt.Println(fmt.Sprintf("%v", mm), string(bys))
 	// m.lck.Lock()
 	// defer m.lck.Unlock()
 	_, err = con.Writeb(m.Mark, bys)

@@ -24,7 +24,7 @@ type MemDbH struct {
 	Ms    map[string]*Msg
 	ms_l  sync.RWMutex
 	//
-	Usr   []string
+	Usr   map[string]byte
 	u_lck sync.RWMutex
 	Grp   map[string][]string
 }
@@ -35,7 +35,7 @@ func NewMemDbH() *MemDbH {
 		Srvs: map[string]*Srv{},
 		Ms:   map[string]*Msg{},
 		Grp:  map[string][]string{},
-		Usr:  []string{},
+		Usr:  map[string]byte{},
 	}
 }
 func (m *MemDbH) OnConn(c netw.Con) bool {
@@ -90,6 +90,13 @@ func (m *MemDbH) ListUsrR(gr []string) ([]string, error) {
 		}
 	}
 	return trs, nil
+}
+func (m *MemDbH) ListR() ([]string, error) {
+	var usrs []string = []string{}
+	for r, _ := range m.Usr {
+		usrs = append(usrs, r)
+	}
+	return usrs, nil
 }
 
 //sift the R to group R and user R.
@@ -153,12 +160,24 @@ func (m *MemDbH) OnUsrLogin(r netw.Cmd, args *util.Map) (string, error) {
 	defer m.u_lck.Unlock()
 	if args.Exist("token") {
 		ur := fmt.Sprintf("U-%v", atomic.AddUint64(&m.u_cc, 1))
-		m.Usr = append(m.Usr, ur)
+		m.Usr[ur] = 1
 		log_d("user login by R(%v)", ur)
 		return ur, nil
 	} else {
 		log_d("user login fail for token not found")
 		return "", util.Err("login fail:token not found")
+	}
+}
+func (m *MemDbH) OnUsrLogout(r string, args *util.Map) error {
+	m.u_lck.Lock()
+	defer m.u_lck.Unlock()
+	if _, ok := m.Usr[r]; ok {
+		delete(m.Usr, r)
+		log_d("user logout by R(%v)", r)
+		return nil
+	} else {
+		log_d("user logout fail:R not found")
+		return util.Err("login fail:R not found")
 	}
 }
 
@@ -204,10 +223,11 @@ func (m *MemDbH) RandUsr() []string {
 	if ulen < 1 {
 		return []string{}
 	}
+	usrs, _ := m.ListR()
 	um := map[string]byte{}
 	tlen := rand.Intn(ulen)%16 + 1
 	for i := 0; i <= tlen; i++ {
-		um[m.Usr[rand.Intn(ulen)]] = 1
+		um[usrs[rand.Intn(ulen)]] = 1
 	}
 	tur := []string{}
 	for u, _ := range um {
@@ -221,12 +241,13 @@ func (m *MemDbH) GrpBuilder() {
 		if len(m.Usr) < 1 {
 			continue
 		}
+		usrs, _ := m.ListR()
 		g := fmt.Sprintf("G-%v", atomic.AddUint64(&m.g_cc, 1))
 		us := []string{}
 		tlen := rand.Intn(len(m.Usr)) + 1
 		mu := map[string]bool{}
 		for i := 0; i < tlen; i++ {
-			mu[m.Usr[rand.Intn(len(m.Usr))]] = true
+			mu[usrs[rand.Intn(len(m.Usr))]] = true
 		}
 		for u, _ := range mu {
 			us = append(us, u)

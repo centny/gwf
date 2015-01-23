@@ -20,6 +20,7 @@ func (n *NIM_Rh) OnConn(c netw.Con) bool {
 	return true
 }
 func (n *NIM_Rh) OnClose(c netw.Con) {
+	n.Db.OnUsrLogout(c.Kvs().StrVal("R"), nil)
 	n.onlo(c)
 }
 
@@ -69,8 +70,8 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	for _, con := range cons {              //do online user
 		sr_ed[con.R] = 1
 		if con.Sid == c_sid { //in current server
-			mc.D = con.R                  //setting current receive user R.
-			err = n.SS.Send(con.Cid, &mc) //send message to client.
+			mc.D = con.R                 //setting current receive user R.
+			err = n.SS.Send(con.Cid, mc) //send message to client.
 			if err == nil {
 				atomic.AddUint64(&n.DC, 1)
 				mc.Ms[con.R] = MS_DONE //mark done
@@ -155,7 +156,8 @@ func (n *NIM_Rh) LI(r *impl.RCM_Cmd) (interface{}, error) {
 	return r.CRes(0, con)
 }
 func (n *NIM_Rh) LO(r *impl.RCM_Cmd) (interface{}, error) {
-	err := n.onlo(r)
+	err := n.Db.OnUsrLogout(r.Kvs().StrVal("R"), r.Map)
+	err = n.onlo(r)
 	if err == nil {
 		return r.CRes(0, "OK")
 	} else {

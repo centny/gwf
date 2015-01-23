@@ -145,6 +145,10 @@ func (n *NodeCmds) ULO(c netw.Cmd) int {
 	if err != nil {
 		return n.writev_c(c, na, 1, err.Error())
 	}
+	err = n.Db.OnUsrLogout(r, &na.V)
+	if err != nil {
+		return n.writev_c(c, na, 1, err.Error())
+	}
 	err = n.Db.DelCon(n.SS.Id(), c.Id(), r, CT_WS)
 	if err != nil {
 		return n.writev_c(c, na, 1, err.Error())
