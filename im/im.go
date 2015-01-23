@@ -8,8 +8,6 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"net"
-	"sync"
-	"sync/atomic"
 )
 
 var ShowLog bool = false
@@ -21,10 +19,12 @@ func log_d(f string, args ...interface{}) {
 }
 
 const (
-	MK_NIM = 0
-	MK_NRC = 4
-	MK_DIM = 8
-	MK_DRC = 12
+	MK_NIM    = 0
+	MK_NRC    = 4
+	MK_DIM    = 8
+	MK_DRC    = 12
+	MK_NODE   = 30
+	MK_NODE_M = 31
 )
 
 type DbH interface {
@@ -32,7 +32,7 @@ type DbH interface {
 	//
 	//
 	AddCon(c *Con) error
-	DelCon(sid, cid string) error
+	DelCon(sid, cid, r string, t byte) error
 	//list all connection by target R
 	ListCon(rs []string) ([]Con, error)
 	//
@@ -52,7 +52,7 @@ type DbH interface {
 	//
 	//
 	//user login,return user R.
-	OnUsrLogin(r *impl.RCM_Cmd) (string, error)
+	OnUsrLogin(c netw.Cmd, r *util.Map) (string, error)
 	//
 	//
 	//update the message R status
@@ -95,8 +95,8 @@ type MarkConPoolSender struct {
 	Mark []byte
 	CP   Finder
 	Id_  string
-	EC   uint64
-	lck  sync.RWMutex
+	// EC   uint64
+	// lck  sync.RWMutex
 }
 
 func NewMarkConPoolSender(mark []byte, cp Finder, sid string) *MarkConPoolSender {
@@ -123,11 +123,11 @@ func (m *MarkConPoolSender) SendC(con netw.Con, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	m.lck.Lock()
-	defer m.lck.Unlock()
+	// m.lck.Lock()
+	// defer m.lck.Unlock()
 	_, err = con.Writeb(m.Mark, bys)
 	// if err == nil || vv < len(bys) {
-	atomic.AddUint64(&m.EC, 1)
+	// atomic.AddUint64(&m.EC, 1)
 	// }
 	return err
 }
@@ -142,6 +142,7 @@ type Listener struct {
 	Port    string
 	Sid     string
 	PubAddr string
+	Err_    netw.CmdErrF
 }
 
 func NewListner(db DbH, sid string, p *pool.BytePool, port string, v2b netw.V2Byte, b2v netw.Byte2V, nd impl.ND_F, nav impl.NAV_F, vna impl.VNA_F) *Listener {
@@ -162,9 +163,18 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port string, v2b netw.V2By
 	obdh.AddH(MK_DIM, dim)
 	obdh.AddH(MK_DRC, impl.NewRC_S(dim_m))
 	//
+	ndh := impl.NewOBDH()
+	nrh := &NodeRh{NIM: nim}
+	nch := &NodeCmds{Db: db, DS: map[string]netw.Con{}}
+	nch.H(ndh)
+	obdh.AddH(MK_NODE, ndh)
+	obdh.AddH(MK_NODE_M, nrh)
 	//
+
+	//
+	var rl netw.ConPool
 	ncf := func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
-		cc := netw.NewCon_(cp, p, con)
+		cc := netw.NewCon_(rl, p, con)
 		cc.V2B_ = v2b
 		cc.B2V_ = b2v
 		return cc
@@ -174,8 +184,9 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port string, v2b netw.V2By
 	l := netw.NewListenerN(p, port, cch, ncf)
 	nim.SS = NewMarkConPoolSender([]byte{MK_NIM}, l, sid)
 	dim.SS = nim.SS
+	nch.SS = nim.SS
 	nim.DS = NewMarkConPoolSender([]byte{MK_DIM}, NewMultiFinder(dim, dip), sid)
-	return &Listener{
+	var tl = &Listener{
 		Listener: l,
 		NIM:      nim,
 		DIP:      dip,
@@ -186,6 +197,8 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port string, v2b netw.V2By
 		Sid:      sid,
 		PubAddr:  "127.0.0.1" + port,
 	}
+	rl = tl
+	return tl
 }
 func (l *Listener) Run() error {
 	err := l.DIP.Dail()

@@ -56,9 +56,11 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	}
 	mcon := impl.NewOBDH_Con(MK_NRC, con)
 	rcon := impl.NewRC_Con(mcon, tc)
-	rmcon := impl.NewRCM_Con(rcon, impl.Json_NAV_)
+	rmcon := impl.NewRCM_Con(rcon, impl.Json_NAV)
 	rmcon.Start()
-	res, err := rmcon.ExecRes("LI", nil)
+	res, err := rmcon.ExecRes("LI", map[string]interface{}{
+		"token": "abc",
+	})
 	if res.Code != 0 {
 		panic(res.Res)
 	}
@@ -97,7 +99,7 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	time.Sleep(1 * time.Second)
 	l.Close()
 	atomic.AddUint64(&hr_cc_c, tc.RCC)
-	atomic.AddUint64(&h_cc_c, tcch.RCC)
+	// atomic.AddUint64(&h_cc_c, tcch.RCC)
 }
 func show_cc(db *MemDbH, rm *rec_msg, p *pool.BytePool) {
 	for {
@@ -143,7 +145,7 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 	ls := []*Listener{}
 	for i := 0; i < 5; i++ {
 		l := NewListner(db, fmt.Sprintf("S-vv-%v", i), p, fmt.Sprintf(":989%v", i),
-			impl.Json_V2B, impl.Json_B2V, impl.Json_ND, impl.Json_NAV_, impl.Json_VNA)
+			impl.Json_V2B, impl.Json_B2V, impl.Json_ND, impl.Json_NAV, impl.Json_VNA)
 		err := l.Run()
 		if err != nil {
 			panic(err.Error())

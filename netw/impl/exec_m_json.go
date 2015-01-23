@@ -8,7 +8,7 @@ import (
 	"net"
 )
 
-func Json_NAV_(rc *RCM_Con, name string, args interface{}) (interface{}, error) {
+func Json_NAV(rc *RCM_Con, name string, args interface{}) (interface{}, error) {
 	return util.Map{
 		"name": name,
 		"args": args,

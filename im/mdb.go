@@ -3,7 +3,6 @@ package im
 import (
 	"fmt"
 	"github.com/Centny/gwf/netw"
-	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/util"
 	"math/rand"
 	"strings"
@@ -52,13 +51,13 @@ func (m *MemDbH) AddCon(c *Con) error {
 	}
 	m.con_l.Lock()
 	defer m.con_l.Unlock()
-	m.Cons[c.Sid+c.Cid] = c
+	m.Cons[fmt.Sprintf("%v%v%v%v", c.Sid, c.Cid, c.R, c.T)] = c
 	return nil
 }
-func (m *MemDbH) DelCon(sid, cid string) error {
+func (m *MemDbH) DelCon(sid, cid, r string, t byte) error {
 	m.con_l.Lock()
 	defer m.con_l.Unlock()
-	delete(m.Cons, sid+cid)
+	delete(m.Cons, fmt.Sprintf("%v%v%v%v", sid, cid, r, t))
 	return nil
 }
 
@@ -111,6 +110,7 @@ func (m *MemDbH) Sift(rs []string) ([]string, []string, error) {
 func (m *MemDbH) AddSrv(srv *Srv) error {
 	m.srv_l.Lock()
 	defer m.srv_l.Unlock()
+	// srv.Token = "abc"
 	m.Srvs[srv.Sid] = srv
 	return nil
 }
@@ -146,13 +146,18 @@ func (m *MemDbH) ListSrv(sid string) ([]Srv, error) {
 //
 //
 //user login,return user R.
-func (m *MemDbH) OnUsrLogin(r *impl.RCM_Cmd) (string, error) {
+func (m *MemDbH) OnUsrLogin(r netw.Cmd, args *util.Map) (string, error) {
 	m.u_lck.Lock()
 	defer m.u_lck.Unlock()
-	ur := fmt.Sprintf("U-%v", atomic.AddUint64(&m.u_cc, 1))
-	m.Usr = append(m.Usr, ur)
-	log_d("user login by R(%v)", ur)
-	return ur, nil
+	if args.Exist("token") {
+		ur := fmt.Sprintf("U-%v", atomic.AddUint64(&m.u_cc, 1))
+		m.Usr = append(m.Usr, ur)
+		log_d("user login by R(%v)", ur)
+		return ur, nil
+	} else {
+		log_d("user login fail for token not found")
+		return "", util.Err("login fail:token not found")
+	}
 }
 
 //

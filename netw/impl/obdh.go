@@ -55,6 +55,14 @@ func (o *obdh_cmd) V(dest interface{}) (interface{}, error) {
 	return netw.V(o, dest)
 }
 
+//
+type OBDH_HF func(c netw.Cmd) int
+
+func (o OBDH_HF) OnCmd(c netw.Cmd) int {
+	return o(c)
+}
+
+//
 type OBDH struct {
 	HS map[byte]netw.CmdHandler
 }
@@ -73,6 +81,7 @@ func (o *OBDH) OnCmd(c netw.Cmd) int {
 	log_d("OBDH receive data:%v", string(c.Data()))
 	mark, data := util.SplitTwo(c.Data(), 1)
 	if hh, ok := o.HS[mark[0]]; ok {
+		c.SetErrd(3)
 		return hh.OnCmd(&obdh_cmd{
 			Cmd:   c,
 			data_: data,
@@ -87,4 +96,7 @@ func (o *OBDH) OnCmd(c netw.Cmd) int {
 
 func (o *OBDH) AddH(mark byte, h netw.CmdHandler) {
 	o.HS[mark] = h
+}
+func (o *OBDH) AddF(mark byte, f func(c netw.Cmd) int) {
+	o.HS[mark] = OBDH_HF(f)
 }

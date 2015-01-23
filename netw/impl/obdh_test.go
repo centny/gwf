@@ -57,6 +57,7 @@ func (t *obdh_s) OnCmd(c netw.Cmd) int {
 	c.Writeb([]byte("S-A"))
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
+	// c.Err(1, "wwwsss---->")
 	return 0
 }
 

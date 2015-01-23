@@ -138,7 +138,7 @@ func run_c() {
 		return nil, util.Err("errrr")
 	}
 	exec_c(tc, "no", "a", "b")
-	tc.NAV = Json_NAV_
+	tc.NAV = Json_NAV
 	// //
 	exec_c(tc, "exit", "a", "b")
 	fmt.Println(tc.RC_Con.Exec([]byte{1}, nil))

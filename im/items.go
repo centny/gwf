@@ -13,11 +13,12 @@ const (
 type Msg struct {
 	netw.Cmd `json:"-"`
 	Id       string            `json:"id" "_id"`
-	S        string            `json:"s"`
-	R        []string          `json:"r"`
-	T        byte              `json:"t"`
-	C        []byte            `json:"c"`
-	Ms       map[string]string `json:"-"`
+	S        string            `json:"s"` //the sender R.
+	R        []string          `json:"r"` //logic R
+	D        string            `json:"d"` //target user R.
+	T        byte              `json:"t"` //type.
+	C        []byte            `json:"c"` //the content.
+	Ms       map[string]string `json:"-"` //send status for user R.
 }
 
 type DsMsg struct {
@@ -25,12 +26,18 @@ type DsMsg struct {
 	RC map[string]string `json:"rc"`
 }
 
+const (
+	CT_TCP = 0
+	CT_WS  = 10
+)
+
 //connection
 type Con struct {
-	Sid string `json:"sid"` //server id
+	Sid string `json:"-"`   //server id
 	Cid string `json:"cid"` //connection id
 	R   string `json:"r"`   //the receive SN
 	S   string `json:"s"`   //the IM receiver status.
+	T   byte   `json:'t'`   //the connection type.
 }
 
 //online server

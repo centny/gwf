@@ -38,7 +38,7 @@ const H_MOD = "^~^"
 const CON_TIMEOUT int64 = 5000
 
 type NewConF func(cp ConPool, p *pool.BytePool, con net.Conn) Con
-type CmdErrF func(c Cmd, code byte, f string, args ...interface{})
+type CmdErrF func(c Cmd, d int, code byte, f string, args ...interface{})
 
 //function for covert struct to []byte
 type V2Byte func(v interface{}) ([]byte, error)
@@ -299,6 +299,7 @@ type Cmd interface {
 	Done()
 
 	V(dest interface{}) (interface{}, error)
+	SetErrd(d int) //the error log depth.
 	Err(code byte, f string, args ...interface{})
 }
 
@@ -307,6 +308,7 @@ type Cmd_ struct {
 	Con          //base connection.
 	Data_ []byte //received data
 	data_ []byte
+	d     int
 }
 
 func (c *Cmd_) BaseCon() Con {
@@ -323,8 +325,11 @@ func (c *Cmd_) Done() {
 func (c *Cmd_) V(dest interface{}) (interface{}, error) {
 	return V(c, dest)
 }
+func (c *Cmd_) SetErrd(d int) {
+	c.d = d
+}
 func (c *Cmd_) Err(code byte, f string, args ...interface{}) {
-	c.CP().Err()(c, code, f, args...)
+	c.CP().Err()(c, c.d, code, f, args...)
 }
 
 type ConPool interface {
@@ -361,8 +366,8 @@ func NewLConPool(p *pool.BytePool, h CCHandler) *LConPool {
 		Wc:     make(chan int),
 		cons:   map[string]Con{},
 		NewCon: NewCon,
-		Err_: func(c Cmd, code byte, f string, args ...interface{}) {
-			log.D_(2, f, args...)
+		Err_: func(c Cmd, d int, code byte, f string, args ...interface{}) {
+			log.D_(d, f, args...)
 		},
 		Id_: fmt.Sprintf("P%v", atomic.AddUint64(&pool_idc, 1)),
 	}
@@ -472,6 +477,7 @@ func (l *LConPool) RunC_(con Con) {
 			Con:   con,
 			Data_: dbuf,
 			data_: dbuf,
+			d:     2,
 		})
 	}
 	l.H.OnClose(con)

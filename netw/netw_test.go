@@ -45,6 +45,9 @@ func (t *th_s) OnCmd(c Cmd) int {
 	time.Sleep(100 * time.Millisecond)
 	c.Done()
 	t.C.OnCmd(c)
+	if t.i < 5 {
+		c.Err(1, "sss")
+	}
 	return 0
 }
 func (t *th_s) OnClose(c Con) {

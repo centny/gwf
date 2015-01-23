@@ -7,19 +7,23 @@ import (
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
+	"sync"
 )
 
 //
 type DIM_Rh struct {
-	Db DbH
-	SS Sender
-	DS map[string]netw.Con
+	Db   DbH
+	SS   Sender
+	DS   map[string]netw.Con
+	ds_l sync.RWMutex
 }
 
 func (d *DIM_Rh) OnConn(c netw.Con) bool {
 	return true
 }
 func (d *DIM_Rh) OnClose(c netw.Con) {
+	d.ds_l.Lock()
+	defer d.ds_l.Unlock()
 	delete(d.DS, c.Id())
 }
 func (d *DIM_Rh) Find(id string) netw.Con {
@@ -81,6 +85,8 @@ func (d *DIM_Rh) LI(r *impl.RCM_Cmd) (interface{}, error) {
 		log.W("SLI login(%v)", errs)
 		return r.CRes(1, errs)
 	}
+	d.ds_l.Lock()
+	defer d.ds_l.Unlock()
 	d.DS[sid] = r.BaseCon()
 	r.SetWait(true)
 	return r.CRes(0, "OK")
