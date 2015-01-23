@@ -3,7 +3,6 @@ package util
 import (
 	"errors"
 	"fmt"
-	"github.com/Centny/gwf/log"
 	"math"
 	"reflect"
 	"regexp"
@@ -234,7 +233,7 @@ func ValidAttrF(f string, cf AttrFunc, limit_r bool, args ...interface{}) error 
 		if err != nil {
 			rerr := errors.New(fmt.Sprintf("limit(%s),%s", fs, err.Error()))
 			if len(fstr) > 3 {
-				log.D("%s", rerr.Error())
+				// log.D("%s", rerr.Error())
 				return errors.New(fstr[3])
 			} else {
 				return rerr
