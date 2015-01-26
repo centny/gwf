@@ -2,6 +2,7 @@ package pool
 
 import (
 	"container/list"
+	"fmt"
 	"github.com/Centny/gwf/util"
 	"sync"
 )
@@ -119,7 +120,7 @@ func (b *BytePool) Alloc(l int) []byte {
 		tl += 8
 	}
 	if tl < 1 || tl > b.End {
-		return nil
+		panic(fmt.Sprintf("memory size must in %v<=x<=%v, but %v", b.Beg, b.End, l))
 	}
 	// b.ms_l.Lock()
 	// defer b.ms_l.Unlock()

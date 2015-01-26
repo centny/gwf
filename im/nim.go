@@ -8,6 +8,11 @@ import (
 	"sync/atomic"
 )
 
+const (
+	MK_NRC_LI = 10
+	MK_NRC_LO = 20
+)
+
 //
 type NIM_Rh struct {
 	Db DbH
@@ -122,22 +127,39 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	}
 	return 0
 }
-
-func (n *NIM_Rh) Exec(r *impl.RCM_Cmd) (interface{}, error) {
-	log_d("call action(%v)", r.Name)
-	switch r.Name {
-	case "LI":
-		return n.LI(r)
-	case "LO":
-		return n.LO(r)
-	}
-	return nil, util.Err("action not found by name(%v)", r.Name)
+func (n *NIM_Rh) H(obdh *impl.OBDH) {
+	obdh.AddF(MK_NRC_LI, n.LI)
+	obdh.AddF(MK_NRC_LO, n.LO)
 }
 
-func (n *NIM_Rh) LI(r *impl.RCM_Cmd) (interface{}, error) {
-	rv, err := n.Db.OnUsrLogin(r, r.Map)
+// func (n *NIM_Rh) Exec(r *impl.RCM_Cmd) (interface{}, error) {
+// 	log_d("call action(%v)", r.Name)
+// 	switch r.Name {
+// 	case "LI":
+// 		return n.LI(r)
+// 	case "LO":
+// 		return n.LO(r)
+// 	}
+// 	return nil, util.Err("action not found by name(%v)", r.Name)
+// }
+func (n *NIM_Rh) writev_c(c netw.Cmd, code int, res interface{}) int {
+	c.Writev(util.Map{
+		"res":  res,
+		"code": code,
+	})
+	return 0
+}
+func (n *NIM_Rh) LI(r netw.Cmd) int {
+	var args util.Map
+	_, err := r.V(&args)
 	if err != nil {
-		return r.CRes(1, err.Error())
+		log.W("login V fail:%v", err.Error())
+		return n.writev_c(r, 1, err.Error())
+	}
+	rv, err := n.Db.OnUsrLogin(r, &args)
+	if err != nil {
+		log.W("login OnUsrLogin fail:%v", err.Error())
+		return n.writev_c(r, 1, err.Error())
 	}
 	con := &Con{
 		Sid: n.SS.Id(),
@@ -148,20 +170,26 @@ func (n *NIM_Rh) LI(r *impl.RCM_Cmd) (interface{}, error) {
 	}
 	err = n.Db.AddCon(con)
 	if err != nil {
-		return r.CRes(1, err.Error())
+		log.W("login AddCon fail:%v", err.Error())
+		return n.writev_c(r, 1, err.Error())
 	}
 	r.SetWait(true)
 	r.Kvs().SetVal("R", rv)
 	// con.Sid = ""
-	return r.CRes(0, con)
+	return n.writev_c(r, 0, con)
 }
-func (n *NIM_Rh) LO(r *impl.RCM_Cmd) (interface{}, error) {
-	err := n.Db.OnUsrLogout(r.Kvs().StrVal("R"), r.Map)
+func (n *NIM_Rh) LO(r netw.Cmd) int {
+	var args util.Map
+	_, err := r.V(&args)
+	if err != nil {
+		return n.writev_c(r, 1, err.Error())
+	}
+	err = n.Db.OnUsrLogout(r.Kvs().StrVal("R"), &args)
 	err = n.onlo(r)
 	if err == nil {
-		return r.CRes(0, "OK")
+		return n.writev_c(r, 0, "OK")
 	} else {
-		return r.CRes(1, err.Error())
+		return n.writev_c(r, 1, err.Error())
 	}
 }
 func (n *NIM_Rh) onlo(con netw.Con) error {

@@ -86,6 +86,8 @@ func (r *RC_C) OnCmd(c netw.Cmd) int {
 
 //the chan command for each calling.
 type chan_c struct {
+	B    byte
+	BS   bool
 	C    chan bool //call back chan
 	Data []byte    //the calling data.
 	Back netw.Cmd  //the call back command.
@@ -119,9 +121,15 @@ func NewRC_Con(con netw.Con, bc *RC_C) *RC_Con {
 		req_c: make(chan *chan_c, 10000),
 	}
 }
+func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
+	return r.Exec_(0, false, args, dest)
+}
+func (r *RC_Con) Execm(m byte, args interface{}, dest interface{}) (interface{}, error) {
+	return r.Exec_(m, true, args, dest)
+}
 
 //execute one command.
-func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
+func (r *RC_Con) Exec_(m byte, bs bool, args interface{}, dest interface{}) (interface{}, error) {
 	if args == nil {
 		return nil, util.Err("arg val is nil")
 	}
@@ -136,6 +144,8 @@ func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
 		return nil, err
 	}
 	tc := &chan_c{
+		B:    m,
+		BS:   bs,
 		C:    make(chan bool),
 		Data: bys,
 	}
@@ -144,7 +154,11 @@ func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
 	close(tc.C)
 	if tc.Err == nil {
 		defer tc.Back.Done()
-		return r.B2V()(tc.Back.Data(), dest)
+		if bs {
+			return r.B2V()(tc.Back.Data()[1:], dest)
+		} else {
+			return r.B2V()(tc.Back.Data(), dest)
+		}
 	} else {
 		return nil, tc.Err
 	}
@@ -202,7 +216,11 @@ func (r *RC_Con) Run_() {
 		case tc := <-r.req_c:
 			binary.BigEndian.PutUint16(buf, r.exec_id)
 			buf[2] = 0
-			_, tc.Err = con.Writeb(buf, tc.Data)
+			if tc.BS {
+				_, tc.Err = con.Writeb(buf, []byte{tc.B}, tc.Data)
+			} else {
+				_, tc.Err = con.Writeb(buf, tc.Data)
+			}
 			if tc.Err == nil {
 				cm[r.exec_id] = tc
 				r.exec_c++

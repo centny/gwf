@@ -15,7 +15,7 @@ var ShowLog bool = false
 
 func log_d(f string, args ...interface{}) {
 	if ShowLog {
-		log.D(f, args...)
+		log.D_(1, f, args...)
 	}
 }
 
@@ -156,11 +156,10 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte,
 	obdh := impl.NewOBDH()
 	//
 	nim := &NIM_Rh{Db: db}
-	nim_m := impl.NewRCM_S(nd, vna)
-	nim_m.AddHH("LI", nim)
-	nim_m.AddHH("LO", nim)
+	nim_ob := impl.NewOBDH()
+	nim.H(nim_ob)
 	obdh.AddH(MK_NIM, nim)
-	obdh.AddH(MK_NRC, impl.NewRC_S(nim_m))
+	obdh.AddH(MK_NRC, impl.NewRC_S(nim_ob))
 	//
 	dim := &DIM_Rh{Db: db, DS: map[string]netw.Con{}}
 	dim_m := impl.NewRCM_S(nd, vna)

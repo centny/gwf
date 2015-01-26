@@ -387,7 +387,9 @@ func (l *LConPool) LoopTimeout() {
 				cons = append(cons, c)
 			}
 		}
-		log_d("closing %v connection for timeout", len(cons))
+		if (len(cons)) > 0 {
+			log.D("closing %v connection for timeout", len(cons))
+		}
 		for _, con := range cons {
 			con.Close()
 		}
@@ -459,12 +461,12 @@ func (l *LConPool) RunC_(con Con) {
 			break
 		}
 		if !bytes.HasPrefix(buf, mod) {
-			log_d("reading invalid mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
+			log.W("reading invalid mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
 			continue
 		}
 		dlen := binary.BigEndian.Uint16(buf[mod_l:])
-		if dlen < 1 {
-			log_d("reading invalid data len for mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
+		if dlen < 2 {
+			log.W("reading invalid data len for mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
 			continue
 		}
 		dbuf := l.P.Alloc(int(dlen))
@@ -472,6 +474,10 @@ func (l *LConPool) RunC_(con Con) {
 		if err != nil {
 			log_d("read data from(%v) error:%v", con.RemoteAddr().String(), err.Error())
 			break
+		}
+		if len(dbuf) < 3 {
+			log.W("------>%v,len:%v", dbuf, dlen)
+			continue
 		}
 		l.H.OnCmd(&Cmd_{
 			Con:   con,

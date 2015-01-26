@@ -25,9 +25,10 @@ func (o *OBDH_Con) Writeb(bys ...[]byte) (int, error) {
 func (o *OBDH_Con) Writev(val interface{}) (int, error) {
 	return netw.Writev(o, val)
 }
-func (o *OBDH_Con) Exec(dest interface{}, args interface{}) (interface{}, error) {
-	return nil, util.Err("connection not implement Exec")
-}
+
+// func (o *OBDH_Con) Exec(dest interface{}, args interface{}) (interface{}, error) {
+// 	return nil, util.Err("connection not implement Exec")
+// }
 
 /*
 
@@ -75,7 +76,7 @@ func NewOBDH() *OBDH {
 func (o *OBDH) OnCmd(c netw.Cmd) int {
 	if len(c.Data()) < 2 {
 		c.Done()
-		log.W("receive empty command data from %v", c.RemoteAddr().String())
+		log.W("receive empty command data(%v) from %v", c.Data(), c.RemoteAddr().String())
 		return -1
 	}
 	log_d("OBDH receive data:%v", string(c.Data()))

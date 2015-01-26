@@ -5,6 +5,7 @@ import (
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/util"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -56,14 +57,26 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	}
 	mcon := impl.NewOBDH_Con(MK_NRC, con)
 	rcon := impl.NewRC_Con(mcon, tc)
-	rmcon := impl.NewRCM_Con(rcon, impl.Json_NAV)
-	rmcon.Start()
-	res, err := rmcon.ExecRes("LI", map[string]interface{}{
+	rcon.Start()
+	// lic := impl.NewOBDH_Con(MK_NRC_LI, rcon)
+	// loc := impl.NewOBDH_Con(MK_NRC_LO, rcon)
+	var res util.Map
+	_, err = rcon.Execm(MK_NRC_LI, map[string]interface{}{
 		"token": "abc",
-	})
-	if res.Code != 0 {
-		panic(res.Res)
+	}, &res)
+	// rmcon := impl.NewRCM_Con(rcon, impl.Json_NAV)
+	// rmcon.Start()
+	// res, err := rmcon.ExecRes("LI", map[string]interface{}{
+	// 	"token": "abc",
+	// })
+	if err != nil {
+		panic(err.Error())
 	}
+	if res.IntVal("code") != 0 {
+		fmt.Println(res)
+		panic(res.StrVal("res"))
+	}
+	// fmt.Println("----->")
 	msgc := impl.NewOBDH_Con(MK_NIM, con)
 	for i := 0; i < 1000; i++ {
 		rs := []string{}
@@ -95,7 +108,8 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	}
 	cc_ws.Done()
 	cc_ws2.Wait()
-	rmcon.ExecRes("LO", nil)
+	// rmcon.ExecRes("LO", nil)
+	rcon.Execm(MK_NRC_LO, map[string]string{}, &res)
 	time.Sleep(1 * time.Second)
 	l.Close()
 	atomic.AddUint64(&hr_cc_c, tc.RCC)
@@ -133,7 +147,7 @@ func run_c(db *MemDbH, p *pool.BytePool, rm *rec_msg) {
 			go run_im_c(p, db, rm)
 			time.Sleep(time.Millisecond)
 		}
-		time.Sleep(3 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 	go show_cc(db, rm, p)
 	cc_ws.Wait()
@@ -146,6 +160,7 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 	for i := 0; i < 5; i++ {
 		l := NewListner(db, fmt.Sprintf("S-vv-%v", i), p, 9890+i,
 			impl.Json_V2B, impl.Json_B2V, impl.Json_ND, impl.Json_NAV, impl.Json_VNA)
+		l.T = 30000
 		err := l.Run()
 		if err != nil {
 			panic(err.Error())
@@ -157,7 +172,7 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 		// 		fmt.Println("-->", l.NIM.DC, l.NIM.SS.(*MarkConPoolSender).EC)
 		// 	}
 		// }()
-		time.Sleep(2 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 	cc_ws2.Wait()
 	// time.Sleep(2 * time.Second)
@@ -172,7 +187,7 @@ func TestIm(t *testing.T) {
 	// netw.ShowLog = true
 	db := NewMemDbH()
 	rm := &rec_msg{}
-	p := pool.NewBytePool(8, 1024)
+	p := pool.NewBytePool(8, 102400)
 	go db.GrpBuilder()
 	go run_s(db, p)
 	time.Sleep(100 * time.Millisecond)
