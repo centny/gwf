@@ -329,6 +329,15 @@ func http_res(code int, data interface{}, msg string, dmsg string) util.Map {
 	res["dmsg"] = dmsg
 	return res
 }
+func http_res_ext(code int, data interface{}, msg string, dmsg string, ext interface{}) util.Map {
+	res := make(util.Map)
+	res["code"] = code
+	res["msg"] = msg
+	res["data"] = data
+	res["dmsg"] = dmsg
+	res["ext"] = res
+	return res
+}
 
 // func json_res(code int, data interface{}, msg string, dmsg string) []byte {
 // 	res := http_res(code, data, msg, dmsg)
@@ -354,7 +363,9 @@ func (h *HTTPSession) JsonRes(data interface{}) error {
 func (h *HTTPSession) MsgRes(data interface{}) HResult {
 	return h.JRes(http_res(0, data, "", ""))
 }
-
+func (h *HTTPSession) MsgResExt(data interface{}, ext interface{}) HResult {
+	return h.JRes(http_res_ext(0, data, "", "", ext))
+}
 func (h *HTTPSession) MsgRes2(code int, data interface{}) HResult {
 	return h.JRes(http_res(code, data, "", ""))
 }
