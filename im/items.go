@@ -12,7 +12,7 @@ const (
 )
 
 type Msg struct {
-	netw.Cmd `-`
+	netw.Cmd `json:"-"`
 	Id       string            `_id`
 	S        string            `json:"s"` //the sender R.
 	R        []string          `json:"r"` //logic R

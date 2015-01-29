@@ -445,6 +445,9 @@ func (l *LConPool) RunC_(con Con) {
 	defer func() {
 		log_d("closing connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())
 		con.Close()
+		if err := recover(); err != nil {
+			log.E("RunC_ close err:%v", err)
+		}
 	}()
 	log_d("running connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())
 	l.add_c(con)
