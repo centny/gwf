@@ -358,7 +358,7 @@ type LConPool struct {
 }
 
 //new connection pool.
-func NewLConPool(p *pool.BytePool, h CCHandler) *LConPool {
+func NewLConPool(p *pool.BytePool, h CCHandler, n string) *LConPool {
 	return &LConPool{
 		T:      CON_TIMEOUT,
 		P:      p,
@@ -369,7 +369,7 @@ func NewLConPool(p *pool.BytePool, h CCHandler) *LConPool {
 		Err_: func(c Cmd, d int, code byte, f string, args ...interface{}) {
 			log.D_(d, f, args...)
 		},
-		Id_: fmt.Sprintf("P%v", atomic.AddUint64(&pool_idc, 1)),
+		Id_: fmt.Sprintf("%v%v", n, atomic.AddUint64(&pool_idc, 1)),
 	}
 }
 

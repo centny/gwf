@@ -34,7 +34,7 @@ func ExecDail2(p *pool.BytePool, addr string, v2b netw.V2Byte, b2v netw.Byte2V) 
 }
 func ExecDailN(p *pool.BytePool, addr string, h netw.CmdHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
 	cch := netw.NewCCH(NewRC_C_H(), h)
-	np := netw.NewNConPool(p, cch)
+	np := netw.NewNConPool2(p, cch)
 	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		cc := netw.NewCon_(cp, p, con)
 		cc.V2B_, cc.B2V_ = v2b, b2v
@@ -54,7 +54,7 @@ func NewExecListener(p *pool.BytePool, port string, h netw.CCHandler) *netw.List
 	return NewExecListenerN(p, port, h, V2B_Byte, B2V_Copy)
 }
 func NewExecListenerN(p *pool.BytePool, port string, h netw.CCHandler, v2b netw.V2Byte, b2v netw.Byte2V) *netw.Listener {
-	return netw.NewListenerN(p, port, netw.NewCCH(h, NewRC_S(h)), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	return netw.NewListenerN2(p, port, netw.NewCCH(h, NewRC_S(h)), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		cc := netw.NewCon_(cp, p, con)
 		cc.V2B_ = v2b
 		cc.B2V_ = b2v
@@ -85,7 +85,7 @@ func NewExecListenerN_m(p *pool.BytePool, port string, h netw.ConHandler, v2b ne
 }
 
 func NewExecListenerN_m_r(p *pool.BytePool, port string, h netw.ConHandler, rc *RCM_S, v2b netw.V2Byte, b2v netw.Byte2V) *netw.Listener {
-	return netw.NewListenerN(p, port, netw.NewCCH(h, NewRC_S(rc)), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	return netw.NewListenerN2(p, port, netw.NewCCH(h, NewRC_S(rc)), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		cc := netw.NewCon_(cp, p, con)
 		cc.V2B_ = v2b
 		cc.B2V_ = b2v
@@ -94,7 +94,7 @@ func NewExecListenerN_m_r(p *pool.BytePool, port string, h netw.ConHandler, rc *
 }
 func NewChanExecListenerN_m_r(p *pool.BytePool, port string, h netw.ConHandler, rc *RCM_S, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.Listener, *ChanH) {
 	cc := NewChanH(NewRC_S(rc))
-	return netw.NewListenerN(p, port, netw.NewCCH(h, cc), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	return netw.NewListenerN2(p, port, netw.NewCCH(h, cc), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		cc := netw.NewCon_(cp, p, con)
 		cc.V2B_ = v2b
 		cc.B2V_ = b2v

@@ -1,6 +1,7 @@
 package im
 
 import (
+	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
@@ -33,14 +34,17 @@ func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
 	defer c.Done()
 	// log_d("NIM_Rh receive data:%v", string(c.Data()))
 	var mc Msg
-	_, err := c.V(&mc)
+	_, err := c.V(&mc.ImMsg)
 	if err != nil {
-		log.E("convert valus to IM msg error:%v", err.Error())
+		log.E("convert values(%v) to IM msg error:%v", c.Data(), err.Error())
 		return -1
 	}
-	mc.S = c.Id()
+	sid := c.Kvs().StrVal("R")
+	tn := util.Now()
+	mc.S = &sid
 	mc.Cmd = c
 	mc.Ms = map[string]string{}
+	mc.Time = &tn
 	return n.OnMsg(&mc)
 }
 func (n *NIM_Rh) OnMsg(mc *Msg) int {
@@ -61,41 +65,49 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 		log.E("receive empty R message(%v)", mc)
 		return -1
 	}
-	log_d("sending message(%v) to RS(%v)", mc, ur)
+	log_d("receive message(%v) to RS(%v) in S(%v)", mc, ur, n.SS.Id())
 	//
 	cons, err := n.Db.ListCon(ur)
 	if err != nil {
 		log.E("list Con by R(%v) err:%v", ur, err.Error())
 		return -1
 	}
-	log_d("found %v online user for RS(%v)", len(cons), ur)
-	c_sid := n.SS.Id()                      //current server id.
-	sr_ed := map[string]byte{}              //already exec
-	dr_rc := map[string]map[string]string{} //
-	for _, con := range cons {              //do online user
+	log_d("found %v online user for RS(%v) in S(%v)", len(cons), ur, n.SS.Id())
+	c_sid := n.SS.Id()             //current server id.
+	sr_ed := map[string]byte{}     //already exec
+	dr_rc := map[string][]*pb.RC{} //
+	for _, con := range cons {     //do online user
 		sr_ed[con.R] = 1
 		if con.Sid == c_sid { //in current server
-			mc.D = con.R                 //setting current receive user R.
-			err = n.SS.Send(con.Cid, mc) //send message to client.
+			mc.D = &con.R                       //setting current receive user R.
+			err = n.SS.Send(con.Cid, &mc.ImMsg) //send message to client.
 			if err == nil {
 				atomic.AddUint64(&n.DC, 1)
 				mc.Ms[con.R] = MS_DONE //mark done
 			} else {
-				log_d("sending message to R(%v) err:%v", con.R, err.Error())
+				log.E("sending message(%v) to R(%v) err:%v", mc.ImMsg, con.R, err.Error())
 				mc.Ms[con.R] = MS_ERR + err.Error() //mark send error.
 			}
 		} else { //in other distribution server
 			mc.Ms[con.R] = MS_PENDING //mark to pending.
+			tr, tc := con.R, con.Cid
 			if _, ok := dr_rc[con.Sid]; ok {
-				dr_rc[con.Sid][con.R] = con.Cid
+				dr_rc[con.Sid] = append(dr_rc[con.Sid],
+					&pb.RC{
+						R: &tr,
+						C: &tc,
+					})
 			} else {
-				dr_rc[con.Sid] = map[string]string{
-					con.R: con.Cid,
+				dr_rc[con.Sid] = []*pb.RC{
+					&pb.RC{
+						R: &tr,
+						C: &tc,
+					},
 				}
 			}
 		}
 	}
-
+	// log_d("sr_ed---->%v in S(%v)", sr_ed, c_sid)
 	for _, r := range ur { //do offline user
 		if _, ok := sr_ed[r]; ok {
 			continue
@@ -113,16 +125,17 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	if n.DS == nil {
 		return 0
 	}
+	// log_d("sending in S(%v) DR_RC->%v", c_sid, dr_rc)
 	for dr, rc := range dr_rc { //if having distribution message.
-		dmc := &DsMsg{
-			M:  *mc,
-			RC: rc,
+		dmc := &pb.DsMsg{
+			M:  &mc.ImMsg,
+			Rc: rc,
 		}
 		err = n.DS.Send(dr, dmc)
 		if err == nil { //if not err,the other distribution server will makr result.
 			continue
 		} else {
-			log.E("sending message(%v) to distribution server(%v) err:%v", mc, dr, err.Error())
+			log.E("sending message(%v) to distribution server(%v) err:%v", mc.ImMsg, dr, err.Error())
 		}
 	}
 	return 0

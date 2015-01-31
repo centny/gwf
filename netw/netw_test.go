@@ -103,7 +103,7 @@ func TestNetw(t *testing.T) {
 	ShowLog = true
 	p := pool.NewBytePool(8, 1024)
 	ts := &th_s{C: NewDoNoH()}
-	l := NewListener(p, ":7686", NewCCH(NewQueueConH(ts, NewDoNoH()), ts))
+	l := NewListener2(p, ":7686", NewCCH(NewQueueConH(ts, NewDoNoH()), ts))
 	l.T = 500
 	go http.ListenAndServe(":7687", l.WsH())
 	err := l.Run()
@@ -112,7 +112,7 @@ func TestNetw(t *testing.T) {
 		return
 	}
 	tc := &th_c{}
-	c := NewNConPool(p, tc)
+	c := NewNConPool2(p, tc)
 	cc_con, err := c.Dail("127.0.0.1:7686")
 	if err != nil {
 		t.Error(err.Error())
@@ -130,7 +130,7 @@ func TestNetw(t *testing.T) {
 	tc3 := &th_c2{
 		tt: false,
 	}
-	c2 := NewNConPool(p, tc2)
+	c2 := NewNConPool2(p, tc2)
 	c2.NewCon = func(cp ConPool, l *pool.BytePool, con net.Conn) Con {
 		cc := NewCon_(cp, p, con)
 		cc.V2B_ = func(v interface{}) ([]byte, error) {
@@ -139,7 +139,7 @@ func TestNetw(t *testing.T) {
 		return cc
 	}
 	c2.Dail("127.0.0.1:7686")
-	c3 := NewNConPool(p, tc3)
+	c3 := NewNConPool2(p, tc3)
 	c3.Dail("127.0.0.1:7686")
 	time.Sleep(2 * time.Second)
 	c.Close()
@@ -190,9 +190,9 @@ func TestNetw(t *testing.T) {
 	l.Close()
 	l.Wait()
 	//
-	NewNConPool(p, tc).Dail("skfjs:dsfs")
-	NewListener(p, "", &th_s{}).Run()
-	NewListener(p, "ssfs:dsf", &th_s{}).Run()
+	NewNConPool2(p, tc).Dail("skfjs:dsfs")
+	NewListener2(p, "", &th_s{}).Run()
+	NewListener2(p, "ssfs:dsf", &th_s{}).Run()
 	Dail(p, "addr", nil)
 }
 
@@ -205,7 +205,7 @@ func TestWs(t *testing.T) {
 	ShowLog = true
 	p := pool.NewBytePool(8, 1024)
 	ts_h := &th_s{C: NewDoNoH()}
-	l := NewListener(p, ":7688", NewCCH(NewQueueConH(ts_h, NewDoNoH()), ts_h))
+	l := NewListener2(p, ":7688", NewCCH(NewQueueConH(ts_h, NewDoNoH()), ts_h))
 	err := l.Run()
 	if err != nil {
 		t.Error(err.Error())

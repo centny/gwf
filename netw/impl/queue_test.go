@@ -26,7 +26,7 @@ func TestQueue(t *testing.T) {
 	ts := NewQueueH()
 	ts.AddH(&th_s2{})
 	ts.AddH(&th_s{})
-	l := netw.NewListener(p, ":7686", netw.NewCCH(&th_s_c{}, ts))
+	l := netw.NewListener2(p, ":7686", netw.NewCCH(&th_s_c{}, ts))
 	l.T = 500
 	err := l.Run()
 	if err != nil {
@@ -34,7 +34,7 @@ func TestQueue(t *testing.T) {
 		return
 	}
 	tc := &th_c{}
-	c := netw.NewNConPool(p, netw.NewCCH(&th_c_c{}, tc))
+	c := netw.NewNConPool2(p, netw.NewCCH(&th_c_c{}, tc))
 	_, err = c.Dail("127.0.0.1:7686")
 	if err != nil {
 		t.Error(err.Error())

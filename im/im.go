@@ -3,11 +3,13 @@ package im
 import (
 	"code.google.com/p/go-uuid/uuid"
 	"fmt"
+	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
+	"github.com/golang/protobuf/proto"
 	"net"
 )
 
@@ -58,7 +60,7 @@ type DbH interface {
 	//
 	//
 	//update the message R status
-	Update(m *Msg, rs map[string]string) error
+	Update(mid string, rs map[string]string) error
 	//store mesage
 	Store(m *Msg) error
 }
@@ -114,7 +116,7 @@ func (m *MarkConPoolSender) Id() string {
 func (m *MarkConPoolSender) Send(cid string, v interface{}) error {
 	cc := m.CP.Find(cid)
 	if cc == nil {
-		return util.Err("con not found by id(%v)", cid)
+		return util.Err("con not found by id(%v) in pool(%v)", cid, m.Id_)
 	} else {
 		return m.SendC(cc, v)
 	}
@@ -138,6 +140,7 @@ func (m *MarkConPoolSender) SendC(con netw.Con, v interface{}) error {
 
 type Listener struct {
 	*netw.Listener
+	Obdh    *impl.OBDH
 	NIM     *NIM_Rh
 	DIP     *DimPool
 	DIM     *DIM_Rh
@@ -185,13 +188,16 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte,
 	}
 	dip := NewDimPool(db, sid, p, v2b, b2v, nav, ncf, dim)
 	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), obdh)
-	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), cch, ncf)
+	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), sid, cch, ncf)
+	// l.LConPool.SetId(sid)
+	// l.SetId(sid)
 	nim.SS = NewMarkConPoolSender([]byte{MK_NIM}, l, sid)
 	dim.SS = nim.SS
 	nch.SS = nim.SS
 	nim.DS = NewMarkConPoolSender([]byte{MK_DIM}, NewMultiFinder(dim, dip), sid)
 	var tl = &Listener{
 		Listener: l,
+		Obdh:     obdh,
 		NIM:      nim,
 		DIP:      dip,
 		DIM:      dim,
@@ -204,6 +210,10 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte,
 	}
 	rl = tl
 	return tl
+}
+func NewListner2(db DbH, sid string, p *pool.BytePool, port int) *Listener {
+	return NewListner(db, sid, p, port,
+		IM_V2B, IM_B2V, impl.Json_ND, impl.Json_NAV, impl.Json_VNA)
 }
 func (l *Listener) Run() error {
 	err := l.DIP.Dail()
@@ -236,4 +246,32 @@ func (l *Listener) Close() {
 	if err != nil {
 		log.E("delete server by sid(%v) err:%v", l.Sid, err.Error())
 	}
+}
+
+func IM_V2B(v interface{}) ([]byte, error) {
+	switch v.(type) {
+	case *pb.ImMsg:
+		return proto.Marshal(v.(*pb.ImMsg))
+	case *pb.DsMsg:
+		return proto.Marshal(v.(*pb.DsMsg))
+	default:
+		return impl.Json_V2B(v)
+	}
+}
+func IM_B2V(bys []byte, v interface{}) (interface{}, error) {
+	switch v.(type) {
+	case *pb.ImMsg:
+		return v, proto.Unmarshal(bys, v.(*pb.ImMsg))
+	case *pb.DsMsg:
+		return v, proto.Unmarshal(bys, v.(*pb.DsMsg))
+	default:
+		return impl.Json_B2V(bys, v)
+	}
+}
+
+func IM_NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	cc := netw.NewCon_(cp, p, con)
+	cc.V2B_ = IM_V2B
+	cc.B2V_ = IM_B2V
+	return cc
 }

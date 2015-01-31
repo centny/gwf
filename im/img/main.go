@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/Centny/gwf/im"
 	"github.com/Centny/gwf/netw"
-	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"net/http"
@@ -16,8 +15,7 @@ func main() {
 	netw.ShowLog = true
 	p := pool.NewBytePool(8, 1024)
 	go db.GrpBuilder()
-	l := im.NewListner(db, "S-vv-1", p, 9891,
-		impl.Json_V2B, impl.Json_B2V, impl.Json_ND, impl.Json_NAV, impl.Json_VNA)
+	l := im.NewListner2(db, "S-vv-1", p, 9891)
 	err := l.Run()
 	if err != nil {
 		panic(err.Error())

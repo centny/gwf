@@ -2,6 +2,7 @@ package im
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
@@ -51,7 +52,7 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	ch := impl.NewChanH(obdh)
 	tcch := netw.NewCCH(netw.NewDoNoH(), ch)
 	ch.Run(5)
-	l, con, err := netw.DailN(p, srv.Addr(), tcch, impl.Json_NewCon)
+	l, con, err := netw.DailN(p, srv.Addr(), tcch, IM_NewCon)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -94,11 +95,13 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
-		_, err := msgc.Writev(&Msg{
-			R: rs,
-			T: 0,
-			C: []byte{1, 2, 4},
-		})
+		var tt uint32 = 0
+		_, err := msgc.Writev(
+			&pb.ImMsg{
+				R: rs,
+				T: &tt,
+				C: []byte{1, 2, 4},
+			})
 		if err != nil {
 			panic(err.Error())
 		}
@@ -127,9 +130,11 @@ func wait_rec(db *MemDbH, rm *rec_msg) {
 		time.Sleep(4 * time.Second)
 		m, _, _, _, d := db.Show()
 		if m < m_cc_c {
+			fmt.Printf("Waiting msg(%v),done(%v)\n", m, m_cc_c)
 			continue
 		}
 		if rm.cc < d {
+			fmt.Printf("Waiting rec(%v),done(%v)\n", d, rm.cc)
 			continue
 		} else {
 			break
@@ -158,8 +163,7 @@ func run_c(db *MemDbH, p *pool.BytePool, rm *rec_msg) {
 func run_s(db *MemDbH, p *pool.BytePool) {
 	ls := []*Listener{}
 	for i := 0; i < 5; i++ {
-		l := NewListner(db, fmt.Sprintf("S-vv-%v", i), p, 9890+i,
-			impl.Json_V2B, impl.Json_B2V, impl.Json_ND, impl.Json_NAV, impl.Json_VNA)
+		l := NewListner2(db, fmt.Sprintf("S-vv-%v", i), p, 9890+i)
 		l.T = 30000
 		err := l.Run()
 		if err != nil {

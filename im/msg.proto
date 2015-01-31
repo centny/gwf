@@ -1,0 +1,21 @@
+option java_package = "org.cny.jwf.im.pb";
+option go_package = "pb";
+message ImMsg {
+	optional string i = 1;
+	optional string s = 2;
+	repeated string r = 3;
+	required uint32 t = 4;
+	optional string d = 5;
+	required bytes c = 6;
+	optional int64 time = 7;
+}
+
+message RC {
+	required string r = 1;
+	required string c = 2;
+}
+
+message DsMsg {
+	required ImMsg m = 1;
+	repeated RC rc = 2;
+}

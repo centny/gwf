@@ -18,17 +18,23 @@ type Listener struct {
 }
 
 //new one listener.
-func NewListener(p *pool.BytePool, port string, h CCHandler) *Listener {
-	return NewListenerN(p, port, h, NewCon)
+func NewListener(p *pool.BytePool, port string, n string, h CCHandler) *Listener {
+	return NewListenerN(p, port, n, h, NewCon)
 }
-func NewListenerN(p *pool.BytePool, port string, h CCHandler, ncf NewConF) *Listener {
+func NewListener2(p *pool.BytePool, port string, h CCHandler) *Listener {
+	return NewListener(p, port, "S-", h)
+}
+func NewListenerN(p *pool.BytePool, port string, n string, h CCHandler, ncf NewConF) *Listener {
 	ls := &Listener{
 		Port:     port,
-		LConPool: NewLConPool(p, h),
+		LConPool: NewLConPool(p, h, n),
 		Wc:       make(chan int),
 	}
 	ls.NewCon = ncf
 	return ls
+}
+func NewListenerN2(p *pool.BytePool, port string, h CCHandler, ncf NewConF) *Listener {
+	return NewListenerN(p, port, "S-", h, ncf)
 }
 
 //listen on the special port.

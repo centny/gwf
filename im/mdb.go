@@ -52,12 +52,16 @@ func (m *MemDbH) AddCon(c *Con) error {
 	m.con_l.Lock()
 	defer m.con_l.Unlock()
 	m.Cons[fmt.Sprintf("%v%v%v%v", c.Sid, c.Cid, c.R, c.T)] = c
+	log_d("adding connection %v", c)
 	return nil
 }
 func (m *MemDbH) DelCon(sid, cid, r string, t byte) error {
 	m.con_l.Lock()
 	defer m.con_l.Unlock()
-	delete(m.Cons, fmt.Sprintf("%v%v%v%v", sid, cid, r, t))
+	key := fmt.Sprintf("%v%v%v%v", sid, cid, r, t)
+	c := m.Cons[key]
+	delete(m.Cons, key)
+	log_d("delete connection %v", c)
 	return nil
 }
 
@@ -184,17 +188,17 @@ func (m *MemDbH) OnUsrLogout(r string, args *util.Map) error {
 //
 //
 //update the message R status
-func (m *MemDbH) Update(ms *Msg, rs map[string]string) error {
+func (m *MemDbH) Update(mid string, rs map[string]string) error {
 	m.ms_l.Lock()
 	defer m.ms_l.Unlock()
-	if tm, ok := m.Ms[ms.Id]; ok {
+	if tm, ok := m.Ms[mid]; ok {
 		for r, s := range rs {
 			tm.Ms[r] = s
 		}
-		m.Ms[tm.Id] = tm
+		m.Ms[mid] = tm
 		return nil
 	} else {
-		return util.Err("message not found by id(%v)", ms.Id)
+		return util.Err("message not found by id(%v)", mid)
 	}
 }
 
@@ -202,8 +206,9 @@ func (m *MemDbH) Update(ms *Msg, rs map[string]string) error {
 func (m *MemDbH) Store(ms *Msg) error {
 	m.ms_l.Lock()
 	defer m.ms_l.Unlock()
-	ms.Id = fmt.Sprintf("M-%v", atomic.AddUint64(&m.m_cc, 1))
-	m.Ms[ms.Id] = ms
+	i := fmt.Sprintf("M-%v", atomic.AddUint64(&m.m_cc, 1))
+	ms.I = &i
+	m.Ms[ms.GetI()] = ms
 	return nil
 }
 

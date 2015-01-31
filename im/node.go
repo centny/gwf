@@ -29,7 +29,7 @@ func (n *NodeRh) OnCmd(c netw.Cmd) int {
 		log.E("convert value(%v) to Msg error:%v", string(c.Data()), err.Error())
 		return -1
 	}
-	if len(mc.S) < 1 {
+	if mc.S == nil || len(*mc.S) < 1 {
 		log.E("receive not sender Msg(%v) from(%v)", string(c.Data()), c.RemoteAddr().String())
 		return -1
 	}

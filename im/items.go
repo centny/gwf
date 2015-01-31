@@ -2,6 +2,7 @@ package im
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/netw"
 )
 
@@ -12,20 +13,15 @@ const (
 )
 
 type Msg struct {
-	netw.Cmd `json:"-"`
-	Id       string            `json:"id"`
-	S        string            `json:"s"` //the sender R.
-	R        []string          `json:"r"` //logic R
-	D        string            `json:"d"` //target user R.
-	T        byte              `json:"t"` //type.
-	C        []byte            `json:"c"` //the content.
-	Ms       map[string]string `json:"-"` //send status for user R.
+	netw.Cmd `bson:"-" json:"-"`
+	pb.ImMsg
+	Ms map[string]string `json:"-"` //send status for user R.
 }
 
-type DsMsg struct {
-	M  Msg               `json:"m"`
-	RC map[string]string `json:"rc"`
-}
+// type DsMsg struct {
+// 	M  pb.ImMsg          `json:"m"`
+// 	RC map[string]string `json:"rc"`
+// }
 
 const (
 	CT_TCP = 0
@@ -43,11 +39,10 @@ type Con struct {
 
 //online server
 type Srv struct {
-	Id    string `_id`
-	Sid   string `json:"sid"`   //server id
-	Host  string `json:"host"`  //server addr
-	Port  int    `json:"port"`  //server port.
-	Token string `json:"token"` //server login token
+	Sid   string `bson:"_id" json:"sid"` //server id
+	Host  string `json:"host"`           //server addr
+	Port  int    `json:"port"`           //server port.
+	Token string `json:"token"`          //server login token
 }
 
 func (s *Srv) Addr() string {

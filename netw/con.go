@@ -24,10 +24,13 @@ type NConPool struct {
 }
 
 //new client connection pool.
-func NewNConPool(p *pool.BytePool, h CCHandler) *NConPool {
+func NewNConPool(p *pool.BytePool, h CCHandler, n string) *NConPool {
 	return &NConPool{
-		LConPool: NewLConPool(p, h),
+		LConPool: NewLConPool(p, h, n),
 	}
+}
+func NewNConPool2(p *pool.BytePool, h CCHandler) *NConPool {
+	return NewNConPool(p, h, "C-")
 }
 
 //dail one connection.
@@ -48,7 +51,7 @@ func Dail(p *pool.BytePool, addr string, h CCHandler) (*NConPool, Con, error) {
 	return DailN(p, addr, h, NewCon)
 }
 func DailN(p *pool.BytePool, addr string, h CCHandler, ncf NewConF) (*NConPool, Con, error) {
-	nc := NewNConPool(p, h)
+	nc := NewNConPool2(p, h)
 	nc.NewCon = ncf
 	cc, err := nc.Dail(addr)
 	return nc, cc, err

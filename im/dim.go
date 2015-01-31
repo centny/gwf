@@ -2,6 +2,7 @@ package im
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
@@ -32,26 +33,27 @@ func (d *DIM_Rh) Find(id string) netw.Con {
 func (d *DIM_Rh) OnCmd(c netw.Cmd) int {
 	defer c.Done()
 	// log.D("DIM_Rh recieve data:%v", string(c.Data()))
-	var dm DsMsg
+	var dm pb.DsMsg
 	_, err := c.V(&dm)
 	if err != nil {
 		log.E("convert value(%v) to DsMsg error:%v", string(c.Data()), err.Error())
 		return -1
 	}
-	if len(dm.RC) < 1 {
+	if len(dm.Rc) < 1 {
 		log.E("receive invalid DsMsg(%v)", &dm)
 		return -1
 	}
-	dm.M.Ms = map[string]string{}
-	for r, c := range dm.RC {
-		err = d.SS.Send(c, &dm.M)
+	ms := map[string]string{}
+	for _, con := range dm.Rc {
+		err = d.SS.Send(con.GetC(), dm.M)
 		if err == nil {
-			dm.M.Ms[r] = MS_DONE
+			ms[con.GetR()] = MS_DONE
 		} else {
-			dm.M.Ms[r] = MS_ERR + err.Error()
+			log.E("sending message(%v) to R(%v) in S(%v) err:%v", dm.M, con.GetR(), d.SS.Id(), err.Error())
+			ms[con.GetR()] = MS_ERR + err.Error()
 		}
 	}
-	err = d.Db.Update(&dm.M, dm.RC)
+	err = d.Db.Update(dm.M.GetI(), ms)
 	if err == nil {
 		return 0
 	} else {

@@ -66,7 +66,7 @@ func TestOBDM(t *testing.T) {
 	p := pool.NewBytePool(8, 1024)
 	obdh := NewOBDH()
 	obdh.AddH(1, &obdh_s{})
-	l := netw.NewListener(p, ":7686", netw.NewCCH(&obdh_s_c{}, obdh))
+	l := netw.NewListener2(p, ":7686", netw.NewCCH(&obdh_s_c{}, obdh))
 	l.T = 500
 	err := l.Run()
 	if err != nil {
@@ -74,7 +74,7 @@ func TestOBDM(t *testing.T) {
 		return
 	}
 	tc := &obdh_c{}
-	c := netw.NewNConPool(p, netw.NewCCH(&obdh_c_c{}, tc))
+	c := netw.NewNConPool2(p, netw.NewCCH(&obdh_c_c{}, tc))
 	c.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		con_ := netw.NewCon_(cp, p, con)
 		con_.V2B_ = func(v interface{}) ([]byte, error) {
