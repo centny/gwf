@@ -2,6 +2,8 @@ package util
 
 import (
 	"bufio"
+	"crypto/md5"
+	"crypto/sha1"
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
@@ -244,4 +246,61 @@ func Crc32(v []byte) string {
 	bv := make([]byte, 4)
 	binary.BigEndian.PutUint32(bv, uv)
 	return base64.StdEncoding.EncodeToString(bv)
+}
+
+func Copy(dst io.Writer, src io.Reader) (written int64, sha_ []byte, md5_ []byte, err error) {
+	md5_h, sha_h := md5.New(), sha1.New()
+	buf := make([]byte, 32*1024)
+	for {
+		nr, er := src.Read(buf)
+		if nr > 0 {
+			nw, ew := dst.Write(buf[0:nr])
+			md5_h.Write(buf[0:nr])
+			sha_h.Write(buf[0:nr])
+			if nw > 0 {
+				written += int64(nw)
+			}
+			if ew != nil {
+				err = ew
+				break
+			}
+			if nr != nw {
+				err = io.ErrShortWrite
+				break
+			}
+		}
+		if er == io.EOF {
+			break
+		}
+		if er != nil {
+			err = er
+			break
+		}
+	}
+	sha_, md5_ = sha_h.Sum(nil), md5_h.Sum(nil)
+	return
+}
+func Copy2(dst io.Writer, src io.Reader) (written int64, sha_ string, md5_ string, err error) {
+	w, sh, md, err := Copy(dst, src)
+	return w, fmt.Sprintf("%x", sh), fmt.Sprintf("%x", md), err
+}
+
+func Sha1(fn string) (string, error) {
+	f, err := os.Open(fn)
+	if err != nil {
+		return "", err
+	}
+	sha_h := sha1.New()
+	_, err = bufio.NewReader(f).WriteTo(sha_h)
+	return fmt.Sprintf("%x", sha_h.Sum(nil)), err
+}
+
+func Md5(fn string) (string, error) {
+	f, err := os.Open(fn)
+	if err != nil {
+		return "", err
+	}
+	sha_h := md5.New()
+	_, err = bufio.NewReader(f).WriteTo(sha_h)
+	return fmt.Sprintf("%x", sha_h.Sum(nil)), err
 }

@@ -293,11 +293,26 @@ func (h *HTTPSession) RecF(name, tfile string) (int64, error) {
 		return 0, err
 	}
 	dst, _ := os.OpenFile(tfile, os.O_RDWR|os.O_APPEND, 0644)
-	csize, err := io.Copy(dst, src)
 	dst.Close()
-	return csize, err
+	return io.Copy(dst, src)
 }
-
+func (h *HTTPSession) RecF2(name, tfile string) (w int64, sha_ string, md5_ string, err error) {
+	w, sh, md, err := h.RecFv(name, tfile)
+	return w, fmt.Sprintf("%x", sh), fmt.Sprintf("%x", md), err
+}
+func (h *HTTPSession) RecFv(name, tfile string) (w int64, sha_ []byte, md5_ []byte, err error) {
+	src, _, err := h.R.FormFile(name)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	err = util.FTouch(tfile)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	dst, _ := os.OpenFile(tfile, os.O_RDWR|os.O_APPEND, 0644)
+	defer dst.Close()
+	return util.Copy(dst, src)
+}
 func (h *HTTPSession) SendF(fname, tfile, ctype string, attach bool) {
 	SendF(h.W, h.R, fname, tfile, ctype, attach)
 }
@@ -351,7 +366,7 @@ func http_res_ext(code int, data interface{}, msg string, dmsg string, ext inter
 	res["msg"] = msg
 	res["data"] = data
 	res["dmsg"] = dmsg
-	res["ext"] = res
+	res["ext"] = ext
 	return res
 }
 

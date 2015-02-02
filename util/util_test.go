@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"syscall"
@@ -262,4 +263,43 @@ func (s *Sw) Read(p []byte) (n int, err error) {
 func TestCrc32(t *testing.T) {
 	fmt.Println(Crc32([]byte("fwnfiuchvwhrwiuv cs")))
 	fmt.Println(Crc32([]byte("fwnfiuchvwhrwiuv cs.png")))
+}
+
+type RW_ struct {
+	r int
+}
+
+func (r *RW_) Read(p []byte) (n int, err error) {
+	// fmt.Println("reading....")
+	r.r += 5
+	if r.r > 30 {
+		return 0, Err("sss")
+	} else if r.r > 20 {
+		return 0, io.EOF
+	} else if r.r == 10 {
+		return 0, io.EOF
+	}
+	return 5, nil
+}
+func (r *RW_) Write(p []byte) (n int, err error) {
+	if r.r > 10 {
+		return 0, Err("ssff")
+	}
+	return len(p), nil
+}
+
+func TestCopy(t *testing.T) {
+	rw := &RW_{}
+
+	f, _ := os.Open("util.go")
+	defer f.Close()
+	fmt.Println(Copy2(rw, f))
+	fmt.Println(Copy2(rw, rw))
+	fmt.Println(Copy2(rw, rw))
+	fmt.Println(Copy2(rw, rw))
+	fmt.Println(Copy2(rw, rw))
+	// fmt.Println("sss", base64.StdEncoding.EncodeToString(sha_))
+	// fmt.Println("sss", base64.StdEncoding.EncodeToString(md5_))
+	// fmt.Println(Copy(rw, rw))
+	fmt.Println("--->")
 }
