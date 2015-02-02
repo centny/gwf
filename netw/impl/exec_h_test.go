@@ -56,7 +56,7 @@ func TestExec(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	np, con, err := ExecDail(p, "127.0.0.1:7686")
+	np, con, err := ExecDail(p, "127.0.0.1:7686", netw.NewCWH(true))
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -97,6 +97,6 @@ func TestExec(t *testing.T) {
 	con.Exec([]byte{22}, nil)
 	con.Con = nil
 	con.Exec([]byte{22}, nil)
-	ExecDail(p, "addr")
+	ExecDail(p, "addr", netw.NewCWH(true))
 	V2B_Byte("sfdsdfs")
 }

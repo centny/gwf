@@ -9,7 +9,9 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/util"
 	"net"
+	"time"
 )
 
 var ShowLog bool = false
@@ -25,16 +27,16 @@ func log_d(f string, args ...interface{}) {
 
 */
 //
-func ExecDail(p *pool.BytePool, addr string) (*netw.NConPool, *RC_Con, error) {
-	return ExecDail2(p, addr, V2B_Byte, B2V_Copy)
+func ExecDail(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *RC_Con, error) {
+	return ExecDail2(p, addr, h, V2B_Byte, B2V_Copy)
 }
-func ExecDail2(p *pool.BytePool, addr string, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
+func ExecDail2(p *pool.BytePool, addr string, h netw.ConHandler, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
 	tc := NewRC_C()
-	return ExecDailN(p, addr, tc, tc, v2b, b2v)
+	return ExecDailN(p, addr, netw.NewCCH(h, tc), tc, v2b, b2v)
 }
-func ExecDailN(p *pool.BytePool, addr string, h netw.CmdHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
-	cch := netw.NewCCH(NewRC_C_H(), h)
-	np := netw.NewNConPool2(p, cch)
+func ExecDailN(p *pool.BytePool, addr string, h netw.CCHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
+	// cch := netw.NewCCH(NewRC_C_H(), h)
+	np := netw.NewNConPool2(p, h)
 	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		cc := netw.NewCon_(cp, p, con)
 		cc.V2B_, cc.B2V_ = v2b, b2v
@@ -67,11 +69,11 @@ func NewExecListenerN(p *pool.BytePool, port string, h netw.CCHandler, v2b netw.
 
 */
 
-func ExecDail_m(p *pool.BytePool, addr string, v2b netw.V2Byte, b2v netw.Byte2V, na NAV_F) (*netw.NConPool, *RCM_Con, error) {
+func ExecDail_m(p *pool.BytePool, addr string, h netw.ConHandler, v2b netw.V2Byte, b2v netw.Byte2V, na NAV_F) (*netw.NConPool, *RCM_Con, error) {
 	tc := NewRC_C()
-	return ExecDailN_m(p, addr, tc, tc, v2b, b2v, na)
+	return ExecDailN_m(p, addr, netw.NewCCH(h, tc), tc, v2b, b2v, na)
 }
-func ExecDailN_m(p *pool.BytePool, addr string, h netw.CmdHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V, na NAV_F) (*netw.NConPool, *RCM_Con, error) {
+func ExecDailN_m(p *pool.BytePool, addr string, h netw.CCHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V, na NAV_F) (*netw.NConPool, *RCM_Con, error) {
 	np, rc, err := ExecDailN(p, addr, h, tc, v2b, b2v)
 	return np, NewRCM_Con(rc, na), err
 }
@@ -106,9 +108,9 @@ func NewChanExecListenerN_m_r(p *pool.BytePool, port string, h netw.ConHandler, 
 
 
 */
-func ExecDail_m_j(p *pool.BytePool, addr string) (*netw.NConPool, *RCM_Con, error) {
+func ExecDail_m_j(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *RCM_Con, error) {
 	tc := NewRC_C()
-	return ExecDailN_m(p, addr, tc, tc, Json_V2B, Json_B2V, Json_NAV)
+	return ExecDailN_m(p, addr, netw.NewCCH(h, tc), tc, Json_V2B, Json_B2V, Json_NAV)
 }
 
 func NewRCM_S_j() *RCM_S {
@@ -122,4 +124,70 @@ func NewChanExecListener_m_j(p *pool.BytePool, port string, h netw.ConHandler) (
 	rc := NewRCM_S_j()
 	l, cc := NewChanExecListenerN_m_r(p, port, h, rc, Json_V2B, Json_B2V)
 	return l, cc, rc
+}
+
+//
+type RC_Runner_m_j struct {
+	*RCM_Con
+	Addr  string
+	BP    *pool.BytePool
+	L     *netw.NConPool
+	R     bool
+	Delay int64
+}
+
+func NewRC_Runner_m_j(addr string, bp *pool.BytePool) *RC_Runner_m_j {
+	return &RC_Runner_m_j{
+		Addr:  addr,
+		BP:    bp,
+		Delay: 3000,
+	}
+}
+func (r *RC_Runner_m_j) Start() error {
+	r.R = true
+	return r.Run()
+}
+func (r *RC_Runner_m_j) Stop() {
+	r.R = false
+	if r.L != nil {
+		r.L.Close()
+	}
+}
+func (r *RC_Runner_m_j) Run() error {
+	var err error
+	r.L, r.RCM_Con, err = ExecDail_m_j(r.BP, r.Addr, r)
+	if err != nil {
+		return err
+	}
+	r.RCM_Con.Start()
+	return nil
+}
+func (r *RC_Runner_m_j) OnConn(c netw.Con) bool {
+	c.SetWait(true)
+	log.D("RC Runner connect to %v success", r.Addr)
+	return true
+}
+func (r *RC_Runner_m_j) Try() {
+	var last, now int64 = util.Now(), 0
+	var t int = 0
+	for {
+		t++
+		err := r.Run()
+		if err == nil {
+			break
+		}
+		now = util.Now()
+		if now-last < r.Delay {
+			log.E("RC connect server err:%v, will retry(%v) after %v ms", err.Error(), t, r.Delay)
+			time.Sleep(time.Duration(r.Delay) * time.Millisecond)
+		}
+		last = now
+	}
+}
+func (r *RC_Runner_m_j) OnClose(c netw.Con) {
+	r.RCM_Con.Stop()
+	if r.R {
+		log.W("RC connection  is closed, Runner will retry connect to %v", r.Addr)
+		go r.Try()
+	}
 }

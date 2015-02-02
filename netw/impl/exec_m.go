@@ -56,8 +56,12 @@ type RC_M_HH interface {
 	Exec(r *RCM_Cmd) (interface{}, error)
 }
 type RC_M_HFUNC func(r *RCM_Cmd) (interface{}, error)
+type RC_M_HFUNCv func(v util.Validable) (interface{}, error)
 
 func (rh RC_M_HFUNC) Exec(r *RCM_Cmd) (interface{}, error) {
+	return rh(r)
+}
+func (rh RC_M_HFUNCv) Exec(r *RCM_Cmd) (interface{}, error) {
 	return rh(r)
 }
 
@@ -158,6 +162,9 @@ func (r *RCM_S) AddFH(reg string, fh RC_M_FH) {
 	r.filter_m[reg_] = fh
 }
 func (r *RCM_S) AddHFunc(name string, hf RC_M_HFUNC) {
+	r.AddHH(name, RC_M_HH(hf))
+}
+func (r *RCM_S) AddHFuncv(name string, hf RC_M_HFUNCv) {
 	r.AddHH(name, RC_M_HH(hf))
 }
 func (r *RCM_S) AddHH(name string, hh RC_M_HH) {

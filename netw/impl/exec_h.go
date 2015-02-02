@@ -242,23 +242,23 @@ func (r *RC_Con) Run_() {
 	r.running = false
 }
 
-type RC_C_H struct {
-}
+// type RC_C_H struct {
+// }
 
-func NewRC_C_H() *RC_C_H {
-	return &RC_C_H{}
-}
-func (r *RC_C_H) OnClose(c netw.Con) {
-	if r, ok := c.(Runner); ok {
-		r.Stop()
-	}
-}
-func (r *RC_C_H) OnConn(c netw.Con) bool {
-	if r, ok := c.(Runner); ok {
-		r.Start()
-	}
-	return true
-}
+// func NewRC_C_H() *RC_C_H {
+// 	return &RC_C_H{}
+// }
+// func (r *RC_C_H) OnClose(c netw.Con) {
+// 	if r, ok := c.(Runner); ok {
+// 		r.Stop()
+// 	}
+// }
+// func (r *RC_C_H) OnConn(c netw.Con) bool {
+// 	if r, ok := c.(Runner); ok {
+// 		r.Start()
+// 	}
+// 	return true
+// }
 
 // func NewExecConPool(p *pool.BytePool, h netw.CmdHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V) *netw.NConPool {
 // 	cch := netw.NewCCH(NewRC_C_H(), h)

@@ -13,7 +13,7 @@ var rcm *impl.RCM_Con = nil
 
 func RunC() {
 	p := pool.NewBytePool(8, 1024) //memory pool.
-	l, con, err := impl.ExecDail_m_j(p, "127.0.0.1:8797")
+	l, con, err := impl.ExecDail_m_j(p, "127.0.0.1:8797", netw.NewCWH(true))
 	if err != nil {
 		panic(err.Error())
 	}

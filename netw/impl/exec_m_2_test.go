@@ -104,7 +104,7 @@ type ex_res_v struct {
 func execPer_run_c(addr, cmd string) {
 	p := pool.NewBytePool(8, 1024)
 	go p.GC()
-	l, tc, err := ExecDail_m_j(p, addr)
+	l, tc, err := ExecDail_m_j(p, addr, netw.NewCWH(true))
 	if err != nil {
 		panic(err.Error())
 	}

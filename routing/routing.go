@@ -117,6 +117,17 @@ type HandleFunc func(*HTTPSession) HResult
 type Handler interface {
 	SrvHTTP(*HTTPSession) HResult
 }
+type HandleFuncv func(v util.Validable) (interface{}, error)
+
+func (h HandleFuncv) SrvHTTP(hs *HTTPSession) HResult {
+	v, err := h(hs)
+	if err == nil {
+		return hs.MsgRes(v)
+	} else {
+		return hs.MsgResErr2(1, "srv-err", err)
+	}
+}
+
 type International interface {
 	SetLocal(hs *HTTPSession, local string)
 	LocalVal(hs *HTTPSession, key string) string
@@ -319,6 +330,11 @@ func (h *HTTPSession) ValidCheckVal(f string, args ...interface{}) error {
 //valid all value by format,not limit require.
 func (h *HTTPSession) ValidCheckValN(f string, args ...interface{}) error {
 	return util.ValidAttrF(f, h.CheckVal, false, args...)
+}
+
+//the same as ValidCheckVal,for impl util.Validable
+func (h *HTTPSession) ValidF(f string, args ...interface{}) error {
+	return h.ValidCheckVal(f, args...)
 }
 
 func http_res(code int, data interface{}, msg string, dmsg string) util.Map {
@@ -550,6 +566,9 @@ func (s *SessionMux) HM(pattern string, h Handler, m string) {
 }
 func (s *SessionMux) HFunc(pattern string, h HandleFunc) {
 	s.HFuncM(pattern, h, "*")
+}
+func (s *SessionMux) HFuncv(pattern string, h HandleFuncv) {
+	s.H(pattern, Handler(h))
 }
 func (s *SessionMux) HFuncM(pattern string, h HandleFunc, m string) {
 	reg := regexp.MustCompile(pattern)

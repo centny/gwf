@@ -117,7 +117,7 @@ func exec_c2(tc *RCM_Con, name, a, b string) {
 }
 func run_c() {
 	p := pool.NewBytePool(8, 1024)
-	np, tc, err := ExecDail_m_j(p, "127.0.0.1:7686")
+	np, tc, err := ExecDail_m_j(p, "127.0.0.1:7686", netw.NewCWH(true))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -147,7 +147,7 @@ func run_c() {
 	exec_c(tc, "no", "a", "b")
 	tc.Stop()
 	fmt.Println("...end...")
-	ExecDail_m(p, "addr", nil, nil, nil)
+	ExecDail_m(p, "addr", nil, nil, nil, nil)
 }
 
 func TestExecM(t *testing.T) {

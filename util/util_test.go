@@ -258,3 +258,8 @@ func (s *Sw) Read(p []byte) (n int, err error) {
 // 	w := bufio.NewWriter(c)
 
 // }
+
+func TestCrc32(t *testing.T) {
+	fmt.Println(Crc32([]byte("fwnfiuchvwhrwiuv cs")))
+	fmt.Println(Crc32([]byte("fwnfiuchvwhrwiuv cs.png")))
+}

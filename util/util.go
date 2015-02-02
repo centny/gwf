@@ -2,8 +2,11 @@ package util
 
 import (
 	"bufio"
+	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"os"
 	"os/exec"
@@ -234,4 +237,11 @@ func SplitTwo(bys []byte, idx int) ([]byte, []byte) {
 }
 func SplitThree(bys []byte, idxa, idxb int) ([]byte, []byte, []byte) {
 	return bys[:idxa], bys[idxa:idxb], bys[idxb:]
+}
+
+func Crc32(v []byte) string {
+	uv := crc32.ChecksumIEEE(v)
+	bv := make([]byte, 4)
+	binary.BigEndian.PutUint32(bv, uv)
+	return base64.StdEncoding.EncodeToString(bv)
 }

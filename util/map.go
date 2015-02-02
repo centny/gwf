@@ -12,6 +12,10 @@ import (
 	"time"
 )
 
+type Validable interface {
+	ValidF(f string, args ...interface{}) error
+}
+
 //type define to map[string]interface{}
 type Map map[string]interface{}
 
