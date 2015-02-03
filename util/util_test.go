@@ -303,3 +303,7 @@ func TestCopy(t *testing.T) {
 	// fmt.Println(Copy(rw, rw))
 	fmt.Println("--->")
 }
+
+func TestSS(t *testing.T) {
+	fmt.Printf(Sha1("/Users/cny/Downloads/f.sql"))
+}

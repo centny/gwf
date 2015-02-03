@@ -19,3 +19,17 @@ message DsMsg {
 	required ImMsg m = 1;
 	repeated RC rc = 2;
 }
+
+message KV {
+	required string key = 1;
+	required string val = 2;
+}
+
+message Evn {
+	required string uid = 1;
+	required string name = 2;
+	required string action = 3;
+	required int64 time = 4;
+	required int32 type = 5;
+	repeated KV kvs = 6;
+}
