@@ -26,8 +26,7 @@ func (n *NIM_Rh) OnConn(c netw.Con) bool {
 	return true
 }
 func (n *NIM_Rh) OnClose(c netw.Con) {
-	n.Db.OnUsrLogout(c.Kvs().StrVal("R"), nil)
-	n.onlo(c)
+	n.Db.DelCon(n.SS.Id(), c.Id(), "", CT_TCP, 0)
 }
 
 func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
@@ -155,10 +154,17 @@ func (n *NIM_Rh) H(obdh *impl.OBDH) {
 // 	}
 // 	return nil, util.Err("action not found by name(%v)", r.Name)
 // }
-func (n *NIM_Rh) writev_c(c netw.Cmd, code int, res interface{}) int {
+func (n *NIM_Rh) writev_c(c netw.Cmd, res interface{}) int {
 	c.Writev(util.Map{
 		"res":  res,
-		"code": code,
+		"code": 0,
+	})
+	return 0
+}
+func (n *NIM_Rh) writev_ce(c netw.Cmd, err string) int {
+	c.Writev(util.Map{
+		"err":  err,
+		"code": 1,
 	})
 	return 0
 }
@@ -167,12 +173,12 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	_, err := r.V(&args)
 	if err != nil {
 		log.W("login V fail:%v", err.Error())
-		return n.writev_c(r, 1, err.Error())
+		return n.writev_ce(r, err.Error())
 	}
-	rv, err := n.Db.OnUsrLogin(r, &args)
+	rv, ct, err := n.Db.OnLogin(r, &args)
 	if err != nil {
-		log.W("login OnUsrLogin fail:%v", err.Error())
-		return n.writev_c(r, 1, err.Error())
+		log.W("login OnLogin fail:%v", err.Error())
+		return n.writev_ce(r, err.Error())
 	}
 	con := &Con{
 		Sid: n.SS.Id(),
@@ -180,33 +186,42 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 		R:   rv,
 		S:   "N",
 		T:   CT_TCP,
+		C:   ct,
 	}
 	err = n.Db.AddCon(con)
 	if err != nil {
 		log.W("login AddCon fail:%v", err.Error())
-		return n.writev_c(r, 1, err.Error())
+		return n.writev_ce(r, err.Error())
 	}
 	r.SetWait(true)
-	r.Kvs().SetVal("R", rv)
+	// r.Kvs().SetVal("R", rv)
 	// con.Sid = ""
-	return n.writev_c(r, 0, con)
+	return n.writev_c(r, con)
 }
 func (n *NIM_Rh) LO(r netw.Cmd) int {
 	var args util.Map
 	_, err := r.V(&args)
 	if err != nil {
-		return n.writev_c(r, 1, err.Error())
+		return n.writev_ce(r, err.Error())
 	}
-	err = n.Db.OnUsrLogout(r.Kvs().StrVal("R"), &args)
-	err = n.onlo(r)
-	if err == nil {
-		return n.writev_c(r, 0, "OK")
-	} else {
-		return n.writev_c(r, 1, err.Error())
+	rv, ct, w, err := n.Db.OnLogout(r, &args)
+	if err != nil {
+		log.W("login OnLogout fail:%v", err.Error())
+		return n.writev_ce(r, err.Error())
 	}
+	if !w {
+		r.SetWait(false)
+	}
+	con, err := n.Db.DelCon(n.SS.Id(), r.Id(), rv, CT_TCP, ct)
+	if err != nil {
+		log.W("login DelCon fail:%v", err.Error())
+		return n.writev_ce(r, err.Error())
+	}
+	return n.writev_c(r, con)
 }
-func (n *NIM_Rh) onlo(con netw.Con) error {
-	err := n.Db.DelCon(n.SS.Id(), con.Id(), con.Kvs().StrVal("R"), CT_TCP)
-	con.SetWait(false)
-	return err
-}
+
+// func (n *NIM_Rh) onlo(con netw.Con) error {
+// 	err := n.Db.DelCon(n.SS.Id(), con.Id(), con.Kvs().StrVal("R"), CT_TCP)
+// 	con.SetWait(false)
+// 	return err
+// }

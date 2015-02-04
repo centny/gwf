@@ -60,10 +60,18 @@ func (n *NodeCmds) OnClose(c netw.Con) {
 func (n *NodeCmds) Find(id string) netw.Con {
 	return n.DS[id]
 }
-func (n *NodeCmds) writev_c(c netw.Cmd, na NodeV, code int, res interface{}) int {
+func (n *NodeCmds) writev_c(c netw.Cmd, na NodeV, res interface{}) int {
 	na.V = util.Map{
 		"res":  res,
-		"code": code,
+		"code": 0,
+	}
+	c.Writev(na)
+	return 0
+}
+func (n *NodeCmds) writev_ce(c netw.Cmd, na NodeV, err string) int {
+	na.V = util.Map{
+		"err":  err,
+		"code": 1,
 	}
 	c.Writev(na)
 	return 0
@@ -79,7 +87,7 @@ func (n *NodeCmds) NLI(c netw.Cmd) int {
 	if err != nil {
 		fmt.Println(c.Data())
 		log.E("Node Cmd data(%v) to value err:%v", string(c.Data()), err.Error())
-		return n.writev_c(c, na, 1, err.Error())
+		return n.writev_ce(c, na, err.Error())
 	}
 
 	var token string
@@ -87,16 +95,16 @@ func (n *NodeCmds) NLI(c netw.Cmd) int {
 		token,R|S,L:0,token is empty;
 		`, &token)
 	if err != nil {
-		return n.writev_c(c, na, 1, err.Error())
+		return n.writev_ce(c, na, err.Error())
 	}
 	srv, err := n.Db.FindSrv(token)
 	if err != nil {
-		return n.writev_c(c, na, 1, err.Error())
+		return n.writev_ce(c, na, err.Error())
 	}
 	if srv.Sid != n.SS.Id() {
 		errs := fmt.Sprintf("login fail,invalid token(%v) for current server(%v,%v)", token, n.SS.Id(), srv.Token)
 		log.W("Node LI login(%v)", errs)
-		return n.writev_c(c, na, 1, errs)
+		return n.writev_ce(c, na, errs)
 	}
 	n.ds_l.Lock()
 	defer n.ds_l.Unlock()
@@ -104,18 +112,18 @@ func (n *NodeCmds) NLI(c netw.Cmd) int {
 	// c.SetId(sid)
 	c.SetWait(true)
 	log_d("Node server login success from(%v)", c.RemoteAddr().String())
-	return n.writev_c(c, na, 0, "OK")
+	return n.writev_c(c, na, "OK")
 }
 func (n *NodeCmds) ULI(c netw.Cmd) int {
 	var na NodeV
 	_, err := c.B2V()(c.Data(), &na)
 	if err != nil {
 		log.E("Node Cmd data(%v) to value err:%v", string(c.Data()), err.Error())
-		return n.writev_c(c, na, 1, err.Error())
+		return n.writev_ce(c, na, err.Error())
 	}
-	rv, err := n.Db.OnUsrLogin(c, &na.V)
+	rv, ct, err := n.Db.OnLogin(c, &na.V)
 	if err != nil {
-		return n.writev_c(c, na, 1, err.Error())
+		return n.writev_ce(c, na, err.Error())
 	}
 	con := &Con{
 		Sid: n.SS.Id(),
@@ -123,12 +131,13 @@ func (n *NodeCmds) ULI(c netw.Cmd) int {
 		R:   rv,
 		S:   "N",
 		T:   CT_WS,
+		C:   ct,
 	}
 	err = n.Db.AddCon(con)
 	if err != nil {
-		return n.writev_c(c, na, 1, err.Error())
+		return n.writev_ce(c, na, err.Error())
 	} else {
-		return n.writev_c(c, na, 0, con)
+		return n.writev_c(c, na, con)
 	}
 }
 func (n *NodeCmds) ULO(c netw.Cmd) int {
@@ -136,23 +145,16 @@ func (n *NodeCmds) ULO(c netw.Cmd) int {
 	_, err := c.B2V()(c.Data(), &na)
 	if err != nil {
 		log.E("Node Cmd data(%v) to value err:%v", string(c.Data()), err.Error())
-		return n.writev_c(c, na, 1, err.Error())
+		return n.writev_ce(c, na, err.Error())
 	}
-	var r string
-	err = na.V.ValidF(`
-		r,R|S,L:0,user R is empty;
-		`, &r)
+	rv, ct, _, err := n.Db.OnLogout(c, &na.V)
 	if err != nil {
-		return n.writev_c(c, na, 1, err.Error())
+		return n.writev_ce(c, na, err.Error())
 	}
-	err = n.Db.OnUsrLogout(r, &na.V)
+	con, err := n.Db.DelCon(n.SS.Id(), c.Id(), rv, CT_WS, ct)
 	if err != nil {
-		return n.writev_c(c, na, 1, err.Error())
-	}
-	err = n.Db.DelCon(n.SS.Id(), c.Id(), r, CT_WS)
-	if err != nil {
-		return n.writev_c(c, na, 1, err.Error())
+		return n.writev_ce(c, na, err.Error())
 	} else {
-		return n.writev_c(c, na, 0, "OK")
+		return n.writev_c(c, na, con)
 	}
 }

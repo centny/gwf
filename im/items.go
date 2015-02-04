@@ -30,11 +30,12 @@ const (
 
 //connection
 type Con struct {
-	Sid string `json:"-"`   //server id
-	Cid string `json:"cid"` //connection id
-	R   string `json:"r"`   //the receive SN
-	S   string `json:"s"`   //the IM receiver status.
-	T   byte   `json:'t'`   //the connection type.
+	Sid string `json:"-"` //server id
+	Cid string `json:"-"` //connection id
+	R   string `json:"r"` //the receive SN
+	S   string `json:"s"` //the IM receiver status.
+	T   byte   `json:'t'` //the connection type in TCP/WS.
+	C   int    `json:'c'` //the connect category
 }
 
 //online server

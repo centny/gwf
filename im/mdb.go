@@ -159,7 +159,7 @@ func (m *MemDbH) ListSrv(sid string) ([]Srv, error) {
 //
 //
 //user login,return user R.
-func (m *MemDbH) OnUsrLogin(r netw.Cmd, args *util.Map) (string, error) {
+func (m *MemDbH) OnLogin(r netw.Cmd, args *util.Map) (string, error) {
 	m.u_lck.Lock()
 	defer m.u_lck.Unlock()
 	if args.Exist("token") {
@@ -172,7 +172,7 @@ func (m *MemDbH) OnUsrLogin(r netw.Cmd, args *util.Map) (string, error) {
 		return "", util.Err("login fail:token not found")
 	}
 }
-func (m *MemDbH) OnUsrLogout(r string, args *util.Map) error {
+func (m *MemDbH) OnLogout(r string, args *util.Map) error {
 	m.u_lck.Lock()
 	defer m.u_lck.Unlock()
 	if _, ok := m.Usr[r]; ok {
