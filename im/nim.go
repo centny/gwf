@@ -206,7 +206,7 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 	}
 	rv, ct, w, err := n.Db.OnLogout(r, &args)
 	if err != nil {
-		log.W("login OnLogout fail:%v", err.Error())
+		log.W("LO OnLogout fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
 	if !w {
@@ -214,7 +214,7 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 	}
 	con, err := n.Db.DelCon(n.SS.Id(), r.Id(), rv, CT_TCP, ct)
 	if err != nil {
-		log.W("login DelCon fail:%v", err.Error())
+		log.W("LO DelCon fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
 	return n.writev_c(r, con)

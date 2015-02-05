@@ -14,6 +14,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"net"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -446,7 +447,9 @@ func (l *LConPool) RunC_(con Con) {
 		log_d("closing connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())
 		con.Close()
 		if err := recover(); err != nil {
-			log.E("RunC_ close err:%v", err)
+			buf := make([]byte, 102400)
+			blen := runtime.Stack(buf, false)
+			log.E("RunC_ close err:%v,%v", err, string(buf[0:blen]))
 		}
 	}()
 	log_d("running connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())

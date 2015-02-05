@@ -251,21 +251,57 @@ func (l *Listener) Close() {
 func IM_V2B(v interface{}) ([]byte, error) {
 	switch v.(type) {
 	case *pb.ImMsg:
-		return proto.Marshal(v.(*pb.ImMsg))
+		bys, err := proto.Marshal(v.(*pb.ImMsg))
+		if err == nil {
+			return bys, nil
+		} else {
+			log_d("IM_V2B(proto) by v(%v) err:", v, err.Error())
+			return bys, err
+		}
 	case *pb.DsMsg:
-		return proto.Marshal(v.(*pb.DsMsg))
+		bys, err := proto.Marshal(v.(*pb.DsMsg))
+		if err == nil {
+			return bys, nil
+		} else {
+			log_d("IM_V2B(proto) by v(%v) err:", v, err.Error())
+			return bys, err
+		}
 	default:
-		return impl.Json_V2B(v)
+		bys, err := impl.Json_V2B(v)
+		if err == nil {
+			return bys, nil
+		} else {
+			log_d("IM_V2B(json) by v(%v) err:", v, err.Error())
+			return bys, err
+		}
 	}
 }
 func IM_B2V(bys []byte, v interface{}) (interface{}, error) {
 	switch v.(type) {
 	case *pb.ImMsg:
-		return v, proto.Unmarshal(bys, v.(*pb.ImMsg))
+		err := proto.Unmarshal(bys, v.(*pb.ImMsg))
+		if err == nil {
+			return v, nil
+		} else {
+			log_d("IM_B2V(proto) by []byte(%v) err:", bys, err.Error())
+			return v, err
+		}
 	case *pb.DsMsg:
-		return v, proto.Unmarshal(bys, v.(*pb.DsMsg))
+		err := proto.Unmarshal(bys, v.(*pb.DsMsg))
+		if err == nil {
+			return v, nil
+		} else {
+			log_d("IM_B2V(proto) by []byte(%v) err:", bys, err.Error())
+			return v, err
+		}
 	default:
-		return impl.Json_B2V(bys, v)
+		_, err := impl.Json_B2V(bys, v)
+		if err == nil {
+			return v, nil
+		} else {
+			log_d("IM_B2V(json) by []byte(%v) err:", bys, err.Error())
+			return v, err
+		}
 	}
 }
 

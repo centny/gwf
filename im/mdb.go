@@ -55,14 +55,14 @@ func (m *MemDbH) AddCon(c *Con) error {
 	log_d("adding connection %v", c)
 	return nil
 }
-func (m *MemDbH) DelCon(sid, cid, r string, t byte) error {
+func (m *MemDbH) DelCon(sid, cid, r string, t byte, ct int) (*Con, error) {
 	m.con_l.Lock()
 	defer m.con_l.Unlock()
 	key := fmt.Sprintf("%v%v%v%v", sid, cid, r, t)
 	c := m.Cons[key]
 	delete(m.Cons, key)
 	log_d("delete connection %v", c)
-	return nil
+	return c, nil
 }
 
 //list all connection by target R
@@ -159,29 +159,31 @@ func (m *MemDbH) ListSrv(sid string) ([]Srv, error) {
 //
 //
 //user login,return user R.
-func (m *MemDbH) OnLogin(r netw.Cmd, args *util.Map) (string, error) {
+func (m *MemDbH) OnLogin(r netw.Cmd, args *util.Map) (string, int, error) {
 	m.u_lck.Lock()
 	defer m.u_lck.Unlock()
 	if args.Exist("token") {
 		ur := fmt.Sprintf("U-%v", atomic.AddUint64(&m.u_cc, 1))
 		m.Usr[ur] = 1
 		log_d("user login by R(%v)", ur)
-		return ur, nil
+		r.Kvs().SetVal("R", ur)
+		return ur, 1, nil
 	} else {
 		log_d("user login fail for token not found")
-		return "", util.Err("login fail:token not found")
+		return "", 0, util.Err("login fail:token not found")
 	}
 }
-func (m *MemDbH) OnLogout(r string, args *util.Map) error {
+func (m *MemDbH) OnLogout(r netw.Cmd, args *util.Map) (string, int, bool, error) {
 	m.u_lck.Lock()
 	defer m.u_lck.Unlock()
-	if _, ok := m.Usr[r]; ok {
-		delete(m.Usr, r)
+	rv := r.Kvs().StrVal("R")
+	if _, ok := m.Usr[rv]; ok {
+		delete(m.Usr, rv)
 		log_d("user logout by R(%v)", r)
-		return nil
+		return rv, 1, true, nil
 	} else {
 		log_d("user logout fail:R not found")
-		return util.Err("login fail:R not found")
+		return "", 0, false, util.Err("login fail:R not found")
 	}
 }
 
