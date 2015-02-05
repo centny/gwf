@@ -255,7 +255,7 @@ func IM_V2B(v interface{}) ([]byte, error) {
 		if err == nil {
 			return bys, nil
 		} else {
-			log_d("IM_V2B(proto) by v(%v) err:", v, err.Error())
+			log.D("IM_V2B(proto) by v(%v) err:%v", v, err.Error())
 			return bys, err
 		}
 	case *pb.DsMsg:
@@ -263,7 +263,7 @@ func IM_V2B(v interface{}) ([]byte, error) {
 		if err == nil {
 			return bys, nil
 		} else {
-			log_d("IM_V2B(proto) by v(%v) err:", v, err.Error())
+			log.D("IM_V2B(proto) by v(%v) err:%v", v, err.Error())
 			return bys, err
 		}
 	default:
@@ -271,7 +271,7 @@ func IM_V2B(v interface{}) ([]byte, error) {
 		if err == nil {
 			return bys, nil
 		} else {
-			log_d("IM_V2B(json) by v(%v) err:", v, err.Error())
+			log.D("IM_V2B(json) by v(%v) err:%v", v, err.Error())
 			return bys, err
 		}
 	}
@@ -283,7 +283,7 @@ func IM_B2V(bys []byte, v interface{}) (interface{}, error) {
 		if err == nil {
 			return v, nil
 		} else {
-			log_d("IM_B2V(proto) by []byte(%v) err:", bys, err.Error())
+			log.D("IM_B2V(proto) by []byte(%v) err:%v", bys, err.Error())
 			return v, err
 		}
 	case *pb.DsMsg:
@@ -291,7 +291,7 @@ func IM_B2V(bys []byte, v interface{}) (interface{}, error) {
 		if err == nil {
 			return v, nil
 		} else {
-			log_d("IM_B2V(proto) by []byte(%v) err:", bys, err.Error())
+			log.D("IM_B2V(proto) by []byte(%v) err:%v", bys, err.Error())
 			return v, err
 		}
 	default:
@@ -299,7 +299,7 @@ func IM_B2V(bys []byte, v interface{}) (interface{}, error) {
 		if err == nil {
 			return v, nil
 		} else {
-			log_d("IM_B2V(json) by []byte(%v) err:", bys, err.Error())
+			log.D("IM_B2V(json) by []byte(%v) err:%v", bys, err.Error())
 			return v, err
 		}
 	}

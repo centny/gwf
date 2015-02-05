@@ -22,9 +22,9 @@ type NodeRh struct {
 
 func (n *NodeRh) OnCmd(c netw.Cmd) int {
 	defer c.Done()
-	// log.D("DIM_Rh recieve data:%v", string(c.Data()))
+	log.D("DIM_Rh recieve data:%v", string(c.Data()))
 	var mc Msg
-	_, err := c.V(&mc)
+	_, err := c.V(&mc.ImMsg)
 	if err != nil {
 		log.E("convert value(%v) to Msg error:%v", string(c.Data()), err.Error())
 		return -1
