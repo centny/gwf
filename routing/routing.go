@@ -1,6 +1,8 @@
 package routing
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -293,8 +295,25 @@ func (h *HTTPSession) RecF(name, tfile string) (int64, error) {
 		return 0, err
 	}
 	dst, _ := os.OpenFile(tfile, os.O_RDWR|os.O_APPEND, 0644)
-	dst.Close()
+	defer dst.Close()
 	return io.Copy(dst, src)
+}
+func (h *HTTPSession) RecBys(name string, max int) ([]byte, error) {
+	if max < 100 {
+		max = 100
+	}
+	src, _, err := h.R.FormFile(name)
+	if err != nil {
+		return nil, err
+	}
+	dst_b := bytes.NewBuffer(nil)
+	dst := bufio.NewWriterSize(dst_b, max)
+	_, err = io.Copy(dst, src)
+	if err == nil {
+		return dst_b.Bytes(), nil
+	} else {
+		return nil, err
+	}
 }
 func (h *HTTPSession) RecF2(name, tfile string) (w int64, sha_ string, md5_ string, err error) {
 	w, sh, md, err := h.RecFv(name, tfile)

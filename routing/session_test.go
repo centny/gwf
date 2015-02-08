@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"bytes"
 	"code.google.com/p/go.net/publicsuffix"
 	"errors"
 	"fmt"
@@ -432,4 +433,30 @@ func TestHook(t *testing.T) {
 	util.HGet("%s/t/b", ts.URL)
 	fmt.Println("<---M--->\n")
 	util.HGet("%s/t/c", ts.URL)
+}
+func TestRecBys(t *testing.T) {
+	mux := NewSessionMux2("")
+	mux.HFunc("^.*$", func(hs *HTTPSession) HResult {
+		bys, err := hs.RecBys("abc", 10240)
+		if err != nil {
+			t.Error(err.Error())
+		}
+		if string(bys) != "aaaa" {
+			t.Error("error")
+		}
+		fmt.Println("----->")
+		return hs.MsgResE(1, "cccc")
+	})
+	ts := httptest.NewServer(mux)
+	util.FWrite("/tmp/aaak.txt", "aaaa")
+	util.HPostF(ts.URL, nil, "abc", "/tmp/aaak.txt")
+	fmt.Println("end....")
+	time.Sleep(100 * time.Millisecond)
+	ts.Close()
+}
+
+func TestBuffer(t *testing.T) {
+	bys := bytes.NewBuffer(nil)
+	bys.WriteString("sfdsfsdsf")
+	fmt.Println(bys.Bytes())
 }
