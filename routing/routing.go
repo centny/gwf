@@ -374,18 +374,32 @@ func (h *HTTPSession) ValidF(f string, args ...interface{}) error {
 func http_res(code int, data interface{}, msg string, dmsg string) util.Map {
 	res := make(util.Map)
 	res["code"] = code
-	res["msg"] = msg
-	res["data"] = data
-	res["dmsg"] = dmsg
+	if len(msg) > 0 {
+		res["msg"] = msg
+	}
+	if data != nil {
+		res["data"] = data
+	}
+	if len(dmsg) > 0 {
+		res["dmsg"] = dmsg
+	}
 	return res
 }
 func http_res_ext(code int, data interface{}, msg string, dmsg string, ext interface{}) util.Map {
 	res := make(util.Map)
 	res["code"] = code
-	res["msg"] = msg
-	res["data"] = data
-	res["dmsg"] = dmsg
-	res["ext"] = ext
+	if len(msg) > 0 {
+		res["msg"] = msg
+	}
+	if data != nil {
+		res["data"] = data
+	}
+	if len(dmsg) > 0 {
+		res["dmsg"] = dmsg
+	}
+	if ext != nil {
+		res["ext"] = ext
+	}
 	return res
 }
 
@@ -421,21 +435,21 @@ func (h *HTTPSession) MsgRes2(code int, data interface{}) HResult {
 }
 
 func (h *HTTPSession) MsgResE(code int, msg string) HResult {
-	return h.JRes(http_res(code, "", msg, ""))
+	return h.JRes(http_res(code, nil, msg, ""))
 }
 func (h *HTTPSession) MsgResE2(code int, msg string, dmsg string) HResult {
-	return h.JRes(http_res(code, "", msg, dmsg))
+	return h.JRes(http_res(code, nil, msg, dmsg))
 }
 func (h *HTTPSession) MsgResE3(code int, key string, dmsg string) HResult {
-	return h.JRes(http_res(code, "", h.LocalVal(key), dmsg))
+	return h.JRes(http_res(code, nil, h.LocalVal(key), dmsg))
 }
 func (h *HTTPSession) MsgResErr(code int, msg string, err error) HResult {
-	return h.JRes(http_res(code, "", msg, err.Error()))
+	return h.JRes(http_res(code, nil, msg, err.Error()))
 }
 
 //using the local value by key for error message.
 func (h *HTTPSession) MsgResErr2(code int, key string, err error) HResult {
-	return h.JRes(http_res(code, "", h.LocalVal(key), err.Error()))
+	return h.JRes(http_res(code, nil, h.LocalVal(key), err.Error()))
 }
 
 /* International */
