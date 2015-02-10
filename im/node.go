@@ -35,6 +35,8 @@ func (n *NodeRh) OnCmd(c netw.Cmd) int {
 	}
 	mc.Cmd = c
 	mc.Ms = map[string]string{}
+	tn := util.Now()
+	mc.Time = &tn
 	return n.NIM.OnMsg(&mc)
 }
 
