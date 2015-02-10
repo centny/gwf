@@ -11,6 +11,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"net"
+	"sync/atomic"
 	"time"
 )
 
@@ -129,21 +130,30 @@ func NewChanExecListener_m_j(p *pool.BytePool, port string, h netw.ConHandler) (
 //
 type RC_Runner_m_j struct {
 	*RCM_Con
-	Addr  string
-	BP    *pool.BytePool
-	L     *netw.NConPool
-	R     bool
-	Delay int64
+	Addr      string
+	BP        *pool.BytePool
+	L         *netw.NConPool
+	R         bool
+	Delay     int64
+	Connected int32
+	wc        int32
+	wait_     chan byte
 }
 
 func NewRC_Runner_m_j(addr string, bp *pool.BytePool) *RC_Runner_m_j {
 	return &RC_Runner_m_j{
-		Addr:  addr,
-		BP:    bp,
-		Delay: 3000,
+		Addr:      addr,
+		BP:        bp,
+		Delay:     3000,
+		Connected: 0,
+		wait_:     make(chan byte, 1000),
 	}
 }
-func (r *RC_Runner_m_j) Start() error {
+func (r *RC_Runner_m_j) Start() {
+	r.R = true
+	go r.Try()
+}
+func (r *RC_Runner_m_j) Start_() error {
 	r.R = true
 	return r.Run()
 }
@@ -154,12 +164,20 @@ func (r *RC_Runner_m_j) Stop() {
 	}
 }
 func (r *RC_Runner_m_j) Run() error {
+	atomic.StoreInt32(&r.Connected, 0)
 	var err error
 	r.L, r.RCM_Con, err = ExecDail_m_j(r.BP, r.Addr, r)
 	if err != nil {
 		return err
 	}
 	r.RCM_Con.Start()
+	atomic.StoreInt32(&r.Connected, 1)
+	var i int32
+	tlen := r.wc
+	for i = 0; i < tlen; i++ {
+		r.wait_ <- byte(0)
+	}
+	atomic.AddInt32(&r.wc, -tlen)
 	return nil
 }
 func (r *RC_Runner_m_j) OnConn(c netw.Con) bool {
@@ -168,9 +186,10 @@ func (r *RC_Runner_m_j) OnConn(c netw.Con) bool {
 	return true
 }
 func (r *RC_Runner_m_j) Try() {
+	atomic.StoreInt32(&r.Connected, 0)
 	var last, now int64 = util.Now(), 0
 	var t int = 0
-	for {
+	for r.R {
 		t++
 		err := r.Run()
 		if err == nil {
@@ -185,9 +204,22 @@ func (r *RC_Runner_m_j) Try() {
 	}
 }
 func (r *RC_Runner_m_j) OnClose(c netw.Con) {
+	atomic.StoreInt32(&r.Connected, 0)
 	r.RCM_Con.Stop()
 	if r.R {
 		log.W("RC connection  is closed, Runner will retry connect to %v", r.Addr)
 		go r.Try()
+	}
+}
+
+func (r *RC_Runner_m_j) Valid() error {
+	if atomic.LoadInt32(&r.Connected) > 0 {
+		return nil
+	}
+	atomic.AddInt32(&r.wc, 1)
+	if v := <-r.wait_; v > 0 {
+		return util.Err("time out")
+	} else {
+		return nil
 	}
 }

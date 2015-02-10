@@ -149,7 +149,22 @@ func run_c() {
 	fmt.Println("...end...")
 	ExecDail_m(p, "addr", nil, nil, nil, nil)
 }
-
+func run_c2() {
+	p := pool.NewBytePool(8, 1024)
+	rc := NewRC_Runner_m_j("127.0.0.1:7686", p)
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		rc.Start()
+	}()
+	fmt.Println("waiting connect--->")
+	for i := 0; i < 10; i++ {
+		go func(v int) {
+			rc.Valid()
+			fmt.Println("vvv->", v)
+		}(i)
+	}
+	time.Sleep(time.Second)
+}
 func TestExecM(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	ShowLog = true
