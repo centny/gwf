@@ -203,13 +203,14 @@ func (m *MemDbH) Update(mid string, rs map[string]string) error {
 		return util.Err("message not found by id(%v)", mid)
 	}
 }
+func (m *MemDbH) NewMid() string {
+	return fmt.Sprintf("M-%v", atomic.AddUint64(&m.m_cc, 1))
+}
 
 //store mesage
 func (m *MemDbH) Store(ms *Msg) error {
 	m.ms_l.Lock()
 	defer m.ms_l.Unlock()
-	i := fmt.Sprintf("M-%v", atomic.AddUint64(&m.m_cc, 1))
-	ms.I = &i
 	m.Ms[ms.GetI()] = ms
 	return nil
 }

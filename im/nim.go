@@ -72,6 +72,8 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 		return -1
 	}
 	log_d("found %v online user for RS(%v) in S(%v)", len(cons), ur, n.SS.Id())
+	mid := n.Db.NewMid()
+	mc.I = &mid
 	c_sid := n.SS.Id()             //current server id.
 	sr_ed := map[string]byte{}     //already exec
 	dr_rc := map[string][]*pb.RC{} //

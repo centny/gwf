@@ -59,6 +59,7 @@ type DbH interface {
 	OnLogout(c netw.Cmd, args *util.Map) (string, int, bool, error)
 	//
 	//
+	NewMid() string
 	//update the message R status
 	Update(mid string, rs map[string]string) error
 	//store mesage
