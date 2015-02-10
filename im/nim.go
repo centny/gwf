@@ -197,7 +197,7 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 		return n.writev_ce(r, err.Error())
 	}
 	r.SetWait(true)
-	// r.Kvs().SetVal("R", rv)
+	r.Kvs().SetVal("R", rv)
 	// con.Sid = ""
 	return n.writev_c(r, con)
 }
