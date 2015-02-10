@@ -36,6 +36,7 @@ type DbH interface {
 	//
 	AddCon(c *Con) error
 	DelCon(sid, cid, r string, t byte, ct int) (*Con, error)
+	OnCloseCon(c netw.Con, sid, cid string, t byte) error
 	//list all connection by target R
 	ListCon(rs []string) ([]Con, error)
 	//

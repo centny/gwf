@@ -45,6 +45,9 @@ func (m *MemDbH) OnConn(c netw.Con) bool {
 //calling when the connection have been closed.
 func (m *MemDbH) OnClose(c netw.Con) {
 }
+func (m *MemDbH) OnCloseCon(c netw.Con, sid, cid string, t byte) error {
+	return nil
+}
 func (m *MemDbH) AddCon(c *Con) error {
 	if c == nil {
 		panic("Con is nil")

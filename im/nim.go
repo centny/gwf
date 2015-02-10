@@ -23,10 +23,11 @@ type NIM_Rh struct {
 }
 
 func (n *NIM_Rh) OnConn(c netw.Con) bool {
-	return true
+	return n.Db.OnConn(c)
 }
 func (n *NIM_Rh) OnClose(c netw.Con) {
-	n.Db.DelCon(n.SS.Id(), c.Id(), "", CT_TCP, 0)
+	n.Db.OnCloseCon(c, n.SS.Id(), c.Id(), CT_TCP)
+	n.Db.OnClose(c)
 }
 
 func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
