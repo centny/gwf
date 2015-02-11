@@ -1,6 +1,7 @@
 package im
 
 import (
+	"fmt"
 	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
@@ -16,10 +17,11 @@ const (
 
 //
 type NIM_Rh struct {
-	Db DbH
-	SS Sender
-	DS Sender
-	DC uint64
+	Db  DbH
+	SS  Sender
+	DS  Sender
+	DC  uint64
+	idc int64
 }
 
 func (n *NIM_Rh) OnConn(c netw.Con) bool {
@@ -50,7 +52,30 @@ func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
 	mc.Time = &tn
 	return n.OnMsg(&mc)
 }
+func (n *NIM_Rh) DoRobot(mc *Msg) int {
+	if len(mc.R) < 1 {
+		log.E("empty R(%v) from:%v", mc.R, mc.RemoteAddr().String())
+		return -1
+	}
+	ss := "S-Robot"
+	if ss != mc.R[0] {
+		return 0
+	}
+	mi := fmt.Sprintf("RMI-%v", atomic.AddInt64(&n.idc, 1))
+	mc.I = &mi
+	mc.D = mc.S
+	mc.S = &ss
+	mc.R = []string{*mc.D}
+	err := n.SS.Send(mc.Id(), &mc.ImMsg)
+	if err == nil {
+		return 1
+	}
+	return 0
+}
 func (n *NIM_Rh) OnMsg(mc *Msg) int {
+	if dr := n.DoRobot(mc); dr != 0 {
+		return dr
+	}
 	gr, ur, err := n.Db.Sift(mc.R)
 	if err != nil {
 		log.E("sift R(%v) err:%v", mc.R, err.Error())
