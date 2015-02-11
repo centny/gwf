@@ -59,7 +59,7 @@ func (n *NIM_Rh) DoRobot(mc *Msg) int {
 		return -1
 	}
 	ss := "S-Robot"
-	if strings.HasPrefix(mc.R[0], ss) {
+	if !strings.HasPrefix(mc.R[0], ss) {
 		return 0
 	}
 	mi := fmt.Sprintf("RMI-%v", atomic.AddInt64(&n.idc, 1))
