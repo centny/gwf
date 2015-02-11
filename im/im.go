@@ -41,6 +41,8 @@ type DbH interface {
 	ListCon(rs []string) ([]Con, error)
 	//
 	//
+	//find current con user R.
+	FUsrR(c netw.Cmd) string
 	//list all user R by group R
 	ListUsrR(gr []string) ([]string, error)
 	//sift the R to group R and user R.

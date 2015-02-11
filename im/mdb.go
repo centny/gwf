@@ -88,6 +88,10 @@ func (m *MemDbH) ListCon(rs []string) ([]Con, error) {
 
 //
 //
+func (m *MemDbH) FUsrR(c netw.Cmd) string {
+	return c.Kvs().StrVal("R")
+}
+
 //list all user R by group R
 func (m *MemDbH) ListUsrR(gr []string) ([]string, error) {
 	trs := []string{}

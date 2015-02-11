@@ -33,14 +33,17 @@ func (n *NIM_Rh) OnClose(c netw.Con) {
 func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
 	defer c.Done()
 	// log_d("NIM_Rh receive data:%v", string(c.Data()))
+	sid, tn := n.Db.FUsrR(c), util.Now()
+	if len(sid) < 1 {
+		log.W("receive message for not login connect->%v", c.Data())
+		return -1
+	}
 	var mc Msg
 	_, err := c.V(&mc.ImMsg)
 	if err != nil {
 		log.E("convert values(%v) to IM msg error:%v", c.Data(), err.Error())
 		return -1
 	}
-	sid := c.Kvs().StrVal("R")
-	tn := util.Now()
 	mc.S = &sid
 	mc.Cmd = c
 	mc.Ms = map[string]string{}
@@ -197,7 +200,7 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 		return n.writev_ce(r, err.Error())
 	}
 	r.SetWait(true)
-	r.Kvs().SetVal("R", rv)
+	// r.Kvs().SetVal("R", rv)
 	// con.Sid = ""
 	return n.writev_c(r, con)
 }
