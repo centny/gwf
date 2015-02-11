@@ -58,8 +58,8 @@ func (n *NIM_Rh) DoRobot(mc *Msg) int {
 		log.E("empty R(%v) from:%v", mc.R, mc.RemoteAddr().String())
 		return -1
 	}
-	ss := "S-Robot"
-	if !strings.HasPrefix(mc.R[0], ss) {
+	ss := mc.R[0]
+	if !strings.HasPrefix(ss, "S-Robot") {
 		return 0
 	}
 	mi := fmt.Sprintf("RMI-%v", atomic.AddInt64(&n.idc, 1))
