@@ -326,6 +326,7 @@ func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int) {
 		return
 	}
 	for _, m := range ms {
+		m.D = &rv
 		err = ss.Send(r.Id(), &m.ImMsg)
 		if err != nil {
 			log.W("sending unread message(%v) error:%v", &m.ImMsg, err.Error())
