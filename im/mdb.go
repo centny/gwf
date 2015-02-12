@@ -2,6 +2,7 @@ package im
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/util"
 	"math/rand"
@@ -291,6 +292,19 @@ func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
 	fmt.Printf("M:%v, R(%v)-P(%v)-E(%v)=%v, D:%v\n", mlen, rlen, plen, elen, rlen-plen-elen, dlen)
 	return mlen, rlen, plen, elen, dlen
 }
-func (m *MemDbH) SendUnread(ss Sender, cid, r string, ct int) error {
-	return nil
+func (m *MemDbH) ListUnread(r string, ct int) ([]Msg, error) {
+	msg := Msg{}
+	var dd string = r
+	var ss string = "S-Robot"
+	var tt uint32 = 0
+	var ii string = m.NewMid()
+	msg.ImMsg = pb.ImMsg{
+		I: &ii,
+		S: &ss,
+		D: &dd,
+		R: []string{r},
+		T: &tt,
+		C: []byte("Robot Unread Message"),
+	}
+	return []Msg{msg}, nil
 }

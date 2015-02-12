@@ -14,7 +14,8 @@ const (
 
 type Msg struct {
 	netw.Cmd `bson:"-" json:"-"`
-	pb.ImMsg
+	pb.ImMsg `bson:",inline"`
+	//
 	Ms map[string]string `json:"-"` //send status for user R.
 }
 

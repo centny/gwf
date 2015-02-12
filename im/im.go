@@ -68,7 +68,7 @@ type DbH interface {
 	//store mesage
 	Store(m *Msg) error
 	//send unread message
-	SendUnread(ss Sender, cid, r string, ct int) error
+	ListUnread(r string, ct int) ([]Msg, error)
 }
 
 //
@@ -317,4 +317,21 @@ func IM_NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 	cc.V2B_ = IM_V2B
 	cc.B2V_ = IM_B2V
 	return cc
+}
+
+func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int) {
+	ms, err := db.ListUnread(rv, ct)
+	if err != nil {
+		log.E("ListUnread by R(%v),ct(%v) error:%v", rv, ct, err.Error())
+		return
+	}
+	for _, m := range ms {
+		err = ss.Send(r.Id(), &m.ImMsg)
+		if err != nil {
+			log.W("sending unread message(%v) error:%v", &m.ImMsg, err.Error())
+			return
+		}
+		db.Update(m.GetI(), map[string]string{rv: "D"})
+	}
+	log_d("SendUnread %v messages is sended to %v", len(ms), rv)
 }

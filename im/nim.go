@@ -229,7 +229,7 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	// r.Kvs().SetVal("R", rv)
 	// con.Sid = ""
 	res := n.writev_c(r, con)
-	go n.Db.SendUnread(n.SS, r.Id(), rv, ct)
+	go SendUnread(n.SS, n.Db, r, rv, ct)
 	return res
 }
 func (n *NIM_Rh) LO(r netw.Cmd) int {

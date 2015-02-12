@@ -138,7 +138,7 @@ func (n *NodeCmds) ULI(c netw.Cmd) int {
 	err = n.Db.AddCon(con)
 	if err == nil {
 		res := n.writev_c(c, na, con)
-		go n.Db.SendUnread(n.SS, c.Id(), rv, ct)
+		go SendUnread(n.SS, n.Db, c, rv, ct)
 		return res
 	} else {
 		return n.writev_ce(c, na, err.Error())
