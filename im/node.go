@@ -13,6 +13,7 @@ const (
 	MK_NDC_NLI = 0
 	MK_NDC_ULI = 10
 	MK_NDC_ULO = 11
+	MK_NDC_UUR = 12
 )
 
 //
@@ -82,6 +83,7 @@ func (n *NodeCmds) H(obdh *impl.OBDH) {
 	obdh.AddF(MK_NDC_NLI, n.NLI)
 	obdh.AddF(MK_NDC_ULI, n.ULI)
 	obdh.AddF(MK_NDC_ULO, n.ULO)
+	obdh.AddF(MK_NDC_UUR, n.UUR)
 }
 func (n *NodeCmds) NLI(c netw.Cmd) int {
 	var na NodeV
@@ -138,11 +140,25 @@ func (n *NodeCmds) ULI(c netw.Cmd) int {
 	err = n.Db.AddCon(con)
 	if err == nil {
 		res := n.writev_c(c, na, con)
-		go SendUnread(n.SS, n.Db, c, rv, ct)
+		// go SendUnread(n.SS, n.Db, c, rv, ct)
 		return res
 	} else {
 		return n.writev_ce(c, na, err.Error())
 	}
+}
+func (n *NodeCmds) UUR(c netw.Cmd) int {
+	var na NodeV
+	_, err := c.B2V()(c.Data(), &na)
+	if err != nil {
+		log.E("Node Cmd data(%v) to value err:%v", string(c.Data()), err.Error())
+		return n.writev_ce(c, na, err.Error())
+	}
+	tr := na.V.StrVal("R")
+	if len(tr) < 1 {
+		return n.writev_ce(c, na, "R argument is empty")
+	}
+	SendUnread(n.SS, n.Db, c, tr, 0)
+	return n.writev_c(c, na, "OK")
 }
 func (n *NodeCmds) ULO(c netw.Cmd) int {
 	var na NodeV

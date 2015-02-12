@@ -14,6 +14,7 @@ import (
 const (
 	MK_NRC_LI = 10
 	MK_NRC_LO = 20
+	MK_NRC_UR = 30
 )
 
 //
@@ -174,6 +175,7 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 func (n *NIM_Rh) H(obdh *impl.OBDH) {
 	obdh.AddF(MK_NRC_LI, n.LI)
 	obdh.AddF(MK_NRC_LO, n.LO)
+	obdh.AddF(MK_NRC_UR, n.UR)
 }
 
 // func (n *NIM_Rh) Exec(r *impl.RCM_Cmd) (interface{}, error) {
@@ -229,7 +231,7 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	// r.Kvs().SetVal("R", rv)
 	// con.Sid = ""
 	res := n.writev_c(r, con)
-	go SendUnread(n.SS, n.Db, r, rv, ct)
+	// go SendUnread(n.SS, n.Db, r, rv, ct)
 	return res
 }
 func (n *NIM_Rh) LO(r netw.Cmd) int {
@@ -252,6 +254,19 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 		return n.writev_ce(r, err.Error())
 	}
 	return n.writev_c(r, con)
+}
+func (n *NIM_Rh) UR(r netw.Cmd) int {
+	var args util.Map
+	_, err := r.V(&args)
+	if err != nil {
+		return n.writev_ce(r, err.Error())
+	}
+	tr := args.StrVal("R")
+	if len(tr) < 1 {
+		return n.writev_ce(r, "R argument is empty")
+	}
+	SendUnread(n.SS, n.Db, r, tr, 0)
+	return n.writev_c(r, "OK")
 }
 
 // func (n *NIM_Rh) onlo(con netw.Con) error {
