@@ -67,6 +67,8 @@ type DbH interface {
 	Update(mid string, rs map[string]string) error
 	//store mesage
 	Store(m *Msg) error
+	//send unread message
+	SendUnread(ss Sender, cid, r string, ct int) error
 }
 
 //
@@ -76,6 +78,7 @@ type Finder interface {
 type Sender interface {
 	Id() string
 	Send(cid string, v interface{}) error
+	// SendUnRead(r string) error
 }
 
 type MultiFinder struct {

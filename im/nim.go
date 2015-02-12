@@ -228,7 +228,9 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	r.SetWait(true)
 	// r.Kvs().SetVal("R", rv)
 	// con.Sid = ""
-	return n.writev_c(r, con)
+	res := n.writev_c(r, con)
+	go n.Db.SendUnread(n.SS, r.Id(), rv, ct)
+	return res
 }
 func (n *NIM_Rh) LO(r netw.Cmd) int {
 	var args util.Map

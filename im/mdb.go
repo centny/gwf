@@ -291,3 +291,6 @@ func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
 	fmt.Printf("M:%v, R(%v)-P(%v)-E(%v)=%v, D:%v\n", mlen, rlen, plen, elen, rlen-plen-elen, dlen)
 	return mlen, rlen, plen, elen, dlen
 }
+func (m *MemDbH) SendUnread(ss Sender, cid, r string, ct int) error {
+	return nil
+}

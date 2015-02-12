@@ -136,10 +136,12 @@ func (n *NodeCmds) ULI(c netw.Cmd) int {
 		C:   ct,
 	}
 	err = n.Db.AddCon(con)
-	if err != nil {
-		return n.writev_ce(c, na, err.Error())
+	if err == nil {
+		res := n.writev_c(c, na, con)
+		go n.Db.SendUnread(n.SS, c.Id(), rv, ct)
+		return res
 	} else {
-		return n.writev_c(c, na, con)
+		return n.writev_ce(c, na, err.Error())
 	}
 }
 func (n *NodeCmds) ULO(c netw.Cmd) int {
