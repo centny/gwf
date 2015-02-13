@@ -503,3 +503,25 @@ func (l *LConPool) Id() string {
 func (l *LConPool) SetId(id string) {
 	l.Id_ = id
 }
+func (l *LConPool) Cons() map[string]Con {
+	return l.cons
+}
+
+func (l *LConPool) Write(bys []byte) int {
+	for _, con := range l.cons {
+		con.Write(bys)
+	}
+	return len(l.cons)
+}
+func (l *LConPool) Writeb(bys ...[]byte) int {
+	for _, con := range l.cons {
+		con.Writeb(bys...)
+	}
+	return len(l.cons)
+}
+func (l *LConPool) Writev(val interface{}) int {
+	for _, con := range l.cons {
+		con.Writev(val)
+	}
+	return len(l.cons)
+}

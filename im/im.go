@@ -40,7 +40,7 @@ type DbH interface {
 	//list all connection by target R
 	ListCon(rs []string) ([]Con, error)
 	//list push task by server id and message id.
-	ListPushTask(sid, mid string) (*Msg, []*Con, error)
+	ListPushTask(sid, mid string) (*Msg, []Con, error)
 	//
 	//
 	//find current con user R.
@@ -160,6 +160,9 @@ type Listener struct {
 	PubHost string
 	PubPort int
 	Err_    netw.CmdErrF
+	//
+	PushSrvAddr   string
+	PushConRunner *netw.NConRunner
 }
 
 func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte, b2v netw.Byte2V, nd impl.ND_F, nav impl.NAV_F, vna impl.VNA_F) *Listener {
@@ -245,10 +248,19 @@ func (l *Listener) Run() error {
 		l.Listener.Close()
 		return err
 	}
+	if len(l.PushSrvAddr) > 0 {
+		l.ConPushSrv(l.PushSrvAddr)
+		l.NIM.StartPushTask()
+	}
 	return nil
 }
 
 func (l *Listener) Close() {
+	if l.PushConRunner != nil {
+		l.PushConRunner.StopRunner()
+		l.PushConRunner.Close()
+		l.NIM.Push("") //for stop
+	}
 	l.Listener.Close()
 	l.DIP.Close()
 	err := l.Db.DelSrv(l.Sid)
@@ -257,6 +269,28 @@ func (l *Listener) Close() {
 	}
 }
 
+func (l *Listener) ConPushSrv(addr string) {
+	l.PushConRunner = netw.NewNConRunner(l.P, addr, l)
+	l.PushConRunner.StartRunner()
+	l.PushConRunner.StartTick()
+}
+
+func (l *Listener) OnCmd(c netw.Cmd) int {
+	var args util.Map
+	_, err := c.V(&args)
+	if err != nil {
+		log.E("convert push args err:%v", err.Error())
+		return -1
+	}
+	mid := args.StrVal("MID")
+	if len(mid) < 1 {
+		log.E("receive invalid push by:%v", args)
+		return -1
+	}
+	l.NIM.Push(mid)
+	log.D("receive on push notification by mid(%v)", mid)
+	return 0
+}
 func IM_V2B(v interface{}) ([]byte, error) {
 	switch v.(type) {
 	case *pb.ImMsg:

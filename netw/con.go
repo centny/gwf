@@ -66,6 +66,7 @@ type NConRunner struct {
 	Connected bool
 	Running   bool
 	Retry     time.Duration
+	Tick      time.Duration
 	//
 	Addr string
 	NCF  NewConF
@@ -96,6 +97,23 @@ func (n *NConRunner) StopRunner() {
 		return
 	}
 	n.NConPool.Close()
+}
+func (n *NConRunner) StartTick() {
+	go n.RunTick_()
+}
+func (n *NConRunner) RunTick_() {
+	tk := time.Tick(n.Tick * time.Millisecond)
+	c := n.C
+	n.Running = true
+	for n.Running {
+		select {
+		case <-tk:
+			c = n.C
+			if c != nil {
+				c.Write([]byte("Tick\n"))
+			}
+		}
+	}
 }
 func (n *NConRunner) Try() {
 	n.Running = true
@@ -128,6 +146,7 @@ func NewNConRunnerN(bp *pool.BytePool, addr string, h CmdHandler, ncf NewConF) *
 		BP:    bp,
 		CmdH:  h,
 		Retry: 5000,
+		Tick:  30000,
 	}
 }
 func NewNConRunner(bp *pool.BytePool, addr string, h CmdHandler) *NConRunner {
