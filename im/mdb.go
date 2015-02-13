@@ -306,5 +306,36 @@ func (m *MemDbH) ListUnread(r string, ct int) ([]Msg, error) {
 		T: &tt,
 		C: []byte("Robot Unread Message"),
 	}
+	m.Store(&msg)
 	return []Msg{msg}, nil
 }
+
+// func (m *MemDbH) ListPcm(sid string) ([]*PCM, error) {
+// 	if len(m.Cons) < 1 {
+// 		return []*PCM{}, nil
+// 	}
+// 	cons := []*Con{}
+// 	rsss := []string{}
+// 	for _, cc := range m.Cons {
+// 		rsss = append(rsss, cc.R)
+// 		cons = append(cons, cc)
+// 	}
+// 	msg := &Msg{}
+// 	var ss string = "S-Robot"
+// 	var tt uint32 = 0
+// 	var ii string = m.NewMid()
+// 	msg.ImMsg = pb.ImMsg{
+// 		I: &ii,
+// 		S: &ss,
+// 		R: rsss,
+// 		T: &tt,
+// 		C: []byte("Robot PCM Message"),
+// 	}
+// 	m.Store(msg)
+// 	return []*PCM{
+// 		&PCM{
+// 			C: cons,
+// 			M: []*Msg{msg},
+// 		},
+// 	}, nil
+// }

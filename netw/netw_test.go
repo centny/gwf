@@ -187,6 +187,22 @@ func TestNetw(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	cc3.Close()
 	//
+	//testing runner.
+	fmt.Println("------>")
+	ncr := NewNConRunner(p, "127.0.0.1:7686", tc)
+	ncr.Retry = 500
+	ncr.StopRunner() //only test,will do nothing.
+	ncr.ConH = tc
+	ncr.StartRunner()
+	// ncr.Try()
+	fmt.Println("---->")
+	time.Sleep(200 * time.Millisecond)
+	ncr.C.Close()
+	time.Sleep(500 * time.Millisecond)
+	ncr.StopRunner()
+	time.Sleep(500 * time.Millisecond)
+
+	//
 	l.Close()
 	l.Wait()
 	//
@@ -194,6 +210,12 @@ func TestNetw(t *testing.T) {
 	NewListener2(p, "", &th_s{}).Run()
 	NewListener2(p, "ssfs:dsf", &th_s{}).Run()
 	Dail(p, "addr", nil)
+	ncr.StartRunner()
+	time.Sleep(500 * time.Millisecond)
+	ncr.StopRunner()
+	time.Sleep(500 * time.Millisecond)
+	ncr.ConH = nil
+	ncr.OnConn(nil)
 }
 
 func TestPp(t *testing.T) {

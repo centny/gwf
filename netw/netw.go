@@ -482,7 +482,6 @@ func (l *LConPool) RunC_(con Con) {
 			break
 		}
 		if len(dbuf) < 3 {
-			log.W("------>%v,len:%v", dbuf, dlen)
 			continue
 		}
 		l.H.OnCmd(&Cmd_{

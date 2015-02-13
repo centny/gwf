@@ -3,6 +3,7 @@ package im
 import (
 	"fmt"
 	"github.com/Centny/gwf/im/pb"
+	// "github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 )
 
@@ -51,3 +52,28 @@ type Srv struct {
 func (s *Srv) Addr() string {
 	return fmt.Sprintf("%v:%v", s.Host, s.Port)
 }
+
+// type PCM struct {
+// 	R string //the user R
+// 	C []*Con //mapping connection.
+// 	M []*Msg //mapping message.
+// }
+
+// func (p *PCM) Send(s Sender, db DbH) int {
+// 	var sc int = 0
+// 	for _, con := range p.C {
+// 		for _, m := range p.M {
+// 			m.D = &p.R
+// 			err := s.Send(con.Cid, &m.ImMsg)
+// 			if err == nil {
+// 				sc++
+// 				db.Update(m.GetI(), map[string]string{p.R: "D"})
+// 				continue
+// 			} else {
+// 				log.W("sending unread message(%v) error:%v", m.ImMsg, err.Error())
+// 				break
+// 			}
+// 		}
+// 	}
+// 	return sc
+// }

@@ -27,6 +27,10 @@ func log_d(f string, args ...interface{}) {
 
 
 */
+func NewNConRunner_j(bp *pool.BytePool, addr string, h netw.CmdHandler) *netw.NConRunner {
+	return netw.NewNConRunnerN(bp, addr, h, Json_NewCon)
+}
+
 //
 func ExecDail(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *RC_Con, error) {
 	return ExecDail2(p, addr, h, V2B_Byte, B2V_Copy)

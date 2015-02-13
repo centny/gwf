@@ -39,11 +39,13 @@ type DbH interface {
 	OnCloseCon(c netw.Con, sid, cid string, t byte) error
 	//list all connection by target R
 	ListCon(rs []string) ([]Con, error)
+	//list push task by server id and message id.
+	ListPushTask(sid, mid string) (*Msg, []*Con, error)
 	//
 	//
 	//find current con user R.
 	FUsrR(c netw.Cmd) string
-	//list all user R by group R
+	//list all user R by group R,if gr is nil return all online user R.
 	ListUsrR(gr []string) ([]string, error)
 	//sift the R to group R and user R.
 	Sift(rs []string) ([]string, []string, error)

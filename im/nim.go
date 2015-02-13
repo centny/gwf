@@ -19,11 +19,13 @@ const (
 
 //
 type NIM_Rh struct {
-	Db  DbH
-	SS  Sender
-	DS  Sender
-	DC  uint64
-	idc int64
+	Db       DbH
+	SS       Sender
+	DS       Sender
+	DC       uint64
+	idc      int64
+	Running  bool
+	PushChan chan string
 }
 
 func (n *NIM_Rh) OnConn(c netw.Con) bool {
@@ -267,6 +269,54 @@ func (n *NIM_Rh) UR(r netw.Cmd) int {
 	}
 	SendUnread(n.SS, n.Db, r, tr, 0)
 	return n.writev_c(r, "OK")
+}
+func (n *NIM_Rh) Push(mid string) {
+	n.PushChan <- mid
+}
+func (n *NIM_Rh) StartPushTask() {
+	go n.LoopPush()
+}
+func (n *NIM_Rh) LoopPush() {
+	n.Running = true
+	log.I("starting push task-->")
+	for n.Running {
+		select {
+		case mid := <-n.PushChan:
+			if len(mid) < 1 {
+				break
+			}
+			sc, total, err := n.DoPush_(mid)
+			if err == nil {
+				log.D("doing push sc(%v),total(%v)->OK", sc, total)
+			} else {
+				log.W("doing push sc(%v),total(%v)->ERR", sc, total, err.Error())
+			}
+		}
+	}
+	log.I("stopping push task-->")
+}
+func (n *NIM_Rh) DoPush_(mid string) (int, int, error) {
+	msg, cons, err := n.Db.ListPushTask(n.SS.Id(), mid)
+	if err != nil {
+		return 0, 0, err
+	}
+	if len(cons) < 1 {
+		return 0, 0, nil
+	}
+	sc := 0
+	mv := map[string]string{}
+	for _, con := range cons {
+		err = n.SS.Send(con.Cid, &msg.ImMsg)
+		if err == nil {
+			sc++
+			msg.D = &con.R
+			mv[con.R] = "D"
+			n.Db.Update(msg.GetI(), mv)
+		} else {
+			log.W("sending push message(%v) err:%v", msg, err.Error())
+		}
+	}
+	return sc, len(cons), nil
 }
 
 // func (n *NIM_Rh) onlo(con netw.Con) error {

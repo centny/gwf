@@ -1,9 +1,11 @@
 package netw
 
 import (
+	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"net"
+	"time"
 )
 
 // type NCon struct {
@@ -55,4 +57,79 @@ func DailN(p *pool.BytePool, addr string, h CCHandler, ncf NewConF) (*NConPool, 
 	nc.NewCon = ncf
 	cc, err := nc.Dail(addr)
 	return nc, cc, err
+}
+
+type NConRunner struct {
+	*NConPool
+	C         Con
+	ConH      ConHandler
+	Connected bool
+	Running   bool
+	Retry     time.Duration
+	//
+	Addr string
+	NCF  NewConF
+	BP   *pool.BytePool
+	CmdH CmdHandler
+}
+
+func (n *NConRunner) OnConn(c Con) bool {
+	if n.ConH == nil {
+		return true
+	}
+	return n.ConH.OnConn(c)
+}
+func (n *NConRunner) OnClose(c Con) {
+	if n.Running {
+		go n.Try()
+	}
+	if n.ConH != nil {
+		n.ConH.OnClose(c)
+	}
+}
+func (n *NConRunner) StartRunner() {
+	go n.Try()
+}
+func (n *NConRunner) StopRunner() {
+	n.Running = false
+	if n.NConPool == nil {
+		return
+	}
+	n.NConPool.Close()
+}
+func (n *NConRunner) Try() {
+	n.Running = true
+	for n.Running {
+		err := n.Dail()
+		if err == nil {
+			break
+		}
+		log.D("try connect to server(%v) err:%v,will retry after %v ms", n.Addr, err.Error(), 5000)
+		time.Sleep(n.Retry * time.Millisecond)
+	}
+	log.D("connect try stopped")
+}
+func (n *NConRunner) Dail() error {
+	n.Connected = false
+	nc, cc, err := DailN(n.BP, n.Addr, NewCCH(n, n.CmdH), n.NCF)
+	if err != nil {
+		return err
+	}
+	n.NConPool = nc
+	n.C = cc
+	n.Connected = true
+	return nil
+}
+
+func NewNConRunnerN(bp *pool.BytePool, addr string, h CmdHandler, ncf NewConF) *NConRunner {
+	return &NConRunner{
+		Addr:  addr,
+		NCF:   ncf,
+		BP:    bp,
+		CmdH:  h,
+		Retry: 5000,
+	}
+}
+func NewNConRunner(bp *pool.BytePool, addr string, h CmdHandler) *NConRunner {
+	return NewNConRunnerN(bp, addr, h, NewCon)
 }
