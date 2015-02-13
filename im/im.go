@@ -172,7 +172,7 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte,
 	//
 	obdh := impl.NewOBDH()
 	//
-	nim := &NIM_Rh{Db: db}
+	nim := &NIM_Rh{Db: db, PushChan: make(chan string, 10000)}
 	nim_ob := impl.NewOBDH()
 	nim.H(nim_ob)
 	obdh.AddH(MK_NIM, nim)
