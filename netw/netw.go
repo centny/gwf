@@ -111,20 +111,20 @@ func (cch *CCH) OnCmd(c Cmd) int {
 	return cch.Cmd.OnCmd(c)
 }
 
-type DoNoH struct {
+type DoNotH struct {
 	C bool //whether allow connect
 }
 
-func NewDoNoH() *DoNoH {
-	return &DoNoH{C: true}
+func NewDoNotH() *DoNotH {
+	return &DoNotH{C: true}
 }
-func (cch *DoNoH) OnConn(c Con) bool {
+func (cch *DoNotH) OnConn(c Con) bool {
 	return cch.C
 }
-func (cch *DoNoH) OnClose(c Con) {
+func (cch *DoNotH) OnClose(c Con) {
 }
-func (cch *DoNoH) OnCmd(c Cmd) int {
-	log.W("DoNoH receiving command (%v)", c)
+func (cch *DoNotH) OnCmd(c Cmd) int {
+	log_d("DoNoH receiving command (%v)", c)
 	return 0
 }
 

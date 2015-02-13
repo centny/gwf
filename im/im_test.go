@@ -50,7 +50,7 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	obdh.AddH(MK_NRC, tc)
 	obdh.AddH(MK_NIM, rm)
 	ch := impl.NewChanH(obdh)
-	tcch := netw.NewCCH(netw.NewDoNoH(), ch)
+	tcch := netw.NewCCH(netw.NewDoNotH(), ch)
 	ch.Run(5)
 	l, con, err := netw.DailN(p, srv.Addr(), tcch, IM_NewCon)
 	if err != nil {
@@ -208,7 +208,7 @@ func TestIm(t *testing.T) {
 	time.Sleep(4 * time.Second)
 }
 
-// func TestMap(t *testing.T) {
-// 	vv := map[string]map[string]string{}
-// 	vv["a"]["b"] = "c"
-// }
+func TestMap(t *testing.T) {
+	// vv := map[string]map[string]string{}
+	// vv["a"]["b"] = "c"
+}

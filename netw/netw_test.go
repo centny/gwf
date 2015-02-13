@@ -20,7 +20,7 @@ type th_s struct {
 
 func (t *th_s) OnConn(c Con) bool {
 	//testing queue falise reutrn
-	dn := NewDoNoH()
+	dn := NewDoNotH()
 	dn.C = false
 	NewQueueConH(dn).OnConn(c)
 
@@ -102,8 +102,8 @@ func TestNetw(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	ShowLog = true
 	p := pool.NewBytePool(8, 1024)
-	ts := &th_s{C: NewDoNoH()}
-	l := NewListener2(p, ":7686", NewCCH(NewQueueConH(ts, NewDoNoH()), ts))
+	ts := &th_s{C: NewDoNotH()}
+	l := NewListener2(p, ":7686", NewCCH(NewQueueConH(ts, NewDoNotH()), ts))
 	l.T = 500
 	go http.ListenAndServe(":7687", l.WsH())
 	err := l.Run()
@@ -226,8 +226,8 @@ func TestWs(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	ShowLog = true
 	p := pool.NewBytePool(8, 1024)
-	ts_h := &th_s{C: NewDoNoH()}
-	l := NewListener2(p, ":7688", NewCCH(NewQueueConH(ts_h, NewDoNoH()), ts_h))
+	ts_h := &th_s{C: NewDoNotH()}
+	l := NewListener2(p, ":7688", NewCCH(NewQueueConH(ts_h, NewDoNotH()), ts_h))
 	err := l.Run()
 	if err != nil {
 		t.Error(err.Error())

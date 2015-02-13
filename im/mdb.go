@@ -309,14 +309,14 @@ func (m *MemDbH) ListUnread(r string, ct int) ([]Msg, error) {
 	m.Store(&msg)
 	return []Msg{msg}, nil
 }
-func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []*Con, error) {
+func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []Con, error) {
 	msg, ok := m.Ms[mid]
 	if !ok {
 		return nil, nil, util.Err("message not found by id(%v)", mid)
 	}
-	cons := []*Con{}
+	cons := []Con{}
 	for _, cc := range m.Cons {
-		cons = append(cons, cc)
+		cons = append(cons, *cc)
 	}
 	return msg, cons, nil
 }
