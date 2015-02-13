@@ -273,7 +273,7 @@ func (l *Listener) Close() {
 }
 
 func (l *Listener) ConPushSrv(addr string) {
-	l.PushConRunner = netw.NewNConRunner(l.P, addr, l)
+	l.PushConRunner = netw.NewNConRunnerN(l.P, addr, l, impl.Json_NewCon)
 	l.PushConRunner.Tick = l.PushSrvTick
 	l.PushConRunner.StartRunner()
 	l.PushConRunner.StartTick()

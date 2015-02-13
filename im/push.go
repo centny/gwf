@@ -18,7 +18,11 @@ func (p *PushSrv) Notify(mid string) int {
 }
 
 func NewPushSrv(p *pool.BytePool, port string, n string, h netw.CCHandler) *PushSrv {
+	return NewPushSrvN(p, port, n, h, impl.Json_NewCon)
+}
+
+func NewPushSrvN(p *pool.BytePool, port string, n string, h netw.CCHandler, ncf netw.NewConF) *PushSrv {
 	return &PushSrv{
-		Listener: netw.NewListenerN(p, port, n, h, impl.Json_NewCon),
+		Listener: netw.NewListenerN(p, port, n, h, ncf),
 	}
 }
