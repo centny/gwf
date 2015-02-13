@@ -11,6 +11,7 @@ import (
 	"github.com/Centny/gwf/util"
 	"github.com/golang/protobuf/proto"
 	"net"
+	"time"
 )
 
 var ShowLog bool = false
@@ -162,6 +163,7 @@ type Listener struct {
 	Err_    netw.CmdErrF
 	//
 	PushSrvAddr   string
+	PushSrvTick   time.Duration
 	PushConRunner *netw.NConRunner
 }
 
@@ -208,17 +210,18 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte,
 	nch.SS = nim.SS
 	nim.DS = NewMarkConPoolSender([]byte{MK_DIM}, NewMultiFinder(dim, dip), sid)
 	var tl = &Listener{
-		Listener: l,
-		Obdh:     obdh,
-		NIM:      nim,
-		DIP:      dip,
-		DIM:      dim,
-		Db:       db,
-		P:        p,
-		Port:     port,
-		Sid:      sid,
-		PubHost:  "127.0.0.1",
-		PubPort:  port,
+		Listener:    l,
+		Obdh:        obdh,
+		NIM:         nim,
+		DIP:         dip,
+		DIM:         dim,
+		Db:          db,
+		P:           p,
+		Port:        port,
+		Sid:         sid,
+		PubHost:     "127.0.0.1",
+		PubPort:     port,
+		PushSrvTick: 30000,
 	}
 	rl = tl
 	return tl
@@ -271,6 +274,7 @@ func (l *Listener) Close() {
 
 func (l *Listener) ConPushSrv(addr string) {
 	l.PushConRunner = netw.NewNConRunner(l.P, addr, l)
+	l.PushConRunner.Tick = l.PushSrvTick
 	l.PushConRunner.StartRunner()
 	l.PushConRunner.StartTick()
 }

@@ -257,7 +257,7 @@ func (c *Con_) ReadW(p []byte) error {
 
 //rewrite to forbiden call.
 func (c *Con_) Write(b []byte) (n int, err error) {
-	panic("invalid call for connection Write")
+	panic("do not call Write direct,using Writeb/Writev instead")
 }
 
 //sending data.

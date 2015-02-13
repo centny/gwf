@@ -110,7 +110,8 @@ func (n *NConRunner) RunTick_() {
 		case <-tk:
 			c = n.C
 			if c != nil {
-				c.Write([]byte("Tick\n"))
+				c.Writeb([]byte("Tick\n"))
+				log_d("sending tick message to Push Server")
 			}
 		}
 	}
