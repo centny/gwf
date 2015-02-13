@@ -7,7 +7,8 @@ message ImMsg {
 	required uint32 t = 4;
 	optional string d = 5;
 	required bytes c = 6;
-	optional int64 time = 7;
+	optional string a = 7;
+	optional int64 time = 8;
 }
 
 message RC {

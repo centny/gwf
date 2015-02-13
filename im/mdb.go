@@ -94,11 +94,11 @@ func (m *MemDbH) FUsrR(c netw.Cmd) string {
 }
 
 //list all user R by group R
-func (m *MemDbH) ListUsrR(gr []string) ([]string, error) {
-	trs := []string{}
+func (m *MemDbH) ListUsrR(gr []string) (map[string][]string, error) {
+	trs := map[string][]string{}
 	for _, g := range gr {
 		if rs, ok := m.Grp[g]; ok {
-			trs = append(trs, rs...)
+			trs[g] = rs
 		}
 	}
 	return trs, nil

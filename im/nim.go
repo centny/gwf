@@ -85,35 +85,53 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 		log.E("sift R(%v) err:%v", mc.R, err.Error())
 		return -1
 	}
+	var gur map[string][]string = map[string][]string{}
 	if len(gr) > 0 {
-		gur, err := n.Db.ListUsrR(gr)
+		gur, err = n.Db.ListUsrR(gr)
 		if err != nil {
 			log.E("list user R for group(%v) err:%v", gr, err.Error())
 			return -1
 		}
-		ur = append(ur, gur...)
 	}
-	if len(ur) < 1 {
+	if len(ur) > 0 {
+		gur[mc.GetS()] = ur
+	}
+	if len(gur) < 1 {
 		log.E("receive empty R message(%v)", mc)
 		return -1
 	}
 	log_d("receive message(%v) to RS(%v) in S(%v)", mc, ur, n.SS.Id())
-	//
+	mid := n.Db.NewMid()
+	mc.I = &mid
+	dr_rc := map[string][]*pb.RC{} //
+	var iv int
+	for r, ur := range gur {
+		iv = n.send_ms(r, ur, mc, dr_rc)
+		if iv != 0 {
+			return iv
+		}
+	}
+	return n.do_dis(mc, dr_rc)
+}
+
+//
+func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.RC) int {
+	if len(ur) < 1 {
+		return 0
+	}
 	cons, err := n.Db.ListCon(ur)
 	if err != nil {
 		log.E("list Con by R(%v) err:%v", ur, err.Error())
 		return -1
 	}
 	log_d("found %v online user for RS(%v) in S(%v)", len(cons), ur, n.SS.Id())
-	mid := n.Db.NewMid()
-	mc.I = &mid
-	c_sid := n.SS.Id()             //current server id.
-	sr_ed := map[string]byte{}     //already exec
-	dr_rc := map[string][]*pb.RC{} //
-	for _, con := range cons {     //do online user
+	c_sid := n.SS.Id()         //current server id.
+	sr_ed := map[string]byte{} //already exec
+	for _, con := range cons { //do online user
 		sr_ed[con.R] = 1
 		if con.Sid == c_sid { //in current server
-			mc.D = &con.R                       //setting current receive user R.
+			mc.D = &con.R
+			mc.A = &r                           //setting current receive user R.
 			err = n.SS.Send(con.Cid, &mc.ImMsg) //send message to client.
 			if err == nil {
 				atomic.AddUint64(&n.DC, 1)
@@ -148,10 +166,10 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 		}
 		mc.Ms[r] = MS_PENDING
 	}
-	if len(ur) > len(mc.Ms) {
-		log.W("duplicate R(%v) found for message(%v)", ur, mc)
-	}
-	err = n.Db.Store(mc) //store mesage.
+	return 0
+}
+func (n *NIM_Rh) do_dis(mc *Msg, dr_rc map[string][]*pb.RC) int {
+	err := n.Db.Store(mc) //store mesage.
 	if err != nil {
 		log.E("store message(%v) err:%v", mc, err.Error())
 		return -1
@@ -258,14 +276,9 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 	return n.writev_c(r, con)
 }
 func (n *NIM_Rh) UR(r netw.Cmd) int {
-	var args util.Map
-	_, err := r.V(&args)
-	if err != nil {
-		return n.writev_ce(r, err.Error())
-	}
-	tr := args.StrVal("R")
+	tr := n.Db.FUsrR(r)
 	if len(tr) < 1 {
-		return n.writev_ce(r, "R argument is empty")
+		return n.writev_ce(r, "not login")
 	}
 	SendUnread(n.SS, n.Db, r, tr, 0)
 	return n.writev_c(r, "OK")
