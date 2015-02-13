@@ -32,7 +32,6 @@ func (d *DIM_Rh) Find(id string) netw.Con {
 }
 func (d *DIM_Rh) OnCmd(c netw.Cmd) int {
 	defer c.Done()
-	// log.D("DIM_Rh recieve data:%v", string(c.Data()))
 	var dm pb.DsMsg
 	_, err := c.V(&dm)
 	if err != nil {
@@ -43,6 +42,7 @@ func (d *DIM_Rh) OnCmd(c netw.Cmd) int {
 		log.E("receive invalid DsMsg(%v)", &dm)
 		return -1
 	}
+	log_d("DIM_Rh recieve message:%v", &dm)
 	ms := map[string]string{}
 	for _, con := range dm.Rc {
 		err = d.SS.Send(con.GetC(), dm.M)
