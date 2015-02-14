@@ -127,7 +127,11 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 	log_d("found %v online user for RS(%v) in S(%v)", len(cons), ur, n.SS.Id())
 	c_sid := n.SS.Id()         //current server id.
 	sr_ed := map[string]byte{} //already exec
+	sender := mc.GetS()
 	for _, con := range cons { //do online user
+		if con.R == sender {
+			continue
+		}
 		sr_ed[con.R] = 1
 		if con.Sid == c_sid { //in current server
 			mc.D = &con.R
