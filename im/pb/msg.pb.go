@@ -25,7 +25,7 @@ var _ = proto.Marshal
 var _ = math.Inf
 
 type ImMsg struct {
-	I                *string  `protobuf:"bytes,1,opt,name=i" json:"i,omitempty"`
+	I                *string  `protobuf:"bytes,1,opt,name=i" json:"i,omitempty" bson:"_id"`
 	S                *string  `protobuf:"bytes,2,opt,name=s" json:"s,omitempty"`
 	R                []string `protobuf:"bytes,3,rep,name=r" json:"r,omitempty"`
 	T                *uint32  `protobuf:"varint,4,req,name=t" json:"t,omitempty"`

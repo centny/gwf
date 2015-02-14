@@ -302,7 +302,7 @@ func (n *NIM_Rh) LoopPush() {
 			if err == nil {
 				log.D("doing push sc(%v),total(%v)->OK", sc, total)
 			} else {
-				log.W("doing push sc(%v),total(%v)->ERR", sc, total, err.Error())
+				log.W("doing push sc(%v),total(%v)->ERR:%v", sc, total, err.Error())
 			}
 		}
 	}
