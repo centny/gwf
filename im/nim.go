@@ -319,10 +319,10 @@ func (n *NIM_Rh) DoPush_(mid string) (int, int, error) {
 	sc := 0
 	mv := map[string]string{}
 	for _, con := range cons {
+		msg.D = &con.R
 		err = n.SS.Send(con.Cid, &msg.ImMsg)
 		if err == nil {
 			sc++
-			msg.D = &con.R
 			mv[con.R] = "D"
 			n.Db.Update(msg.GetI(), mv)
 		} else {
