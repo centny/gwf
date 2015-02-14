@@ -99,6 +99,7 @@ func (m *ImMsg) GetTime() int64 {
 type RC struct {
 	R                *string `protobuf:"bytes,1,req,name=r" json:"r,omitempty"`
 	C                *string `protobuf:"bytes,2,req,name=c" json:"c,omitempty"`
+	A                *string `protobuf:"bytes,3,req,name=a" json:"a,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
@@ -116,6 +117,13 @@ func (m *RC) GetR() string {
 func (m *RC) GetC() string {
 	if m != nil && m.C != nil {
 		return *m.C
+	}
+	return ""
+}
+
+func (m *RC) GetA() string {
+	if m != nil && m.A != nil {
+		return *m.A
 	}
 	return ""
 }

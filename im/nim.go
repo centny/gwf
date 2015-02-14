@@ -16,6 +16,9 @@ const (
 	MK_NRC_LO = 20
 	MK_NRC_UR = 30
 )
+const (
+	MS_SEQ = "^->"
+)
 
 //
 type NIM_Rh struct {
@@ -142,20 +145,26 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 				mc.Ms[con.R] = MS_DONE //mark done
 			} else {
 				log.E("sending message(%v) to R(%v) err:%v", mc.ImMsg, con.R, err.Error())
-				mc.Ms[con.R] = MS_ERR + err.Error() //mark send error.
+				if len(mc.Ms[con.R]) < 1 {
+					mc.Ms[con.R] = MS_PENDING + MS_SEQ + r
+				} else {
+					mc.Ms[con.R] += MS_SEQ + r
+				}
 			}
 		} else { //in other distribution server
-			mc.Ms[con.R] = MS_PENDING //mark to pending.
+			mc.Ms[con.R] = MS_PENDING + MS_SEQ + r //mark to pending.
 			tr, tc := con.R, con.Cid
 			if _, ok := dr_rc[con.Sid]; ok {
 				dr_rc[con.Sid] = append(dr_rc[con.Sid],
 					&pb.RC{
+						A: &r,
 						R: &tr,
 						C: &tc,
 					})
 			} else {
 				dr_rc[con.Sid] = []*pb.RC{
 					&pb.RC{
+						A: &r,
 						R: &tr,
 						C: &tc,
 					},
@@ -164,11 +173,15 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 		}
 	}
 	// log_d("sr_ed---->%v in S(%v)", sr_ed, c_sid)
-	for _, r := range ur { //do offline user
+	for _, tr := range ur { //do offline user
 		if _, ok := sr_ed[r]; ok {
 			continue
 		}
-		mc.Ms[r] = MS_PENDING
+		if len(mc.Ms[tr]) < 1 {
+			mc.Ms[tr] = MS_PENDING + MS_SEQ + r
+		} else {
+			mc.Ms[tr] += MS_SEQ + r
+		}
 	}
 	return 0
 }
@@ -324,7 +337,17 @@ func (n *NIM_Rh) DoPush_(mid string) (int, int, error) {
 	mv := map[string]string{}
 	for _, con := range cons {
 		msg.D = &con.R
-		err = n.SS.Send(con.Cid, &msg.ImMsg)
+		av := msg.Ms[con.R]
+		avs := strings.Split(av, MS_SEQ)
+		avl := len(avs)
+		if avl < 2 {
+			log.W("invalid unread message:%v for R(%v)", msg, con.R)
+			continue
+		}
+		for i := 1; i < avl; i++ {
+			msg.A = &avs[i]
+			err = n.SS.Send(con.Cid, &msg.ImMsg)
+		}
 		if err == nil {
 			sc++
 			mv[con.R] = "D"

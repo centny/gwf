@@ -11,6 +11,7 @@ import (
 	"github.com/Centny/gwf/util"
 	"github.com/golang/protobuf/proto"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -367,10 +368,20 @@ func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int) {
 	}
 	for _, m := range ms {
 		m.D = &rv
-		err = ss.Send(r.Id(), &m.ImMsg)
-		if err != nil {
-			log.W("sending unread message(%v) error:%v", &m.ImMsg, err.Error())
-			return
+		av := m.Ms[rv]
+		avs := strings.Split(av, MS_SEQ)
+		avl := len(avs)
+		if avl < 2 {
+			log.W("invalid unread message:%v for R(%v)", m, rv)
+			continue
+		}
+		for i := 1; i < avl; i++ {
+			m.A = &avs[i]
+			err = ss.Send(r.Id(), &m.ImMsg)
+			if err != nil {
+				log.W("sending unread message(%v) error:%v", &m.ImMsg, err.Error())
+				return
+			}
 		}
 		db.Update(m.GetI(), map[string]string{rv: "D"})
 	}

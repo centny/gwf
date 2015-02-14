@@ -14,6 +14,7 @@ message ImMsg {
 message RC {
 	required string r = 1;
 	required string c = 2;
+	required string a = 3;
 }
 
 message DsMsg {

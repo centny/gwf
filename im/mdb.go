@@ -282,7 +282,7 @@ func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
 		for _, s := range m.Ms {
 			if strings.HasPrefix(s, "E-") {
 				elen++
-			} else if s == MS_PENDING {
+			} else if strings.HasPrefix(s, MS_PENDING) {
 				plen++
 			} else {
 				dlen++

@@ -9,8 +9,8 @@ import (
 
 const (
 	MS_DONE    = "D"
-	MS_PENDING = "P"    //message not send
-	MS_ERR     = "E->:" //message send error.
+	MS_PENDING = "P:" //message not send
+	// MS_ERR     = "E->:" //message send error.
 )
 
 type Msg struct {
