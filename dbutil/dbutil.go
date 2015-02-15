@@ -114,7 +114,7 @@ func DbQueryI(db *sql.DB, query string, args ...interface{}) (int64, error) {
 		return 0, err
 	}
 	if len(ic) < 1 {
-		return 0, errors.New("not found")
+		return 0, util.NOT_FOUND
 	} else {
 		return ic[0], nil
 	}
@@ -125,7 +125,7 @@ func DbQueryI2(tx *sql.Tx, query string, args ...interface{}) (int64, error) {
 		return 0, err
 	}
 	if len(ic) < 1 {
-		return 0, errors.New("not found")
+		return 0, util.NOT_FOUND
 	} else {
 		return ic[0], nil
 	}
@@ -136,7 +136,7 @@ func DbQueryF(db *sql.DB, query string, args ...interface{}) (float64, error) {
 		return 0, err
 	}
 	if len(ic) < 1 {
-		return 0, errors.New("not found")
+		return 0, util.NOT_FOUND
 	} else {
 		return ic[0], nil
 	}
@@ -147,7 +147,7 @@ func DbQueryF2(tx *sql.Tx, query string, args ...interface{}) (float64, error) {
 		return 0, err
 	}
 	if len(ic) < 1 {
-		return 0, errors.New("not found")
+		return 0, util.NOT_FOUND
 	} else {
 		return ic[0], nil
 	}
@@ -158,7 +158,7 @@ func DbQueryStr(db *sql.DB, query string, args ...interface{}) (string, error) {
 		return "", err
 	}
 	if len(ic) < 1 {
-		return "", errors.New("not found")
+		return "", util.NOT_FOUND
 	} else {
 		return ic[0], nil
 	}
@@ -169,7 +169,7 @@ func DbQueryStr2(tx *sql.Tx, query string, args ...interface{}) (string, error) 
 		return "", err
 	}
 	if len(ic) < 1 {
-		return "", errors.New("not found")
+		return "", util.NOT_FOUND
 	} else {
 		return ic[0], nil
 	}
