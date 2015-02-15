@@ -122,7 +122,7 @@ func ReadW(r *bufio.Reader, p []byte, last *int64) error {
 }
 
 func Timestamp(t time.Time) int64 {
-	return t.UnixNano() / 1e6
+	return t.Local().UnixNano() / 1e6
 }
 func Time(timestamp int64) time.Time {
 	return time.Unix(0, timestamp*1e6)
