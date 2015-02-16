@@ -174,7 +174,7 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 	}
 	// log_d("sr_ed---->%v in S(%v)", sr_ed, c_sid)
 	for _, tr := range ur { //do offline user
-		if _, ok := sr_ed[r]; ok {
+		if _, ok := sr_ed[tr]; ok {
 			continue
 		}
 		if len(mc.Ms[tr]) < 1 {
