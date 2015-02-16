@@ -23,7 +23,7 @@ import (
 var con_idc uint64 = 0
 var pool_idc uint64 = 0
 
-//whether show debug log or not.
+//whether show debug log or not,default is false.
 var ShowLog bool = false
 
 func log_d(f string, args ...interface{}) {
@@ -35,16 +35,19 @@ func log_d(f string, args ...interface{}) {
 //the protocol modes
 const H_MOD = "^~^"
 
-//the connection for not data receive
+//the default connection timeout for not data receive
 const CON_TIMEOUT int64 = 5000
 
+//the func to create on connection for ConPool
 type NewConF func(cp ConPool, p *pool.BytePool, con net.Conn) Con
+
+//the func to handler Cmd.Err call.
 type CmdErrF func(c Cmd, d int, code byte, f string, args ...interface{})
 
-//function for covert struct to []byte
+//func for covert struct to []byte
 type V2Byte func(v interface{}) ([]byte, error)
 
-//function for covert []byte to struct or map.
+//func for covert []byte to struct or map.
 type Byte2V func(bys []byte, v interface{}) (interface{}, error)
 
 //the base connection event handler
@@ -60,141 +63,83 @@ type CmdHandler interface {
 	//calling when one entire command have been received.
 	OnCmd(c Cmd) int
 }
+
+//all ConPool handler contain CmdHandler and ConHandler.
 type CCHandler interface {
 	ConHandler
 	CmdHandler
-}
-type QueueConH struct {
-	CS []ConHandler
-}
-
-func NewQueueConH(cs ...ConHandler) *QueueConH {
-	return &QueueConH{
-		CS: cs,
-	}
-}
-func (q *QueueConH) OnConn(c Con) bool {
-	for _, cc := range q.CS {
-		if cc.OnConn(c) {
-			continue
-		}
-		return false
-	}
-	return true
-}
-func (q *QueueConH) OnClose(c Con) {
-	for _, cc := range q.CS {
-		cc.OnClose(c)
-	}
-}
-
-type CCH struct {
-	Con ConHandler
-	Cmd CmdHandler
-	// RCC uint64
-}
-
-func NewCCH(con ConHandler, cmd CmdHandler) *CCH {
-	return &CCH{
-		Con: con,
-		Cmd: cmd,
-	}
-}
-func (cch *CCH) OnConn(c Con) bool {
-	return cch.Con.OnConn(c)
-}
-func (cch *CCH) OnClose(c Con) {
-	cch.Con.OnClose(c)
-}
-func (cch *CCH) OnCmd(c Cmd) int {
-	// atomic.AddUint64(&cch.RCC, 1)
-	return cch.Cmd.OnCmd(c)
-}
-
-type DoNotH struct {
-	C bool //whether allow connect
-}
-
-func NewDoNotH() *DoNotH {
-	return &DoNotH{C: true}
-}
-func (cch *DoNotH) OnConn(c Con) bool {
-	return cch.C
-}
-func (cch *DoNotH) OnClose(c Con) {
-}
-func (cch *DoNotH) OnCmd(c Cmd) int {
-	log_d("DoNoH receiving command (%v)", c)
-	return 0
 }
 
 /*
 
 */
-//the command wait handler impl netw.ConHandler.
-type CWH struct {
-	Wait bool
-}
 
-func NewCWH(w bool) *CWH {
-	return &CWH{
-		Wait: w,
-	}
-}
-func (cwh *CWH) OnConn(c Con) bool {
-	if cwh.Wait {
-		c.SetWait(cwh.Wait)
-	}
-	return true
-}
-func (cwh *CWH) OnClose(c Con) {
-}
-
-//the connection struct.
-//it will be created when client connected or server received one connection.
+//the connection interface.
+//it will be created when client connect to server or server received one connection.
 type Con interface {
-	net.Conn //the base connection
+	//the base connection
+	net.Conn
+	//the ConPool
 	CP() ConPool
-	P() *pool.BytePool //the memory pool
+	//the memory pool
+	P() *pool.BytePool
 	// R() *bufio.Reader  //the buffer reader
 	// W() *bufio.Writer  //the buffer writer.
+	//the connection id.
 	Id() string
+	//set the connection id.
 	SetId(id string)
+	//connection seesion.
 	Kvs() util.Map
-	Last() int64 //the last update time for data transfer
+	//the last update time for data transfer
+	Last() int64
+	//set connection wait status, if true,the connection will not timeout
 	SetWait(t bool)
-	ReadW(p []byte) error
-	// Writeb_(bys ...[]byte) (int, error)
-	Writeb(bys ...[]byte) (int, error)
-	Writev(val interface{}) (int, error)
-	Exec(args interface{}, dest interface{}) (interface{}, error)
-	Flush() error
+	//if connection in waiting status.
 	Waiting() bool
+	//read byte data and wait until have receive p length data.
+	ReadW(p []byte) error
+	//write multi []byte to conection.
+	//it will be joined to MOD|lenght|[]byte|[]byte|[]byte....
+	Writeb(bys ...[]byte) (int, error)
+	//write one struct val to connection.
+	//it will call connection V2B func to convert the value to []byte.
+	Writev(val interface{}) (int, error)
+	//exec on remote command by args,
+	//the return value will be converted to dest,and return dest
+	Exec(args interface{}, dest interface{}) (interface{}, error)
+	//flush the buffer.
+	Flush() error
+	//the value to []byte convert function
 	V2B() V2Byte
+	//the []byte to value convert function
 	B2V() Byte2V
 }
+
+//the base implement to Con
 type Con_ struct {
-	net.Conn //the base connection
-	CP_      ConPool
+	net.Conn                //the base connection
+	CP_      ConPool        //the ConPool
 	P_       *pool.BytePool //the memory pool
 	R_       *bufio.Reader  //the buffer reader
 	W_       *bufio.Writer  //the buffer writer.
-	Kvs_     util.Map
-	Last_    int64        //the last update time for data transfer
-	Waiting_ int32        //whether in waiting status.
-	c_l      sync.RWMutex //connection lock.
-	buf      []byte
-	V2B_     V2Byte
-	B2V_     Byte2V
-	ID_      string
+	Kvs_     util.Map       //the session.
+	Last_    int64          //the last update time for data transfer
+	Waiting_ int32          //whether in waiting status.
+	V2B_     V2Byte         //the V2Byte func
+	B2V_     Byte2V         //the Byte2V func
+	ID_      string         //the connection id
+	c_l      sync.RWMutex   //connection lock.
+	buf      []byte         //the buf to store the data len which will be writed to connection.
 	// r_l      sync.RWMutex
 }
 
+//new Con by ConPool/BytePool and normal connection.
 func NewCon(cp ConPool, p *pool.BytePool, con net.Conn) Con {
 	return NewCon_(cp, p, con)
 }
 
-//new connection.
+//Con_ creator.
 func NewCon_(cp ConPool, p *pool.BytePool, con net.Conn) *Con_ {
 	return &Con_{
 		CP_:      cp,
@@ -227,6 +172,8 @@ func (c *Con_) P() *pool.BytePool {
 // func (c *Con_) W() *bufio.Writer {
 // 	return c.W_
 // }
+//
+
 func (c *Con_) Kvs() util.Map {
 	return c.Kvs_
 }
@@ -290,26 +237,31 @@ func (c *Con_) SetId(id string) {
 	c.ID_ = id
 }
 
+//the Cmd interface for exec data.
 type Cmd interface {
 	//get the connect.
 	Con
+	//get the base connection.
 	BaseCon() Con
 	//get the command data.
 	Data() []byte
 	//done the command, the data []byte will free.
 	Done()
-
+	//convert the data to dest value.
+	//it will call the connection B2V func
 	V(dest interface{}) (interface{}, error)
-	SetErrd(d int) //the error log depth.
+	//the error log stack depth.
+	SetErrd(d int)
+	//common error executor
 	Err(code byte, f string, args ...interface{})
 }
 
-//the data commend.
+//the base implement to Cmd interface.
 type Cmd_ struct {
 	Con          //base connection.
 	Data_ []byte //received data
-	data_ []byte
-	d     int
+	data_ []byte //really address to free.
+	d     int    //the error log stack depth.
 }
 
 func (c *Cmd_) BaseCon() Con {
@@ -445,6 +397,7 @@ func (l *LConPool) RunC(con Con) {
 func (l *LConPool) RunC_(con Con) {
 	defer func() {
 		log_d("closing connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())
+		l.H.OnClose(con)
 		con.Close()
 		if err := recover(); err != nil {
 			buf := make([]byte, 102400)
@@ -481,9 +434,9 @@ func (l *LConPool) RunC_(con Con) {
 			log_d("read data from(%v) error:%v", con.RemoteAddr().String(), err.Error())
 			break
 		}
-		if len(dbuf) < 3 {
-			continue
-		}
+		// if len(dbuf) < 3 {
+		// 	continue
+		// }
 		l.H.OnCmd(&Cmd_{
 			Con:   con,
 			Data_: dbuf,
@@ -491,7 +444,6 @@ func (l *LConPool) RunC_(con Con) {
 			d:     2,
 		})
 	}
-	l.H.OnClose(con)
 }
 func (l *LConPool) Err() CmdErrF {
 	return l.Err_

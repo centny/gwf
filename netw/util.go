@@ -43,6 +43,7 @@ func Writeb(w io.Writer, bys ...[]byte) (int, error) {
 // 	tbys = append(tbys, bys2...)
 // 	return c.Write(tbys...)
 // }
+
 func V(c Cmd, dest interface{}) (interface{}, error) {
 	return c.B2V()(c.Data(), dest)
 }
