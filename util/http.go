@@ -138,7 +138,7 @@ func (h *HClient) DLoad(spath string, header map[string]string, ufmt string, arg
 	if res.StatusCode != 200 {
 		return Err("http response code:%v", res.StatusCode)
 	}
-	f, err := os.OpenFile(spath, os.O_CREATE|os.O_RDWR, 0644)
+	f, err := os.OpenFile(spath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return err
 	}
