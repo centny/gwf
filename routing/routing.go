@@ -299,7 +299,7 @@ func (h *HTTPSession) RecF(name, tfile string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	dst, _ := os.OpenFile(tfile, os.O_RDWR|os.O_APPEND, 0644)
+	dst, _ := os.OpenFile(tfile, os.O_WRONLY|os.O_TRUNC, 0644)
 	defer dst.Close()
 	return io.Copy(dst, src)
 }
@@ -345,7 +345,7 @@ func (h *HTTPSession) RecFvN(name, tfile string) (fn string, w int64, sha_ []byt
 	if err != nil {
 		return "", 0, nil, nil, err
 	}
-	dst, _ := os.OpenFile(tfile, os.O_RDWR|os.O_APPEND, 0644)
+	dst, _ := os.OpenFile(tfile, os.O_WRONLY|os.O_TRUNC, 0644)
 	defer dst.Close()
 	w, sha_, md5_, err = util.Copy(dst, src)
 	return
