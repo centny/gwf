@@ -297,3 +297,34 @@ func Md5(fn string) (string, error) {
 	_, err = bufio.NewReader(f).WriteTo(sha_h)
 	return fmt.Sprintf("%x", sha_h.Sum(nil)), err
 }
+
+func ChkVer(n string, o string) (int, error) {
+	if len(n) < 1 {
+		return 0, Err("new version is empty")
+	}
+	if len(o) < 1 {
+		return 1, nil
+	}
+	ns := strings.Split(n, ".")
+	os := strings.Split(o, ".")
+	ml := len(ns)
+	if len(os) < ml {
+		ml = len(os)
+	}
+	for i := 0; i < ml; i++ {
+		ov, err := strconv.ParseInt(os[i], 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		nv, err := strconv.ParseInt(ns[i], 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		if nv == ov {
+			continue
+		} else {
+			return int(nv - ov), nil
+		}
+	}
+	return len(ns) - len(os), nil
+}

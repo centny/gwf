@@ -307,3 +307,36 @@ func TestCopy(t *testing.T) {
 func TestSS(t *testing.T) {
 	fmt.Printf(Sha1("/Users/cny/Downloads/f.sql"))
 }
+
+func r_vv(n, o string, bv bool, t *testing.T) {
+	iv, err := ChkVer(n, o)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(iv)
+	if bv {
+		if iv < 1 {
+			t.Errorf("errr val:%v", iv)
+			return
+		}
+	} else {
+		if iv > -1 {
+			t.Errorf("errr val:%v", iv)
+			return
+		}
+	}
+}
+func TestChkVer(t *testing.T) {
+	r_vv("0.0.0", "", true, t)
+	r_vv("0.0.0", "0.0", true, t)
+	r_vv("0.0", "0.0.0", false, t)
+	r_vv("1.0", "0.0.0", true, t)
+	r_vv("1.0.0", "0.0.0", true, t)
+	r_vv("0.0.0", "1.0.0", false, t)
+	r_vv("1.0.1", "1.0.0", true, t)
+	fmt.Println(ChkVer("n", "o"))
+	fmt.Println(ChkVer("0.0.0", "o"))
+	fmt.Println(ChkVer("ss", "0.0.0"))
+	fmt.Println(ChkVer("", "0.0.0"))
+}
