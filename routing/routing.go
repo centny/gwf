@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
@@ -286,9 +287,13 @@ func (h *HTTPSession) FormFInfo(name string) (int64, string, error) {
 }
 
 func (h *HTTPSession) RecF(name, tfile string) (int64, error) {
-	src, _, err := h.R.FormFile(name)
+	src, fi, err := h.R.FormFile(name)
 	if err != nil {
 		return 0, err
+	}
+	_, fn := filepath.Split(fi.Filename)
+	if strings.HasSuffix(tfile, "/") {
+		tfile = tfile + fn
 	}
 	err = util.FTouch(tfile)
 	if err != nil {
@@ -316,21 +321,34 @@ func (h *HTTPSession) RecBys(name string, max int) ([]byte, error) {
 	}
 }
 func (h *HTTPSession) RecF2(name, tfile string) (w int64, sha_ string, md5_ string, err error) {
-	w, sh, md, err := h.RecFv(name, tfile)
-	return w, fmt.Sprintf("%x", sh), fmt.Sprintf("%x", md), err
+	_, w, sha_, md5_, err = h.RecFv2(name, tfile)
+	return
 }
 func (h *HTTPSession) RecFv(name, tfile string) (w int64, sha_ []byte, md5_ []byte, err error) {
-	src, _, err := h.R.FormFile(name)
+	_, w, sha_, md5_, err = h.RecFvN(name, tfile)
+	return
+}
+func (h *HTTPSession) RecFv2(name, tfile string) (fn string, w int64, sha_ string, md5_ string, err error) {
+	fn, w, sh, md, err := h.RecFvN(name, tfile)
+	return fn, w, fmt.Sprintf("%x", sh), fmt.Sprintf("%x", md), err
+}
+func (h *HTTPSession) RecFvN(name, tfile string) (fn string, w int64, sha_ []byte, md5_ []byte, err error) {
+	src, fi, err := h.R.FormFile(name)
 	if err != nil {
-		return 0, nil, nil, err
+		return "", 0, nil, nil, err
+	}
+	_, fn = filepath.Split(fi.Filename)
+	if strings.HasSuffix(tfile, "/") {
+		tfile = tfile + fn
 	}
 	err = util.FTouch(tfile)
 	if err != nil {
-		return 0, nil, nil, err
+		return "", 0, nil, nil, err
 	}
 	dst, _ := os.OpenFile(tfile, os.O_RDWR|os.O_APPEND, 0644)
 	defer dst.Close()
-	return util.Copy(dst, src)
+	w, sha_, md5_, err = util.Copy(dst, src)
+	return
 }
 func (h *HTTPSession) SendF(fname, tfile, ctype string, attach bool) {
 	SendF(h.W, h.R, fname, tfile, ctype, attach)
