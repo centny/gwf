@@ -213,6 +213,7 @@ func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
 	total, _ := Writeb(c.W_, bys...)
+	log_d("write data(%v) to %v", total, c.RemoteAddr().String())
 	return total, c.Flush()
 }
 func (c *Con_) Writev(val interface{}) (int, error) {
