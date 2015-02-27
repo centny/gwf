@@ -92,7 +92,7 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	if len(gr) > 0 {
 		gur, err = n.Db.ListUsrR(gr)
 		if err != nil {
-			log.E("list user R for group(%v) err:%v", gr, err.Error())
+			log.E("list user R by gr(%v) err:%v", gr, err.Error())
 			return -1
 		}
 	}

@@ -111,7 +111,7 @@ func (n *NConRunner) RunTick_() {
 			c = n.C
 			if c != nil {
 				c.Writeb([]byte("Tick\n"))
-				log_d("sending tick message to Push Server")
+				// log_d("sending tick message to Push Server")
 			}
 		}
 	}
