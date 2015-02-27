@@ -65,7 +65,7 @@ func (d *DateSwitchWriter) reopen(fname string) error {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(fpath, os.O_WRONLY|os.O_TRUNC|os.O_APPEND, d.FMODE)
+	f, err := os.OpenFile(fpath, os.O_WRONLY|os.O_APPEND, d.FMODE)
 	d.cfn = fname
 	d.F = f
 	fmt.Println("open file:", fpath)

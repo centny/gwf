@@ -23,6 +23,7 @@ type TimeFlushWriter struct {
 	rdelay  time.Duration
 	running bool
 	*bufio.Writer
+	LCK sync.RWMutex
 }
 
 func NewTWriter(sw io.Writer) *TimeFlushWriter {
@@ -48,6 +49,7 @@ func (t *TimeFlushWriter) runClock() {
 	var ttime time.Duration = 0
 	for t.running {
 		if ttime >= t.cdelay && t.Buffered() > 0 {
+			t.LCK.Lock()
 			err := t.Flush()
 			if err != nil {
 				fmt.Println(fmt.Sprintf(
@@ -55,6 +57,7 @@ func (t *TimeFlushWriter) runClock() {
 					t.sw, t.Available(), t.Buffered(), err.Error()))
 			}
 			ttime = 0
+			t.LCK.Unlock()
 		}
 		ttime += t.rdelay
 		time.Sleep(t.rdelay * time.Millisecond)
