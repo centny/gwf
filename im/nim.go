@@ -103,7 +103,7 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 		log.E("receive empty R message(%v)", mc)
 		return -1
 	}
-	log_d("receive message(%v) to RS(%v) in S(%v)", mc, ur, n.SS.Id())
+	log_d("receive message(%v) to R(%v) in S(%v)", mc, gur, n.SS.Id())
 	mid := n.Db.NewMid()
 	mc.I = &mid
 	dr_rc := map[string][]*pb.RC{} //
