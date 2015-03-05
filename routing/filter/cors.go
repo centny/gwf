@@ -51,3 +51,10 @@ func NewCORS() *CORS {
 	cors.Sites = map[string]int{}
 	return cors
 }
+func NewCORS2(site string) *CORS {
+	cors := &CORS{}
+	cors.Sites = map[string]int{
+		site: 1,
+	}
+	return cors
+}
