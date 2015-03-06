@@ -1,5 +1,9 @@
 package netw
 
+import (
+	"github.com/Centny/gwf/log"
+)
+
 //the ConHandler by queue.
 type QueueConH struct {
 	//all handlers.
@@ -64,16 +68,24 @@ func (cch *CCH) OnCmd(c Cmd) int {
 
 //do nothing handler implement CCHandler
 type DoNotH struct {
-	C bool //whether allow connect
+	C       bool //whether allow connect
+	W       bool //whether set wait to connect
+	ShowLog bool
 }
 
 //DoNotH creator.
 func NewDoNotH() *DoNotH {
-	return &DoNotH{C: true}
+	return &DoNotH{C: true, ShowLog: false, W: true}
+}
+func (cch *DoNotH) log_d(f string, args ...interface{}) {
+	if cch.ShowLog {
+		log.D(f, args...)
+	}
 }
 
 //see ConHandler
 func (cch *DoNotH) OnConn(c Con) bool {
+	c.SetWait(cch.W)
 	return cch.C
 }
 
@@ -83,7 +95,7 @@ func (cch *DoNotH) OnClose(c Con) {
 
 //see CmdHandler
 func (cch *DoNotH) OnCmd(c Cmd) int {
-	log_d("DoNoH receiving command (%v)", c)
+	cch.log_d("DoNoH receiving command (%v)", c)
 	return 0
 }
 

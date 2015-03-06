@@ -254,3 +254,72 @@ func TestWs(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	con.Close()
 }
+
+func TestTick(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	ShowLog = true
+	p := pool.NewBytePool(8, 1024)
+	l := NewListener(p, ":6679", "N", NewDoNotH())
+	l.Run()
+	defer l.Close()
+	con := NewNConRunner(p, "127.0.0.1:6679", NewDoNotH())
+	con.ShowLog = true
+	con.Tick = 100
+	con.StartRunner()
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		l.Writev("abc")
+		l.Writeb([]byte("xxxx"))
+	}()
+	time.Sleep(time.Second)
+	con.StopRunner()
+	time.Sleep(100 * time.Millisecond)
+}
+func TestLoopTimeout(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	ShowLog = true
+	p := pool.NewBytePool(8, 1024)
+	dn := NewDoNotH()
+	dn.W = false
+	l := NewListener(p, ":6679", "N", dn)
+	l.T = 100
+	l.Run()
+	defer l.Close()
+	nc, _, _ := Dail(p, "127.0.0.1:6679", NewDoNotH())
+	time.Sleep(time.Second)
+	if len(nc.Cons()) > 0 {
+		t.Error("not right")
+	}
+}
+
+type PanicCmd struct {
+}
+
+func (p *PanicCmd) OnCmd(c Cmd) int {
+	c.SetErrd(2)
+	fmt.Println("PanicCmd------->OnCmd")
+	panic("OnCmd")
+	return 0
+}
+func TestConRecover(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	ShowLog = true
+	p := pool.NewBytePool(8, 1024)
+	l := NewListener(p, ":6679", "N", NewCCH(NewDoNotH(), &PanicCmd{}))
+	l.T = 100
+	l.Run()
+	defer l.Close()
+	nc, _, _ := Dail(p, "127.0.0.1:6679", NewDoNotH())
+	nc.Writeb([]byte("sfdsfsd"))
+	time.Sleep(time.Second)
+	if len(nc.Cons()) > 0 {
+		t.Error("not right")
+	}
+}
+
+func TestSome(t *testing.T) {
+	dn := NewDoNotH()
+	dn.ShowLog = true
+	dn.log_d("abccc->%v", 1)
+	NewListenerN2(nil, "", nil, nil)
+}

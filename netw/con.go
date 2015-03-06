@@ -68,10 +68,11 @@ type NConRunner struct {
 	Retry     time.Duration
 	Tick      time.Duration
 	//
-	Addr string
-	NCF  NewConF
-	BP   *pool.BytePool
-	CmdH CmdHandler
+	Addr    string
+	NCF     NewConF
+	BP      *pool.BytePool
+	CmdH    CmdHandler
+	ShowLog bool //setting the ShowLog to Con_
 }
 
 func (n *NConRunner) OnConn(c Con) bool {
@@ -81,15 +82,16 @@ func (n *NConRunner) OnConn(c Con) bool {
 	return n.ConH.OnConn(c)
 }
 func (n *NConRunner) OnClose(c Con) {
-	if n.Running {
-		go n.Try()
-	}
 	if n.ConH != nil {
 		n.ConH.OnClose(c)
+	}
+	if n.Running {
+		go n.Try()
 	}
 }
 func (n *NConRunner) StartRunner() {
 	go n.Try()
+	go n.StartTick()
 }
 func (n *NConRunner) StopRunner() {
 	n.Running = false
@@ -105,6 +107,7 @@ func (n *NConRunner) RunTick_() {
 	tk := time.Tick(n.Tick * time.Millisecond)
 	c := n.C
 	n.Running = true
+	log_d("starting tick(%vms) to server(%v)", int(n.Tick), n.Addr)
 	for n.Running {
 		select {
 		case <-tk:
@@ -115,6 +118,7 @@ func (n *NConRunner) RunTick_() {
 			}
 		}
 	}
+	log_d("tick to server(%v) will stop", n.Addr)
 }
 func (n *NConRunner) Try() {
 	n.Running = true
@@ -126,7 +130,7 @@ func (n *NConRunner) Try() {
 		log.D("try connect to server(%v) err:%v,will retry after %v ms", n.Addr, err.Error(), 5000)
 		time.Sleep(n.Retry * time.Millisecond)
 	}
-	log.D("connect try stopped")
+	// log.D("connect try stopped")
 }
 func (n *NConRunner) Dail() error {
 	n.Connected = false
@@ -137,6 +141,7 @@ func (n *NConRunner) Dail() error {
 	n.NConPool = nc
 	n.C = cc
 	n.Connected = true
+	cc.(*Con_).ShowLog = n.ShowLog
 	return nil
 }
 

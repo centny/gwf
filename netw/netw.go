@@ -131,6 +131,7 @@ type Con_ struct {
 	ID_      string         //the connection id
 	c_l      sync.RWMutex   //connection lock.
 	buf      []byte         //the buf to store the data len which will be writed to connection.
+	ShowLog  bool
 	// r_l      sync.RWMutex
 }
 
@@ -156,7 +157,13 @@ func NewCon_(cp ConPool, p *pool.BytePool, con net.Conn) *Con_ {
 		B2V_: func(bys []byte, v interface{}) (interface{}, error) {
 			return nil, util.Err("B2V not implemeted")
 		},
-		ID_: fmt.Sprintf("C%v", atomic.AddUint64(&con_idc, 1)),
+		ID_:     fmt.Sprintf("C%v", atomic.AddUint64(&con_idc, 1)),
+		ShowLog: ShowLog,
+	}
+}
+func (c *Con_) log_d(f string, args ...interface{}) {
+	if c.ShowLog {
+		log.D(f, args...)
 	}
 }
 func (c *Con_) CP() ConPool {
@@ -213,7 +220,7 @@ func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
 	total, _ := Writeb(c.W_, bys...)
-	log_d("write data(%v) to %v", total, c.RemoteAddr().String())
+	c.log_d("write data(%v) to %v", total, c.RemoteAddr().String())
 	return total, c.Flush()
 }
 func (c *Con_) Writev(val interface{}) (int, error) {
@@ -390,25 +397,29 @@ func (l *LConPool) Find(id string) Con {
 //run one connection by async.
 func (l *LConPool) RunC(con Con) {
 	// go func(lll *LConPool, conn net.Conn) {
-	go l.RunC_(con)
+	l.add_c(con) //will remove in RunC_ defer
+	go l.runc_(con)
 	// }(l, con)
 }
 
 //run on connection by sync.
 func (l *LConPool) RunC_(con Con) {
+	l.add_c(con)
+	l.runc_(con)
+}
+func (l *LConPool) runc_(con Con) {
 	defer func() {
 		log_d("closing connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())
 		l.H.OnClose(con)
 		con.Close()
+		l.del_c(con)
 		if err := recover(); err != nil {
 			buf := make([]byte, 102400)
 			blen := runtime.Stack(buf, false)
-			log.E("RunC_ close err:%v,%v", err, string(buf[0:blen]))
+			log.E("RunC_ close err(%v),stack:\n%v", err, string(buf[0:blen]))
 		}
 	}()
 	log_d("running connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())
-	l.add_c(con)
-	defer l.del_c(con)
 	//
 	buf := make([]byte, 5)
 	mod := []byte(H_MOD)
@@ -460,12 +471,12 @@ func (l *LConPool) Cons() map[string]Con {
 	return l.cons
 }
 
-func (l *LConPool) Write(bys []byte) int {
-	for _, con := range l.cons {
-		con.Write(bys)
-	}
-	return len(l.cons)
-}
+// func (l *LConPool) Write(bys []byte) int {
+// 	for _, con := range l.cons {
+// 		con.Write(bys)
+// 	}
+// 	return len(l.cons)
+// }
 func (l *LConPool) Writeb(bys ...[]byte) int {
 	for _, con := range l.cons {
 		con.Writeb(bys...)
