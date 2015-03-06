@@ -76,7 +76,7 @@ func NewOBDH() *OBDH {
 func (o *OBDH) OnCmd(c netw.Cmd) int {
 	if len(c.Data()) < 2 {
 		c.Done()
-		log.W("receive empty command data(%v) from %v", c.Data(), c.RemoteAddr().String())
+		log.W("receive empty command data(%v) from %v in(%v)", c.Data(), c.RemoteAddr().String(), c.CP().Id())
 		return -1
 	}
 	log_d("OBDH receive data:%v", string(c.Data()))
@@ -90,7 +90,7 @@ func (o *OBDH) OnCmd(c netw.Cmd) int {
 		})
 	} else {
 		c.Done()
-		log.W("mark(%v,%v) not found in(%v) from %v", mark[0], string(c.Data()), o.HS, c.RemoteAddr().String())
+		log.W("mark(%v,%v) not found in(%v) from %v in(%v)", mark[0], string(c.Data()), o.HS, c.RemoteAddr().String(), c.CP().Id())
 		return -1
 	}
 }

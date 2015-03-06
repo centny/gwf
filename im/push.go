@@ -1,7 +1,6 @@
 package im
 
 import (
-	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
@@ -72,7 +71,7 @@ func (p *PushSrv) PushV(s string, r []string, c []byte, t uint32) (*Msg, error) 
 		return nil, err
 	}
 	sc := p.Notify(msg.GetI())
-	log.D("push message(%v) to server(%v)", msg, sc)
+	log_d("push message(%v) to (%v) server", msg, sc)
 	return msg, nil
 
 }

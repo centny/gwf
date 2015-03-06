@@ -28,8 +28,8 @@ const (
 	MK_NRC    = 4
 	MK_DIM    = 8
 	MK_DRC    = 12
-	MK_NODE   = 30
-	MK_NODE_M = 31
+	MK_NODE_C = 30 //node server command channel.
+	MK_NODE_M = 31 //node server Message channel.
 )
 
 type DbH interface {
@@ -189,7 +189,7 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte,
 	nrh := &NodeRh{NIM: nim}
 	nch := &NodeCmds{Db: db, DS: map[string]netw.Con{}}
 	nch.H(ndh)
-	obdh.AddH(MK_NODE, ndh)
+	obdh.AddH(MK_NODE_C, impl.NewRC_S(ndh))
 	obdh.AddH(MK_NODE_M, nrh)
 	//
 
@@ -202,7 +202,7 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte,
 		return cc
 	}
 	dip := NewDimPool(db, sid, p, v2b, b2v, nav, ncf, dim)
-	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), obdh)
+	cch := netw.NewCCH(netw.NewQueueConH(dim, nim, nch), obdh)
 	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), sid, cch, ncf)
 	// l.LConPool.SetId(sid)
 	// l.SetId(sid)
@@ -294,7 +294,7 @@ func (l *Listener) OnCmd(c netw.Cmd) int {
 		return -1
 	}
 	l.NIM.Push(mid)
-	log.D("receive on push notification by mid(%v)", mid)
+	log_d("receive on push notification by mid(%v)", mid)
 	return 0
 }
 func IM_V2B(v interface{}) ([]byte, error) {

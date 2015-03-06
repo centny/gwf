@@ -244,7 +244,7 @@ func (m *MemDbH) RandUsr() []string {
 	}
 	usrs, _ := m.ListR()
 	um := map[string]byte{}
-	tlen := rand.Intn(ulen) % 16
+	tlen := rand.Intn(ulen)%16 + 1
 	for i := 0; i <= tlen; i++ {
 		um[usrs[rand.Intn(ulen)]] = 1
 	}

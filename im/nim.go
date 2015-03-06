@@ -245,12 +245,12 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	var args util.Map
 	_, err := r.V(&args)
 	if err != nil {
-		log.W("login V fail:%v", err.Error())
+		log.W("LI V fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
 	rv, ct, err := n.Db.OnLogin(r, &args)
 	if err != nil {
-		log.W("login OnLogin fail:%v", err.Error())
+		log.W("LI OnLogin fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
 	con := &Con{
@@ -263,7 +263,7 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	}
 	err = n.Db.AddCon(con)
 	if err != nil {
-		log.W("login AddCon fail:%v", err.Error())
+		log.W("LI AddCon fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
 	r.SetWait(true)
@@ -271,12 +271,14 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	// con.Sid = ""
 	res := n.writev_c(r, con)
 	// go SendUnread(n.SS, n.Db, r, rv, ct)
+	log_d("LI success by R(%v),CT(%v) for:%v", rv, ct, r.RemoteAddr().String())
 	return res
 }
 func (n *NIM_Rh) LO(r netw.Cmd) int {
 	var args util.Map
 	_, err := r.V(&args)
 	if err != nil {
+		log.W("LO V fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
 	rv, ct, w, err := n.Db.OnLogout(r, &args)
@@ -292,6 +294,7 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 		log.W("LO DelCon fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
+	log_d("LO success by wait(%v) for:%v", w, r.RemoteAddr().String())
 	return n.writev_c(r, con)
 }
 func (n *NIM_Rh) UR(r netw.Cmd) int {
@@ -319,7 +322,7 @@ func (n *NIM_Rh) LoopPush() {
 			}
 			sc, total, err := n.DoPush_(mid)
 			if err == nil {
-				log.D("doing push sc(%v),total(%v)->OK", sc, total)
+				log_d("doing push sc(%v),total(%v)->OK", sc, total)
 			} else {
 				log.W("doing push sc(%v),total(%v)->ERR:%v", sc, total, err.Error())
 			}

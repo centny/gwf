@@ -23,7 +23,7 @@ type NodeRh struct {
 
 func (n *NodeRh) OnCmd(c netw.Cmd) int {
 	defer c.Done()
-	log.D("DIM_Rh recieve data:%v", string(c.Data()))
+	log_d("DIM_Rh recieve data:%v", string(c.Data()))
 	var mc Msg
 	_, err := c.V(&mc.ImMsg)
 	if err != nil {
@@ -89,11 +89,9 @@ func (n *NodeCmds) NLI(c netw.Cmd) int {
 	var na NodeV
 	_, err := c.B2V()(c.Data(), &na)
 	if err != nil {
-		fmt.Println(c.Data())
 		log.E("Node Cmd data(%v) to value err:%v", string(c.Data()), err.Error())
 		return n.writev_ce(c, na, err.Error())
 	}
-
 	var token string
 	err = na.V.ValidF(`
 		token,R|S,L:0,token is empty;

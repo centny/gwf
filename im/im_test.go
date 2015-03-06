@@ -9,6 +9,7 @@ import (
 	"github.com/Centny/gwf/util"
 	"math/rand"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -37,6 +38,99 @@ var client_c uint64 = 0
 var cc_ws sync.WaitGroup
 var cc_ws2 sync.WaitGroup
 
+func run_im_nc(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
+	srvs, err := db.ListSrv("")
+	if err != nil {
+		panic(err.Error())
+	}
+	if len(srvs) < 1 {
+		panic("not service")
+	}
+	srv := srvs[rand.Intn(len(srvs))]
+	if len(srv.Token) < 1 {
+		panic("token is empty")
+	}
+	obdh := impl.NewOBDH()
+	//
+	//
+	l, con, err := netw.DailN(p, srv.Addr(), netw.NewCCH(netw.NewDoNotH(), impl.NewChanH2(obdh, 3)), IM_NewCon)
+	if err != nil {
+		panic(err.Error())
+	}
+	//
+	//
+	tc := impl.NewRC_C()
+	mcon := impl.NewOBDH_Con(MK_NODE_C, con)
+	rcon := impl.NewRC_Con(mcon, tc)
+	rcon.Start()
+	//
+	obdh.AddH(MK_NODE_C, tc)
+	obdh.AddH(MK_NIM, rm)
+	//
+	//
+	//
+	var res util.Map
+	_, err = rcon.Execm(MK_NDC_NLI,
+		&NodeV{
+			V: util.Map{
+				"token": srv.Token,
+			},
+			B: "abc",
+		}, &res)
+	if err != nil {
+		panic(err.Error())
+	}
+	if res.MapVal("v").IntVal("code") != 0 {
+		fmt.Println(res)
+		panic(res.StrVal("res"))
+	}
+	rcon.Execm(MK_NDC_ULI,
+		&NodeV{
+			V: util.Map{
+				"token": "abc",
+			},
+			B: "abc",
+		}, &res)
+	if res.MapVal("v").IntVal("code") != 0 {
+		fmt.Println(res)
+		panic(res.StrVal("res"))
+	}
+	// fmt.Println(res.MapVal("v"))
+	rcon.Execm(MK_NDC_UUR, &NodeV{
+		V: util.Map{
+			"token": srv.Token,
+			"R":     res.MapVal("v").MapVal("res").StrVal("r"),
+		},
+		B: "abc",
+	}, &res)
+	if res.MapVal("v").IntVal("code") != 0 {
+		fmt.Println(res)
+		panic(res.StrVal("res"))
+	}
+	// fmt.Println("----->")
+	atomic.AddUint64(&m_cc_c, 1) //marking for auto create unread message.
+	atomic.AddUint64(&s_cc_c, 1)
+	//
+	msgc := impl.NewOBDH_Con(MK_NODE_M, con)
+	//
+	// atomic.AddUint64(&m_cc_c, 1)
+	// atomic.AddUint64(&s_cc_c, 1)
+	var tt uint32 = 0
+	var s string = "U-1"
+	msgc.Writev(
+		&pb.ImMsg{
+			S: &s,
+			R: []string{"S-Robot"},
+			T: &tt,
+			C: []byte{1, 2, 4},
+		})
+	cc_ws.Done()
+	cc_ws2.Wait()
+	rcon.Execm(MK_NDC_ULO, map[string]string{}, &res)
+	// time.Sleep(1 * time.Second)
+	l.Close()
+	con.Close()
+}
 func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	srvs, err := db.ListSrv("")
 	if err != nil {
@@ -47,29 +141,28 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	}
 	srv := srvs[rand.Intn(len(srvs))]
 	obdh := impl.NewOBDH()
-	tc := impl.NewRC_C()
-	obdh.AddH(MK_NRC, tc)
-	obdh.AddH(MK_NIM, rm)
 	//
 	//
 	l, con, err := netw.DailN(p, srv.Addr(), netw.NewCCH(netw.NewDoNotH(), impl.NewChanH2(obdh, 5)), IM_NewCon)
 	if err != nil {
 		panic(err.Error())
 	}
+	//
+	//MK_NRC
+	tc := impl.NewRC_C()
 	mcon := impl.NewOBDH_Con(MK_NRC, con)
 	rcon := impl.NewRC_Con(mcon, tc)
 	rcon.Start()
-	// lic := impl.NewOBDH_Con(MK_NRC_LI, rcon)
-	// loc := impl.NewOBDH_Con(MK_NRC_LO, rcon)
+	//
+	obdh.AddH(MK_NRC, tc)
+	obdh.AddH(MK_NIM, rm)
+	//
+	//
+	//
 	var res util.Map
 	_, err = rcon.Execm(MK_NRC_LI, map[string]interface{}{
 		"token": "abc",
 	}, &res)
-	// rmcon := impl.NewRCM_Con(rcon, impl.Json_NAV)
-	// rmcon.Start()
-	// res, err := rmcon.ExecRes("LI", map[string]interface{}{
-	// 	"token": "abc",
-	// })
 	if err != nil {
 		panic(err.Error())
 	}
@@ -77,6 +170,7 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 		fmt.Println(res)
 		panic(res.StrVal("res"))
 	}
+	//
 	_, err = rcon.Execm(MK_NRC_UR, map[string]interface{}{}, &res)
 	// fmt.Println("----->")
 	atomic.AddUint64(&m_cc_c, 1) //marking for auto create unread message.
@@ -131,6 +225,13 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	cc_ws2.Wait()
 	// rmcon.ExecRes("LO", nil)
 	rcon.Execm(MK_NRC_LO, map[string]string{}, &res)
+	if err != nil {
+		panic(err.Error())
+	}
+	if res.IntVal("code") != 0 {
+		fmt.Println(res)
+		panic(res.StrVal("res"))
+	}
 	time.Sleep(1 * time.Second)
 	l.Close()
 	atomic.AddUint64(&hr_cc_c, tc.RCC)
@@ -163,12 +264,13 @@ func wait_rec(db *MemDbH, rm *rec_msg) {
 }
 func run_c(db *MemDbH, p *pool.BytePool, rm *rec_msg) {
 	crun = true
-	client_c = 200
-	cc_ws.Add(200)
+	client_c = 400
+	cc_ws.Add(400)
 	cc_ws2.Add(1)
 	for i := 0; i < 4; i++ {
 		for i := 0; i < 50; i++ {
 			go run_im_c(p, db, rm)
+			go run_im_nc(p, db, rm)
 			time.Sleep(time.Millisecond)
 		}
 		time.Sleep(2 * time.Second)
@@ -187,18 +289,20 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 	}
 	ls := []*Listener{}
 	go func() {
-		for len(psrv.Cons()) < 1 {
+		for len(psrv.Cons()) < 1 || len(db.Grp) < 1 {
 			time.Sleep(500 * time.Millisecond)
 		}
 		for i := 0; i < 5; i++ {
 			for i := 0; i < 5; i++ {
 				gr, uc := db.RandGrp()
-				if len(gr) < 1 {
-					time.Sleep(time.Second)
-					continue
-				}
 				psrv.PushN("U-1", gr, "abc", 0)
 				atomic.AddUint64(&s_cc_c, uint64(uc))
+				atomic.AddUint64(&m_cc_c, 1)
+			}
+			for i := 0; i < 5; i++ {
+				ur := db.RandUsr()
+				psrv.PushN("U-1", strings.Join(ur, ","), "abc", 0)
+				atomic.AddUint64(&s_cc_c, uint64(len(ur)))
 				atomic.AddUint64(&m_cc_c, 1)
 			}
 		}
@@ -223,7 +327,7 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 	}
 	cc_ws2.Wait()
 
-	// time.Sleep(2 * time.Second)
+	time.Sleep(2 * time.Second)
 	for _, l := range ls {
 		l.Close()
 	}
