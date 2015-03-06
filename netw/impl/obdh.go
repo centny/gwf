@@ -4,6 +4,7 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/util"
+	"runtime"
 )
 
 type OBDH_Con struct {
@@ -65,7 +66,8 @@ func (o OBDH_HF) OnCmd(c netw.Cmd) int {
 
 //
 type OBDH struct {
-	HS map[byte]netw.CmdHandler
+	HS       map[byte]netw.CmdHandler
+	ShowCall bool
 }
 
 func NewOBDH() *OBDH {
@@ -79,7 +81,12 @@ func (o *OBDH) OnCmd(c netw.Cmd) int {
 		log.W("receive empty command data(%v) from %v in(%v)", c.Data(), c.RemoteAddr().String(), c.CP().Id())
 		return -1
 	}
-	log_d("OBDH receive data:%v", string(c.Data()))
+	if o.ShowCall {
+		buf := make([]byte, 102400)
+		blen := runtime.Stack(buf, false)
+		log.E("OBDH call stack:\n%v", string(buf[0:blen]))
+	}
+	log_d("OBDH receive data:%v", c.Data())
 	mark, data := util.SplitTwo(c.Data(), 1)
 	if hh, ok := o.HS[mark[0]]; ok {
 		c.SetErrd(3)
