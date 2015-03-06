@@ -25,6 +25,15 @@ func NewChanH(h netw.CmdHandler) *ChanH {
 		Sleep: 300,
 	}
 }
+func NewChanH2(h netw.CmdHandler, gc int) *ChanH {
+	ch := &ChanH{
+		H:     h,
+		cc:    make(chan netw.Cmd, 100),
+		Sleep: 300,
+	}
+	ch.Run(gc)
+	return ch
+}
 
 //running gorutine count
 func (ch *ChanH) Count() int {

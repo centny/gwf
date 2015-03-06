@@ -220,6 +220,9 @@ func (m *MemDbH) Store(ms *Msg) error {
 	m.ms_l.Lock()
 	defer m.ms_l.Unlock()
 	m.Ms[ms.GetI()] = ms
+	if len(ms.Ms) < 1 {
+		panic("message MS is empty")
+	}
 	return nil
 }
 
@@ -241,7 +244,7 @@ func (m *MemDbH) RandUsr() []string {
 	}
 	usrs, _ := m.ListR()
 	um := map[string]byte{}
-	tlen := rand.Intn(ulen)%16 + 1
+	tlen := rand.Intn(ulen) % 16
 	for i := 0; i <= tlen; i++ {
 		um[usrs[rand.Intn(ulen)]] = 1
 	}
@@ -306,6 +309,9 @@ func (m *MemDbH) ListUnread(r string, ct int) ([]Msg, error) {
 		T: &tt,
 		C: []byte("Robot Unread Message"),
 	}
+	msg.Ms = map[string]string{
+		r: MS_PENDING + MS_SEQ + r,
+	}
 	m.Store(&msg)
 	return []Msg{msg}, nil
 }
@@ -315,8 +321,15 @@ func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []Con, error) {
 		return nil, nil, util.Err("message not found by id(%v)", mid)
 	}
 	cons := []Con{}
-	for _, cc := range m.Cons {
-		cons = append(cons, *cc)
+	for r, v := range msg.Ms {
+		if v == "D" {
+			continue
+		}
+		for _, cc := range m.Cons {
+			if cc.R == r && cc.Sid == sid {
+				cons = append(cons, *cc)
+			}
+		}
 	}
 	return msg, cons, nil
 }

@@ -33,6 +33,7 @@ var s_cc_c uint64 = 0
 var m_cc_c uint64 = 0
 var hr_cc_c uint64 = 0
 var h_cc_c uint64 = 0
+var client_c uint64 = 0
 var cc_ws sync.WaitGroup
 var cc_ws2 sync.WaitGroup
 
@@ -49,10 +50,9 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	tc := impl.NewRC_C()
 	obdh.AddH(MK_NRC, tc)
 	obdh.AddH(MK_NIM, rm)
-	ch := impl.NewChanH(obdh)
-	tcch := netw.NewCCH(netw.NewDoNotH(), ch)
-	ch.Run(5)
-	l, con, err := netw.DailN(p, srv.Addr(), tcch, IM_NewCon)
+	//
+	//
+	l, con, err := netw.DailN(p, srv.Addr(), netw.NewCCH(netw.NewDoNotH(), impl.NewChanH2(obdh, 5)), IM_NewCon)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -77,8 +77,27 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 		fmt.Println(res)
 		panic(res.StrVal("res"))
 	}
+	_, err = rcon.Execm(MK_NRC_UR, map[string]interface{}{}, &res)
 	// fmt.Println("----->")
+	atomic.AddUint64(&m_cc_c, 1) //marking for auto create unread message.
+	atomic.AddUint64(&s_cc_c, 1)
+	//
 	msgc := impl.NewOBDH_Con(MK_NIM, con)
+	//
+	// atomic.AddUint64(&m_cc_c, 1)
+	// atomic.AddUint64(&s_cc_c, 1)
+	var tt uint32 = 0
+	msgc.Writev(
+		&pb.ImMsg{
+			R: []string{"S-Robot"},
+			T: &tt,
+			C: []byte{1, 2, 4},
+		})
+	//
+	//
+	// nodec_m := impl.NewOBDH_Con(MK_NODE_M, con)
+	// nodec := impl.NewOBDH_Con(MK_NODE, con)
+
 	for i := 0; i < 1000; i++ {
 		rs := []string{}
 		uc := 0
@@ -95,7 +114,6 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
-		var tt uint32 = 0
 		_, err := msgc.Writev(
 			&pb.ImMsg{
 				R: rs,
@@ -145,6 +163,7 @@ func wait_rec(db *MemDbH, rm *rec_msg) {
 }
 func run_c(db *MemDbH, p *pool.BytePool, rm *rec_msg) {
 	crun = true
+	client_c = 200
 	cc_ws.Add(200)
 	cc_ws2.Add(1)
 	for i := 0; i < 4; i++ {
@@ -161,11 +180,35 @@ func run_c(db *MemDbH, p *pool.BytePool, rm *rec_msg) {
 	time.Sleep(3 * time.Second)
 }
 func run_s(db *MemDbH, p *pool.BytePool) {
+	psrv := NewPushSrv(p, ":5598", "Push", netw.NewDoNotH(), db)
+	err := psrv.Run()
+	if err != nil {
+		panic(err.Error())
+	}
 	ls := []*Listener{}
+	go func() {
+		for len(psrv.Cons()) < 1 {
+			time.Sleep(500 * time.Millisecond)
+		}
+		for i := 0; i < 5; i++ {
+			for i := 0; i < 5; i++ {
+				gr, uc := db.RandGrp()
+				if len(gr) < 1 {
+					time.Sleep(time.Second)
+					continue
+				}
+				psrv.PushN("U-1", gr, "abc", 0)
+				atomic.AddUint64(&s_cc_c, uint64(uc))
+				atomic.AddUint64(&m_cc_c, 1)
+			}
+		}
+		time.Sleep(3 * time.Second)
+	}()
 	for i := 0; i < 5; i++ {
 		l := NewListner2(db, fmt.Sprintf("S-vv-%v", i), p, 9890+i)
 		l.T = 30000
-		err := l.Run()
+		l.PushSrvAddr = "127.0.0.1:5598"
+		err = l.Run()
 		if err != nil {
 			panic(err.Error())
 		}
@@ -179,6 +222,7 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 		time.Sleep(3 * time.Second)
 	}
 	cc_ws2.Wait()
+
 	// time.Sleep(2 * time.Second)
 	for _, l := range ls {
 		l.Close()
@@ -202,13 +246,8 @@ func TestIm(t *testing.T) {
 	p.GC()
 	fmt.Println("MS:", p.Size())
 	m, r, pv, e, d := db.Show()
-	if m != m_cc_c || (r-pv-e) < rm.cc || d != rm.cc || s_cc_c < rm.cc || r < s_cc_c {
-		t.Error(fmt.Sprintf("%v,%v,%v,%v,%v", m != m_cc_c, (r-pv-e) < rm.cc, d != rm.cc, s_cc_c < rm.cc, r < s_cc_c))
+	if m != m_cc_c || (r-pv-e) < (rm.cc-client_c) || d != (rm.cc-client_c) || s_cc_c < (rm.cc-client_c) || r < s_cc_c {
+		t.Error(fmt.Sprintf("%v,%v,%v,%v,%v", m != m_cc_c, (r-pv-e) < (rm.cc-client_c), d != (rm.cc-client_c), s_cc_c < (rm.cc-client_c), r < s_cc_c))
 	}
 	time.Sleep(4 * time.Second)
-}
-
-func TestMap(t *testing.T) {
-	// vv := map[string]map[string]string{}
-	// vv["a"]["b"] = "c"
 }

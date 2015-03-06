@@ -275,9 +275,10 @@ func (l *Listener) Close() {
 
 func (l *Listener) ConPushSrv(addr string) {
 	l.PushConRunner = netw.NewNConRunnerN(l.P, addr, l, impl.Json_NewCon)
+	l.PushConRunner.ShowLog = false //not show the netw write data log.
 	l.PushConRunner.Tick = l.PushSrvTick
 	l.PushConRunner.StartRunner()
-	l.PushConRunner.StartTick()
+	// l.PushConRunner.StartTick()
 }
 
 func (l *Listener) OnCmd(c netw.Cmd) int {

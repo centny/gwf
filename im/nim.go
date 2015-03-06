@@ -76,8 +76,10 @@ func (n *NIM_Rh) DoRobot(mc *Msg) int {
 	err := n.SS.Send(mc.Id(), &mc.ImMsg)
 	if err == nil {
 		return 1
+	} else {
+		log.E("send message err(%v) for:%v", err.Error(), mc.RemoteAddr().String())
+		return -1
 	}
-	return 0
 }
 func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	if dr := n.DoRobot(mc); dr != 0 {
@@ -341,7 +343,7 @@ func (n *NIM_Rh) DoPush_(mid string) (int, int, error) {
 		avs := strings.Split(av, MS_SEQ)
 		avl := len(avs)
 		if avl < 2 {
-			log.W("invalid unread message:%v for R(%v)", msg, con.R)
+			log.W("invalid unread message->the receiver is empty for R(%v),msg:(%v),ms(%v)", con.R, msg, msg.Ms)
 			continue
 		}
 		for i := 1; i < avl; i++ {
