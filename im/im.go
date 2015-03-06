@@ -186,10 +186,11 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte,
 	obdh.AddH(MK_DRC, impl.NewRC_S(dim_m))
 	//
 	ndh := impl.NewOBDH()
+	// ndh.ShowCall = true
 	nrh := &NodeRh{NIM: nim}
 	nch := &NodeCmds{Db: db, DS: map[string]netw.Con{}}
 	nch.H(ndh)
-	obdh.AddH(MK_NODE_C, impl.NewRC_S(ndh))
+	obdh.AddH(MK_NODE_C, ndh) //not using RC
 	obdh.AddH(MK_NODE_M, nrh)
 	//
 

@@ -59,54 +59,69 @@ func run_im_nc(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	}
 	//
 	//
-	tc := impl.NewRC_C()
-	mcon := impl.NewOBDH_Con(MK_NODE_C, con)
-	rcon := impl.NewRC_Con(mcon, tc)
-	rcon.Start()
+	rcon := impl.NewOBDH_Con(MK_NODE_C, con)
+	nli_c := impl.NewOBDH_Con(MK_NDC_NLI, rcon)
+	uli_c := impl.NewOBDH_Con(MK_NDC_ULI, rcon)
+	ulo_c := impl.NewOBDH_Con(MK_NDC_ULO, rcon)
+	uur_c := impl.NewOBDH_Con(MK_NDC_UUR, rcon)
+	c_cb := func(c netw.Cmd) int {
+		var na NodeV
+		_, err := c.B2V()(c.Data(), &na)
+		if err != nil {
+			panic(err.Error())
+		}
+		if na.V.IntVal("code") != 0 {
+			fmt.Println(na.V)
+			panic(na.V.StrVal("res"))
+		}
+		return 0
+	}
+	c_li := func(c netw.Cmd) int {
+		var na NodeV
+		_, err := c.B2V()(c.Data(), &na)
+		if err != nil {
+			panic(err.Error())
+		}
+		if na.V.IntVal("code") != 0 {
+			fmt.Println(na.V)
+			panic(na.V.StrVal("res"))
+		}
+		uur_c.Writev(
+			&NodeV{
+				V: util.Map{
+					"token": srv.Token,
+					"R":     na.V.MapVal("res").StrVal("r"),
+				},
+				B: "abc",
+			})
+		return 0
+	}
+	cmdh := impl.NewOBDH()
+	cmdh.AddF(MK_NDC_NLI, c_cb)
+	cmdh.AddF(MK_NDC_ULI, c_li)
+	cmdh.AddF(MK_NDC_ULO, c_cb)
+	cmdh.AddF(MK_NDC_UUR, c_cb)
 	//
-	obdh.AddH(MK_NODE_C, tc)
+	obdh.AddH(MK_NODE_C, cmdh)
 	obdh.AddH(MK_NIM, rm)
 	//
 	//
 	//
-	var res util.Map
-	_, err = rcon.Execm(MK_NDC_NLI,
+	nli_c.Writev(
 		&NodeV{
 			V: util.Map{
 				"token": srv.Token,
 			},
 			B: "abc",
-		}, &res)
-	if err != nil {
-		panic(err.Error())
-	}
-	if res.MapVal("v").IntVal("code") != 0 {
-		fmt.Println(res)
-		panic(res.StrVal("res"))
-	}
-	rcon.Execm(MK_NDC_ULI,
+		})
+	uli_c.Writev(
 		&NodeV{
 			V: util.Map{
 				"token": "abc",
 			},
 			B: "abc",
-		}, &res)
-	if res.MapVal("v").IntVal("code") != 0 {
-		fmt.Println(res)
-		panic(res.StrVal("res"))
-	}
+		})
 	// fmt.Println(res.MapVal("v"))
-	rcon.Execm(MK_NDC_UUR, &NodeV{
-		V: util.Map{
-			"token": srv.Token,
-			"R":     res.MapVal("v").MapVal("res").StrVal("r"),
-		},
-		B: "abc",
-	}, &res)
-	if res.MapVal("v").IntVal("code") != 0 {
-		fmt.Println(res)
-		panic(res.StrVal("res"))
-	}
 	// fmt.Println("----->")
 	atomic.AddUint64(&m_cc_c, 1) //marking for auto create unread message.
 	atomic.AddUint64(&s_cc_c, 1)
@@ -126,7 +141,11 @@ func run_im_nc(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 		})
 	cc_ws.Done()
 	cc_ws2.Wait()
-	rcon.Execm(MK_NDC_ULO, map[string]string{}, &res)
+	ulo_c.Writev(
+		&NodeV{
+			V: util.Map{},
+			B: "abc",
+		})
 	// time.Sleep(1 * time.Second)
 	l.Close()
 	con.Close()
