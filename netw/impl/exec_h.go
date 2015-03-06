@@ -15,7 +15,23 @@ type Runner interface {
 	Start()
 	Stop()
 }
+type RC_Err struct {
+	Code int
+	Data []byte
+}
 
+func new_rc_err(code int, data []byte) *RC_Err {
+	return &RC_Err{
+		Code: code,
+		Data: data,
+	}
+}
+func (r *RC_Err) Error() string {
+	return string(r.Data)
+}
+func (r *RC_Err) String() string {
+	return fmt.Sprintf("RC error(%v):%v", r.Code, string(r.Data))
+}
 func B2V_Copy(bys []byte, v interface{}) (interface{}, error) {
 	tbys := make([]byte, len(bys))
 	copy(tbys, bys)
@@ -206,7 +222,7 @@ func (r *RC_Con) Run_() {
 				if cmd.mark == 0 {
 					tc.C <- true
 				} else {
-					tc.Err = util.Err("RC error(%v):%v", cmd.mark, string(cmd.Data()))
+					tc.Err = new_rc_err(int(cmd.mark), cmd.Data())
 					tc.C <- false
 				}
 			} else {

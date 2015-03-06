@@ -125,7 +125,8 @@ func (r *RCM_S) OnCmd(c netw.Cmd) int {
 		}
 		con, vv, err = r.filter_m[reg].Exec(rcm)
 		if err != nil {
-			rcm.Err(1, "exec filter(%v) val(%v) errr:%v", reg.String(), vv, err.Error())
+			log_d("exec filter(%v) val(%v) errr:%v", reg.String(), vv, err.Error())
+			rcm.Err(1, "%v", err.Error())
 			return -1
 		}
 		rcm.Vv = vv
@@ -140,7 +141,8 @@ func (r *RCM_S) OnCmd(c netw.Cmd) int {
 			r.writev(rcm, val)
 			return 0
 		} else {
-			rcm.Err(1, "exec handler func(%v) error:%v", fname, err.Error())
+			log_d("exec handler func(%v) error:%v", fname, err.Error())
+			rcm.Err(1, "%v", err.Error())
 			return -1
 		}
 	} else {
