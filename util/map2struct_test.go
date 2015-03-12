@@ -68,11 +68,18 @@ func TestM2S(t *testing.T) {
 	fmt.Println(dests)
 	var dests2 []S1
 	Ms2Ss(mary2, &dests2)
-	if len(dests) != 2 {
+	if len(dests2) != 2 {
 		t.Error("result count is invalid ...")
 		return
 	}
 	fmt.Println(dests2)
+	var dests3 []*S1
+	Ms2Ss(mary2, &dests3)
+	if len(dests) != 2 {
+		t.Error("result count is invalid ...")
+		return
+	}
+	fmt.Println(dests3[0], dests3[1])
 }
 
 type S2 struct {
@@ -144,7 +151,12 @@ func TestM2SErr(t *testing.T) {
 	M2S(m, nil)
 	M2S(m3, &dest)
 	mm := Map(m)
-	mm.ToS(dest)
+	func() {
+		defer func() {
+			fmt.Println(recover())
+		}()
+		mm.ToS(dest)
+	}()
 	//
 	var dests []S1
 	Ms2Ss(nil, &dests)

@@ -21,7 +21,11 @@ func M2S(m Map, dest interface{}) {
 	//get the reflect type.
 	ptype := reflect.TypeOf(reflect.Indirect(reflect.ValueOf(dest)).Interface())
 	//get the reflect value.
-	pval := reflect.ValueOf(dest).Elem()
+	pval := reflect.ValueOf(dest)
+	if pval.Kind() != reflect.Ptr {
+		panic("dest values is not a ptr")
+	}
+	pval = pval.Elem()
 	for i := 0; i < ptype.NumField(); i++ {
 		f := ptype.Field(i)
 		var m2s string = f.Tag.Get("m2s") //get the m2s tag.
@@ -149,6 +153,10 @@ func Ms2Ss(ms interface{}, dest interface{}) {
 	rval := reflect.Indirect(reflect.ValueOf(dest))
 	//get the reflect type.
 	ptype := reflect.TypeOf(rval.Interface()).Elem()
+	isptr := ptype.Kind() == reflect.Ptr
+	if isptr {
+		ptype = ptype.Elem()
+	}
 	mss := reflect.ValueOf(ms)
 	for i := 0; i < mss.Len(); i++ {
 		var mv Map
@@ -165,7 +173,11 @@ func Ms2Ss(ms interface{}, dest interface{}) {
 		pv := reflect.New(ptype)
 		rv := reflect.Indirect(pv)
 		M2S(mv, pv.Interface())
-		pval = reflect.Append(pval, rv)
+		if isptr {
+			pval = reflect.Append(pval, rv.Addr())
+		} else {
+			pval = reflect.Append(pval, rv)
+		}
 	}
 	//reset the slice address to new.
 	rval.Set(pval)

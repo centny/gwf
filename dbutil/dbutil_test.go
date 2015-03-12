@@ -63,6 +63,16 @@ func TestDbUtil(t *testing.T) {
 	}
 	fmt.Println("...", mres[0].T, util.Timestamp(mres[0].Time), util.Timestamp(time.Now()))
 	fmt.Println(mres, mres[0].Add1)
+	var mres2 []*TSt
+	err = DbQueryS(db, &mres2, "select * from ttable where tid>?", 1)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(mres2) < 1 {
+		t.Error("not data")
+		return
+	}
 	//
 	tx, _ := db.Begin()
 	err = DbQueryS2(tx, &mres, "select * from ttable where tid>?", 1)
@@ -112,6 +122,21 @@ func TestDbUtil(t *testing.T) {
 		t.Error("not error")
 		return
 	}
+	_, err = DbQueryStr(db, "select count(*) from ttable")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	_, err = DbQueryStr(db, "select tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryStr(db, "selectsfs tidfrom ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 	tx, _ = db.Begin()
 	_, err = DbQueryI2(tx, "select count(*) from ttable")
 	if err != nil {
@@ -139,6 +164,51 @@ func TestDbUtil(t *testing.T) {
 		return
 	}
 	_, err = DbQueryF2(tx, "selects tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryFloat2(tx, "select tid from ttable where tid<?")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryInt2(tx, "select tid from ttable where tid<?")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryStr2(tx, "select count(*) from ttable")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	_, err = DbQueryStr2(tx, "select tid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryStr2(tx, "selectsfsd fsftid from ttable where tid<1")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryString2(tx, "select2 tid from ttable where tid<?")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQueryString2(tx, "select tid from ttable where tid<?")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQuery2(tx, "select2 tid from ttable where tid<?")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	_, err = DbQuery2(tx, "select tid from ttable where tid<?")
 	if err == nil {
 		t.Error("not error")
 		return
