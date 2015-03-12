@@ -1,14 +1,17 @@
 option java_package = "org.cny.jwf.im.pb";
 option go_package = "pb";
 message ImMsg {
-	optional string i = 1;
-	optional string s = 2;
-	repeated string r = 3;
-	required uint32 t = 4;
-	optional string d = 5;
-	required bytes c = 6;
+	optional string i = 1;//
+	optional string s = 2;//the sender.
+	repeated string r = 3;//the receiver.
+	required uint32 t = 4;//the message type.
+	optional string d = 5;//
+	required bytes c = 6;//the content.
 	optional string a = 7;
 	optional int64 time = 8;
+	optional string mark = 9; //the message type mark.
+	optional string subm = 10;//the message submark.
+	optional int64 mid = 11; //the mark id.
 }
 
 message RC {

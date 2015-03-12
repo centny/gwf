@@ -33,6 +33,9 @@ type ImMsg struct {
 	C                []byte   `protobuf:"bytes,6,req,name=c" json:"c,omitempty"`
 	A                *string  `protobuf:"bytes,7,opt,name=a" json:"a,omitempty"`
 	Time             *int64   `protobuf:"varint,8,opt,name=time" json:"time,omitempty"`
+	Mark             *string  `protobuf:"bytes,9,opt,name=mark" json:"mark,omitempty"`
+	Subm             *string  `protobuf:"bytes,10,opt,name=subm" json:"subm,omitempty"`
+	Mid              *int64   `protobuf:"varint,11,opt,name=mid" json:"mid,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
 
@@ -92,6 +95,27 @@ func (m *ImMsg) GetA() string {
 func (m *ImMsg) GetTime() int64 {
 	if m != nil && m.Time != nil {
 		return *m.Time
+	}
+	return 0
+}
+
+func (m *ImMsg) GetMark() string {
+	if m != nil && m.Mark != nil {
+		return *m.Mark
+	}
+	return ""
+}
+
+func (m *ImMsg) GetSubm() string {
+	if m != nil && m.Subm != nil {
+		return *m.Subm
+	}
+	return ""
+}
+
+func (m *ImMsg) GetMid() int64 {
+	if m != nil && m.Mid != nil {
+		return *m.Mid
 	}
 	return 0
 }

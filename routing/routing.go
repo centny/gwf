@@ -353,6 +353,15 @@ func (h *HTTPSession) RecFvN(name, tfile string) (fn string, w int64, sha_ []byt
 func (h *HTTPSession) SendF(fname, tfile, ctype string, attach bool) {
 	SendF(h.W, h.R, fname, tfile, ctype, attach)
 }
+func (h *HTTPSession) SendF2(tfile string) error {
+	tf, err := os.Open(tfile)
+	if err != nil {
+		return err
+	}
+	defer tf.Close()
+	_, err = io.Copy(h.W, tf)
+	return err
+}
 
 //sending string by target context type.
 func (h *HTTPSession) SendT(data string, ctype string) {
