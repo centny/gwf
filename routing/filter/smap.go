@@ -14,7 +14,7 @@ func (s *SMap) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	var key, val string
 	err := hs.ValidCheckVal(`
 		key,R|S,L:0;
-		val,O|S,L:0;
+		val,O|S,L:-1;
 		`, &key, &val)
 	if err != nil {
 		return hs.MsgResErr2(1, "arg-err", err)
