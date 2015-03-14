@@ -11,15 +11,16 @@ type SMap struct {
 }
 
 func (s *SMap) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
-	var key, val string
+	var key string
 	err := hs.ValidCheckVal(`
 		key,R|S,L:0;
-		val,O|S,L:-1;
-		`, &key, &val)
+		`, &key)
 	if err != nil {
 		return hs.MsgResErr2(1, "arg-err", err)
 	}
-	if len(val) > 0 {
+	var val string
+	if vals, ok := hs.R.Form["val"]; ok {
+		val = vals[0]
 		err = s.SET(hs, key, val)
 	} else {
 		val, err = s.GET(hs, key)

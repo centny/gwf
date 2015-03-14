@@ -17,6 +17,8 @@ func TestSMap(t *testing.T) {
 	if "123" == tv.StrVal("data") {
 		t.Error("sdfss")
 	}
+	ts.G2("?key=abc&val=")
+	fmt.Println(ts.G2("?key=abc"))
 	smap.GET = func(hs *routing.HTTPSession, key string) (string, error) {
 		return "", util.Err("sdfsfdsf->")
 	}
