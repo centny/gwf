@@ -227,3 +227,11 @@ func (r *RC_Runner_m_j) Valid() error {
 		return nil
 	}
 }
+func (r *RC_Runner_m_j) VExec(name string, args interface{}, dest interface{}) (interface{}, error) {
+	err := r.Valid()
+	if err == nil {
+		return r.Exec(name, args, dest)
+	} else {
+		return nil, err
+	}
+}
