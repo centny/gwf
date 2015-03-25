@@ -91,13 +91,13 @@ func (l *Listener) accept_ws(con *websocket.Conn) {
 
 //close the listener.
 func (l *Listener) Close() {
+	l.Running = false
 	l.LConPool.Close()
 	l.L.Close()
 }
 
 //wait the listener close.
 func (l *Listener) Wait() {
-	<-l.LConPool.Wc
 	<-l.Wc
 }
 

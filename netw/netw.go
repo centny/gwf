@@ -25,6 +25,7 @@ var pool_idc uint64 = 0
 
 //whether show debug log or not,default is false.
 var ShowLog bool = false
+var ShowLog_C bool = false
 
 func log_d(f string, args ...interface{}) {
 	if ShowLog {
@@ -158,7 +159,7 @@ func NewCon_(cp ConPool, p *pool.BytePool, con net.Conn) *Con_ {
 			return nil, util.Err("B2V not implemeted")
 		},
 		ID_:     fmt.Sprintf("C%v", atomic.AddUint64(&con_idc, 1)),
-		ShowLog: ShowLog,
+		ShowLog: ShowLog_C,
 	}
 }
 func (c *Con_) log_d(f string, args ...interface{}) {
@@ -305,11 +306,11 @@ type ConPool interface {
 
 //the connection pool
 type LConPool struct {
-	T      int64          //the timeout of not data received
-	P      *pool.BytePool //the memory pool
-	Wg     sync.WaitGroup //wait group.
-	H      CCHandler      //command handler
-	Wc     chan int       //the wait chan.
+	T  int64          //the timeout of not data received
+	P  *pool.BytePool //the memory pool
+	Wg sync.WaitGroup //wait group.
+	H  CCHandler      //command handler
+	// Wc     chan int       //the wait chan.
 	NewCon NewConF
 	t_r    bool
 	cons   map[string]Con
@@ -324,7 +325,6 @@ func NewLConPool(p *pool.BytePool, h CCHandler, n string) *LConPool {
 		T:      CON_TIMEOUT,
 		P:      p,
 		H:      h,
-		Wc:     make(chan int),
 		cons:   map[string]Con{},
 		NewCon: NewCon,
 		Err_: func(c Cmd, d int, code byte, f string, args ...interface{}) {
@@ -356,7 +356,7 @@ func (l *LConPool) LoopTimeout() {
 		}
 		time.Sleep(time.Duration(l.T) * time.Millisecond)
 	}
-	l.Wc <- 0
+	// l.Wc <- 0
 }
 
 //close all connection
