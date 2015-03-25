@@ -8,18 +8,6 @@ import (
 	"time"
 )
 
-// type NCon struct {
-// 	Addr string
-// 	Con
-// }
-
-// func NewNCon(con Con, addr string) Con {
-// 	return &NCon{
-// 		Con:  con,
-// 		Addr: addr,
-// 	}
-// }
-
 //the client connection pool.
 type NConPool struct {
 	*LConPool //base connection pool.
