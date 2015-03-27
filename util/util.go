@@ -61,6 +61,14 @@ func FWrite(path, data string) error {
 	_, err = f.WriteString(data)
 	return err
 }
+func FWrite2(path string, data []byte) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	return err
+}
 func FAppend(path, data string) error {
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, os.ModePerm)
 	if err != nil {

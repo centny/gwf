@@ -398,6 +398,17 @@ func (h *HTTPSession) ValidF(f string, args ...interface{}) error {
 	return h.ValidCheckVal(f, args...)
 }
 
+func (h *HTTPSession) AllRVal() util.Map {
+	h.R.ParseForm()
+	kvs := util.Map{}
+	for k, v := range h.R.Form {
+		kvs[k] = v
+	}
+	for k, v := range h.R.PostForm {
+		kvs[k] = v
+	}
+	return kvs
+}
 func http_res(code int, data interface{}, msg string, dmsg string) util.Map {
 	res := make(util.Map)
 	res["code"] = code

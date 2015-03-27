@@ -10,3 +10,8 @@ package pool
 // func Gettid() int {
 // 	cc := C.gettid(1)
 // }
+var BP *BytePool = nil
+
+func init() {
+	BP = NewBytePool(8, 102400)
+}

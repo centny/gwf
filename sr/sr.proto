@@ -1,0 +1,16 @@
+option java_package = "org.cny.jwf.sr.pb";
+option go_package = "pb";
+
+message KV {
+	required string key = 1;
+	required string val = 2;
+}
+
+message Evn {
+	required string uid = 1;
+	required string name = 2;
+	required string action = 3;
+	required int64 time = 4;
+	required int32 type = 5;
+	repeated KV kvs = 6;
+}
