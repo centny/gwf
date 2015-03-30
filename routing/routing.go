@@ -423,7 +423,7 @@ func http_res(code int, data interface{}, msg string, dmsg string) util.Map {
 	}
 	return res
 }
-func http_res_ext(code int, data interface{}, msg string, dmsg string, ext interface{}) util.Map {
+func http_res_ext(code int, data interface{}, msg string, dmsg string, ext interface{}, pa interface{}) util.Map {
 	res := make(util.Map)
 	res["code"] = code
 	if len(msg) > 0 {
@@ -437,6 +437,9 @@ func http_res_ext(code int, data interface{}, msg string, dmsg string, ext inter
 	}
 	if ext != nil {
 		res["ext"] = ext
+	}
+	if pa != nil {
+		res["pa"] = pa
 	}
 	return res
 }
@@ -465,8 +468,15 @@ func (h *HTTPSession) JsonRes(data interface{}) error {
 func (h *HTTPSession) MsgRes(data interface{}) HResult {
 	return h.JRes(http_res(0, data, "", ""))
 }
+func (h *HTTPSession) MsgResP(data interface{}, pn, ps, total int64) HResult {
+	return h.JRes(http_res_ext(0, data, "", "", nil, map[string]int64{
+		"pn":    pn,
+		"ps":    ps,
+		"total": total,
+	}))
+}
 func (h *HTTPSession) MsgResExt(data interface{}, ext interface{}) HResult {
-	return h.JRes(http_res_ext(0, data, "", "", ext))
+	return h.JRes(http_res_ext(0, data, "", "", ext, nil))
 }
 func (h *HTTPSession) MsgRes2(code int, data interface{}) HResult {
 	return h.JRes(http_res(code, data, "", ""))
