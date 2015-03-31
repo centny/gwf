@@ -24,7 +24,7 @@ var _ = math.Inf
 type KV struct {
 	Key              *string `protobuf:"bytes,1,req,name=key" json:"key,omitempty"`
 	Val              *string `protobuf:"bytes,2,req,name=val" json:"val,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	XXX_unrecognized []byte  `json:"-" bson:"-"`
 }
 
 func (m *KV) Reset()         { *m = KV{} }
@@ -52,7 +52,7 @@ type Evn struct {
 	Time             *int64  `protobuf:"varint,4,req,name=time" json:"time,omitempty"`
 	Type             *int32  `protobuf:"varint,5,req,name=type" json:"type,omitempty"`
 	Kvs              []*KV   `protobuf:"bytes,6,rep,name=kvs" json:"kvs,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	XXX_unrecognized []byte  `json:"-" bson:"-"`
 }
 
 func (m *Evn) Reset()         { *m = Evn{} }

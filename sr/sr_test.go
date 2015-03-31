@@ -1,4 +1,4 @@
-package filter
+package sr
 
 import (
 	"fmt"
@@ -27,8 +27,8 @@ func (d *srh) Path(hs *routing.HTTPSession, sr *SR) (string, error) {
 func (d *srh) OnSrF(hs *routing.HTTPSession, aid, ver, sp, sf string) error {
 	return util.Err("normal err")
 }
-func (d *srh) OnSrL(hs *routing.HTTPSession, aid, ver string, last, pn, ps int64) (interface{}, int64, error) {
-	return nil, 0, util.Err("normal error")
+func (d *srh) OnSrN(hs *routing.HTTPSession, aid, ver, prev string, from int64) (interface{}, error) {
+	return nil, util.Err("normal error")
 }
 
 type srh_q_h struct {
@@ -48,11 +48,11 @@ func (sr *srh_q_h) Proc(s *SRH_Q, i *SRH_Q_I) error {
 	}
 	return nil
 }
-func (sr *srh_q_h) ListSr(s *SRH_Q, hs *routing.HTTPSession, aid, ver string, last, pn, ps int64) (interface{}, int64, error) {
+func (sr *srh_q_h) NextSr(s *SRH_Q, hs *routing.HTTPSession, aid, ver, prev string, from int64) (interface{}, error) {
 	if sr.le {
-		return nil, 0, util.Err("normal error")
+		return nil, util.Err("normal error")
 	} else {
-		return []interface{}{}, 0, nil
+		return []interface{}{}, nil
 	}
 }
 func TestAddSr(t *testing.T) {
@@ -118,7 +118,7 @@ func TestAddSr(t *testing.T) {
 	fmt.Println(ts2.G2("?action=L&aid=org&ver=0.0.1"))
 	sqh.le = true
 	fmt.Println(ts2.G2("?action=L&aid=org&ver=0.0.1"))
-	fmt.Println(ts2.G2("?action=L&aid=org&ver=0.0.1&pn=sfs"))
+	fmt.Println(ts2.G2("?action=L&aid=org&ver=0.0.1&prev="))
 	fmt.Println(ts2.G2("action=L&pn=sss"))
 	time.Sleep(500 * time.Millisecond)
 	sqh.b = true
@@ -132,7 +132,7 @@ func TestAddSr(t *testing.T) {
 	time.Sleep(time.Second)
 	//
 	kk := &SRH_N{}
-	kk.OnSrL(nil, "aid", "ver", 0, 0, 0)
+	kk.OnSrN(nil, "aid", "ver", "", 0)
 }
 
 // func TestListSr(t *testing.T) {
