@@ -18,7 +18,7 @@ import (
 
 type SRH interface {
 	Path(hs *routing.HTTPSession, sr *SR) (string, error)
-	OnSrF(hs *routing.HTTPSession, aid, ver, sp, sf string) error
+	OnSrF(hs *routing.HTTPSession, aid, ver, dev, sp, sf string) error
 	OnSrL(hs *routing.HTTPSession, aid, ver, prev, dev string, from, all int64) (interface{}, error)
 }
 type SR struct {
@@ -46,23 +46,24 @@ func NewSR3(r string, h SRH_Q_H) (*SR, *SRH_Q) {
 }
 func (s *SR) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	var action string = "L"
-	var aid, ver string
+	var dev, aid, ver string
 	err := hs.ValidCheckVal(`
+		dev,O|S,L:0;
 		aid,R|S,L:0;
 		ver,R|S,L:0;
 		exec,O|S,O:A~L;
-		`, &aid, &ver, &action)
+		`, &dev, &aid, &ver, &action)
 	if err != nil {
 		return hs.MsgResErr2(1, "arg-err", err)
 	}
 	switch action {
 	case "A":
-		return s.AddSr(hs, aid, ver)
+		return s.AddSr(hs, aid, ver, dev)
 	default:
-		return s.ListSr(hs, aid, ver)
+		return s.ListSr(hs, aid, ver, dev)
 	}
 }
-func (s *SR) AddSr(hs *routing.HTTPSession, aid, ver string) routing.HResult {
+func (s *SR) AddSr(hs *routing.HTTPSession, aid, ver, dev string) routing.HResult {
 	sp, err := s.H.Path(hs, s)
 	if err != nil {
 		return hs.MsgResErr2(1, "arg-err", err)
@@ -72,18 +73,17 @@ func (s *SR) AddSr(hs *routing.HTTPSession, aid, ver string) routing.HResult {
 	if err != nil {
 		return hs.MsgResErr2(1, "srv-err", err)
 	}
-	err = s.H.OnSrF(hs, aid, ver, sp, sf)
+	err = s.H.OnSrF(hs, aid, ver, dev, sp, sf)
 	if err == nil {
 		return hs.MsgRes("OK")
 	} else {
 		return hs.MsgResErr2(1, "srv-err", err)
 	}
 }
-func (s *SR) ListSr(hs *routing.HTTPSession, aid, ver string) routing.HResult {
-	var prev, dev string
+func (s *SR) ListSr(hs *routing.HTTPSession, aid, ver, dev string) routing.HResult {
+	var prev string
 	var from, all int64 = 0, 0
 	err := hs.ValidCheckVal(`
-		dev,O|S,L:0;
 		prev,O|S,L:0;
 		from,O|I,R:0;
 		all,O|I,O:0~1;
@@ -109,7 +109,7 @@ func (s *SRH_N) Path(hs *routing.HTTPSession, sr *SR) (string, error) {
 	return fmt.Sprintf("%v-%v", util.Now(), atomic.AddInt64(&s.c, 1)), nil
 }
 
-func (s *SRH_N) OnSrF(hs *routing.HTTPSession, aid, ver, sp, sf string) error {
+func (s *SRH_N) OnSrF(hs *routing.HTTPSession, aid, ver, dev, sp, sf string) error {
 	return nil
 }
 func (s *SRH_N) OnSrL(hs *routing.HTTPSession, aid, ver, prev, dev string, from, all int64) (interface{}, error) {
@@ -127,7 +127,7 @@ type SRH_Q_I struct {
 	Time int64       `json:"time"`
 }
 type SRH_Q_H interface {
-	Args(s *SRH_Q, hs *routing.HTTPSession, aid, ver, sp, sf string) (util.Map, error)
+	Args(s *SRH_Q, hs *routing.HTTPSession, aid, ver, dev, sp, sf string) (util.Map, error)
 	Proc(s *SRH_Q, i *SRH_Q_I) error
 	ListSr(s *SRH_Q, hs *routing.HTTPSession, aid, ver, prev, dev string, from, all int64) (interface{}, error)
 }
@@ -146,17 +146,18 @@ func NewSRH_Q(r string, h SRH_Q_H) *SRH_Q {
 		Q: make(chan *SRH_Q_I, 3000),
 	}
 }
-func (s *SRH_Q) OnSrF(hs *routing.HTTPSession, aid, ver, sp, sf string) error {
+func (s *SRH_Q) OnSrF(hs *routing.HTTPSession, aid, ver, dev, sp, sf string) error {
 	if !s.Running {
 		log.W("SRH_Q OnSrF err:Proc is not running")
 		return util.Err("SRH_Q not running")
 	}
-	kvs, err := s.H.Args(s, hs, aid, ver, sp, sf)
+	kvs, err := s.H.Args(s, hs, aid, ver, dev, sp, sf)
 	if err == nil {
 		s.Q <- &SRH_Q_I{
 			Sp:  sp,
 			Aid: aid,
 			Ver: ver,
+			Dev: dev,
 			Kvs: kvs,
 		}
 	}
