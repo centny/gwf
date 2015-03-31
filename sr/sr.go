@@ -87,7 +87,7 @@ func (s *SR) ListSr(hs *routing.HTTPSession, aid, ver, dev string) routing.HResu
 		prev,O|S,L:0;
 		from,O|I,R:0;
 		all,O|I,O:0~1;
-		`, &dev, &prev, &from, &all)
+		`, &prev, &from, &all)
 	if err != nil {
 		return hs.MsgResErr2(1, "arg-err", err)
 	}

@@ -24,19 +24,19 @@ func (d *srh) Path(hs *routing.HTTPSession, sr *SR) (string, error) {
 	}
 }
 
-func (d *srh) OnSrF(hs *routing.HTTPSession, aid, ver, sp, sf string) error {
+func (d *srh) OnSrF(hs *routing.HTTPSession, aid, ver, dev, sp, sf string) error {
 	return util.Err("normal err")
 }
-func (d *srh) OnSrN(hs *routing.HTTPSession, aid, ver, prev string, from int64) (interface{}, error) {
+func (d *srh) OnSrL(hs *routing.HTTPSession, aid, ver, prev, dev string, from, all int64) (interface{}, error) {
 	return nil, util.Err("normal error")
 }
 
 type srh_q_h struct {
 	b  bool
-	le bool
+	le int
 }
 
-func (sr *srh_q_h) Args(s *SRH_Q, hs *routing.HTTPSession, aid, ver, sp, sf string) (util.Map, error) {
+func (sr *srh_q_h) Args(s *SRH_Q, hs *routing.HTTPSession, aid, ver, dev, sp, sf string) (util.Map, error) {
 	return hs.AllRVal(), nil
 }
 func (sr *srh_q_h) Proc(s *SRH_Q, i *SRH_Q_I) error {
@@ -48,10 +48,13 @@ func (sr *srh_q_h) Proc(s *SRH_Q, i *SRH_Q_I) error {
 	}
 	return nil
 }
-func (sr *srh_q_h) NextSr(s *SRH_Q, hs *routing.HTTPSession, aid, ver, prev string, from int64) (interface{}, error) {
-	if sr.le {
+func (sr *srh_q_h) ListSr(s *SRH_Q, hs *routing.HTTPSession, aid, ver, prev, dev string, from, all int64) (interface{}, error) {
+	switch sr.le {
+	case 1:
 		return nil, util.Err("normal error")
-	} else {
+	case 2:
+		return nil, util.NOT_FOUND
+	default:
 		return []interface{}{}, nil
 	}
 }
@@ -63,22 +66,33 @@ func TestAddSr(t *testing.T) {
 	ts.G("?aid=sss&ver=1.0.0")
 	for i := 0; i < 10; i++ {
 		ts.PostF2("", "sr_f", "sr_f.zip", map[string]string{
-			"aid": "org..",
-			"ver": "0.0.1",
+			"exec": "A",
+			"aid":  "org..",
+			"ver":  "0.0.1",
 		})
 	}
 	ts.PostF2("", "sr_f", "sr.go", map[string]string{
-		"aid": "org..",
-		"ver": "0.0.1",
+		"exec": "A",
+		"aid":  "org..",
+		"ver":  "0.0.1",
 	})
+	sr.R = "/sdfs"
+	ts.PostF2("", "sr_f", "sr.go", map[string]string{
+		"exec": "A",
+		"aid":  "org..",
+		"ver":  "0.0.1",
+	})
+	sr.R = "/tmp"
 	sr.H = &srh{}
 	ts.PostF2("", "sr_f", "sr_f.zip", map[string]string{
-		"aid": "org..",
-		"ver": "0.0.1",
+		"exec": "A",
+		"aid":  "org..",
+		"ver":  "0.0.1",
 	})
 	ts.PostF2("", "sr_f", "sr_f.zip", map[string]string{
-		"aid": "org..",
-		"ver": "0.0.1",
+		"exec": "A",
+		"aid":  "org..",
+		"ver":  "0.0.1",
 	})
 
 	//
@@ -86,53 +100,58 @@ func TestAddSr(t *testing.T) {
 	sr2, srh_q := NewSR3("/tmp", sqh)
 	ts2 := httptest.NewServer2(sr2)
 	ts2.PostF2("", "sr_f", "sr_f.zip", map[string]string{
-		"action": "A",
-		"aid":    "org..",
-		"ver":    "0.0.1",
+		"exec": "A",
+		"aid":  "org..",
+		"ver":  "0.0.1",
 	})
 	srh_q.Run(5)
 	for i := 0; i < 10; i++ {
 		ts2.PostF2("", "sr_f", "sr_f.zip", map[string]string{
-			"action": "A",
-			"aid":    "org..",
-			"ver":    "0.0.1",
+			"exec": "A",
+			"aid":  "org..",
+			"ver":  "0.0.1",
 		})
 	}
-	ts2.PostF2("", "sr_f", "sr.go", map[string]string{
-		"action": "A",
-		"aid":    "org..",
-		"ver":    "0.0.1",
-	})
+	fmt.Println(ts2.PostF2("", "sr_f", "sr.go", map[string]string{
+		"exec": "A",
+		"aid":  "org..",
+		"ver":  "0.0.1",
+	}))
+	fmt.Println("---->")
 	ts2.PostF2("", "sr_f", "sr.zip", map[string]string{
-		"action": "A",
-		"aid":    "org..",
-		"ver":    "0.0.1",
+		"exec": "A",
+		"aid":  "org..",
+		"ver":  "0.0.1",
 	})
 	util.FWrite2("er.dat", []byte{0, 0, 'a', 'b', 'c'})
 	util.Zip("er.zip", ".", "./er.dat")
 	ts2.PostF2("", "sr_f", "er.zip", map[string]string{
-		"action": "A",
-		"aid":    "org..",
-		"ver":    "0.0.1",
+		"exec": "A",
+		"aid":  "org..",
+		"ver":  "0.0.1",
 	})
-	fmt.Println(ts2.G2("?action=L&aid=org&ver=0.0.1"))
-	sqh.le = true
-	fmt.Println(ts2.G2("?action=L&aid=org&ver=0.0.1"))
-	fmt.Println(ts2.G2("?action=L&aid=org&ver=0.0.1&prev="))
-	fmt.Println(ts2.G2("action=L&pn=sss"))
+	fmt.Println(ts2.G2("?exec=L&aid=org&ver=0.0.1"))
+	sqh.le = 2
+	fmt.Println(ts2.G2("?exec=L&aid=org&ver=0.0.1"))
+	sqh.le = 1
+	fmt.Println(ts2.G2("?exec=L&aid=org&ver=0.0.1"))
+	fmt.Println(ts2.G2("?exec=L&aid=org&ver=0.0.1&prev="))
+	fmt.Println(ts2.G2("?exec=L&pn=sss"))
+	fmt.Println(ts2.G2("?exec=L&aid=org&ver=0.0.1&all=x"))
+	fmt.Println(ts2.G2("?exec=L&aid=org&ver=0.0.1&from=999999999999"))
 	time.Sleep(500 * time.Millisecond)
 	sqh.b = true
 	ts2.PostF2("", "sr_f", "sr_f.zip", map[string]string{
-		"action": "A",
-		"aid":    "org..",
-		"ver":    "0.0.1",
+		"exec": "A",
+		"aid":  "org..",
+		"ver":  "0.0.1",
 	})
 	time.Sleep(500 * time.Millisecond)
 	srh_q.Stop()
 	time.Sleep(time.Second)
 	//
 	kk := &SRH_N{}
-	kk.OnSrN(nil, "aid", "ver", "", 0)
+	kk.OnSrL(nil, "aid", "ver", "", "", 0, 0)
 }
 
 // func TestListSr(t *testing.T) {
