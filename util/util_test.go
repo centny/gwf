@@ -12,6 +12,13 @@ import (
 	"time"
 )
 
+func init() {
+	go DoWeb(":65432", "./")
+}
+func TestDoWeb(t *testing.T) {
+	go DoWeb(":65432", "./")
+	time.Sleep(200 * time.Millisecond)
+}
 func TestFexist(t *testing.T) {
 	fmt.Println(Fexists("/usr/local"))
 	fmt.Println(Fexists("/usr/locals"))

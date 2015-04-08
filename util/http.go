@@ -290,3 +290,7 @@ func FormFSzie(src interface{}) int64 {
 // 		return ""
 // 	}
 // }
+
+func DoWeb(addr, dir string) error {
+	return http.ListenAndServe(addr, http.FileServer(http.Dir(dir)))
+}

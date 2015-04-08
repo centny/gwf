@@ -25,8 +25,16 @@ type TSt struct {
 	Uival  int64     `m2s:"UIVAL"`
 	Add1   string    `m2s:"ADD1"`
 	Add2   string    `m2s:"Add2"`
+	LTime  int64     `m2s:"V_TIME" it:"Y"`
 }
 
+func TestDbUtilX(t *testing.T) {
+	db, _ := sql.Open("mysql", test.TDbCon)
+	defer db.Close()
+	var tss []TSt
+	DbQueryS(db, &tss, `SELECT V_TIME,TID FROM AGS_ORDER where tid<10`)
+	fmt.Println(tss)
+}
 func TestDbUtil(t *testing.T) {
 	db, _ := sql.Open("mysql", test.TDbCon)
 	defer db.Close()

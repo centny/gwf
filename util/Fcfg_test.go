@@ -21,7 +21,8 @@ func TestInit(t *testing.T) {
 	}
 	err = f.InitWithFilePath("fcfg_data.properties")
 	if err != nil {
-		panic(err)
+		t.Error(err.Error())
+		return
 	}
 	for key, val := range *f {
 		fmt.Println(key, ":", val)
@@ -59,4 +60,19 @@ func TestValType(t *testing.T) {
 	fmt.Println(f.FloatVal("floata"))
 	fmt.Println(f.FloatVal("floatb"))
 	fmt.Println(f.FloatVal("inta"))
+}
+
+func TestLoad(t *testing.T) {
+	cfg, err := NewFcfg2("@http://127.0.0.1:65432/fcfg_data.properties")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	cfg, err = NewFcfg2("@ssd.sss")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	cfg.Show()
+	NewFcfg2("@http://127.0.0.1:6x")
 }
