@@ -75,6 +75,10 @@ func (f *Fcfg) Show() string {
 	return sdata
 }
 
+func (f *Fcfg) Print() {
+	fmt.Println(f.Show())
+}
+
 //set the value by key and value.
 func (f *Fcfg) SetVal(key string, val string) *Fcfg {
 	(*f)[key] = val
@@ -151,29 +155,30 @@ func (f *Fcfg) exec(base, line string) error {
 	line = strings.TrimPrefix(line, "@")
 	ps = strings.SplitN(line, ":", 2)
 	if len(ps) < 2 || len(ps[1]) < 1 {
-		fmt.Println(line)
+		fmt.Println(f.EnvReplace(line))
 		return nil
 	}
 	ps[0] = strings.ToLower(strings.Trim(ps[0], " \t"))
+	ps[0] = f.EnvReplace(ps[0])
 	if ps[0] == "l" {
 		return f.load(base, ps[1])
 	}
 	if cs := strings.SplitN(ps[0], "==", 2); len(cs) == 2 {
-		if f.EnvReplace(cs[0]) == f.EnvReplace(cs[1]) {
+		if cs[0] == cs[1] {
 			return f.exec(base, ps[1])
 		} else {
 			return nil
 		}
 	}
 	if cs := strings.SplitN(ps[0], "!=", 2); len(cs) == 2 {
-		if f.EnvReplace(cs[0]) != f.EnvReplace(cs[1]) {
+		if cs[0] != cs[1] {
 			return f.exec(base, ps[1])
 		} else {
 			return nil
 		}
 	}
 	//all other will print line.
-	fmt.Println(line)
+	fmt.Println(f.EnvReplace(line))
 	return nil
 }
 func (f *Fcfg) load(base, line string) error {
@@ -231,9 +236,9 @@ func (f *Fcfg) EnvReplace(val string) string {
 			rval = f.Val(key)
 		} else {
 			rval = os.Getenv(key)
-		}
-		if len(rval) < 1 {
-			continue
+			if len(rval) < 1 {
+				continue
+			}
 		}
 		val = strings.Replace(val, ptn, rval, 1)
 	}

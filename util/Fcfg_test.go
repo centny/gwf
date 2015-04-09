@@ -68,7 +68,7 @@ func TestLoad(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	fmt.Println(cfg.Show())
+	cfg.Print()
 	cfg, err = NewFcfg2("@l:ssd.sss")
 	if err == nil {
 		t.Error("not error")
