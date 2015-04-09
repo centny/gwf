@@ -180,6 +180,7 @@ func (f *Fcfg) load(base, line string) error {
 	if !(strings.HasPrefix(line, "http://") || filepath.IsAbs(line)) {
 		line = base + line
 	}
+	line = f.EnvReplace(line)
 	cfg, err := NewFcfg(line)
 	cfg.Show()
 	if err == nil {
