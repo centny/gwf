@@ -63,16 +63,17 @@ func TestValType(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	cfg, err := NewFcfg2("@http://127.0.0.1:65432/fcfg_data.properties")
+	cfg, err := NewFcfg2("@l:http://127.0.0.1:65432/fcfg_data.properties")
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
-	cfg, err = NewFcfg2("@ssd.sss")
+	fmt.Println(cfg.Show())
+	cfg, err = NewFcfg2("@l:ssd.sss")
 	if err == nil {
 		t.Error("not error")
 		return
 	}
-	cfg.Show()
-	NewFcfg2("@http://127.0.0.1:6x")
+	NewFcfg2("@l:http://127.0.0.1:6x")
+	cfg.Merge(nil)
 }

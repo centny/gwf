@@ -123,35 +123,69 @@ func (f *Fcfg) InitWithReader2(base string, reader *bufio.Reader) error {
 		if len(line) < 1 {
 			continue
 		}
-		ps := strings.Split(line, "#")
-		if len(ps) < 1 || len(ps[0]) < 1 {
-			continue
+		err = f.exec(base, line)
+		if err != nil {
+			return err
 		}
-		line = ps[0]
-		if strings.HasPrefix(line, "@") {
-			line = strings.TrimPrefix(line, "@")
-			if !(strings.HasPrefix(line, "http://") || filepath.IsAbs(line)) {
-				line = base + line
-			}
-			cfg, err := NewFcfg(line)
-			if err == nil {
-				f.Merge(cfg)
-				continue
-			} else {
-				return err
-			}
+	}
+	return nil
+}
+
+func (f *Fcfg) exec(base, line string) error {
+	ps := strings.Split(line, "#")
+	if len(ps) < 1 || len(ps[0]) < 1 {
+		return nil
+	}
+	line = strings.Trim(ps[0], " \t")
+	if !strings.HasPrefix(line, "@") {
+		ps = strings.SplitN(line, "=", 2)
+		if len(ps) < 2 {
+			fmt.Println("not value key found:", ps[0])
 		} else {
-			ps = strings.SplitN(line, "=", 2)
-			if len(ps) < 2 {
-				fmt.Println("not value key found:", ps[0])
-				continue
-			}
 			key := f.EnvReplace(strings.Trim(ps[0], " "))
 			val := f.EnvReplace(strings.Trim(ps[1], " "))
 			(*f)[key] = val
 		}
+		return nil
 	}
+	line = strings.TrimPrefix(line, "@")
+	ps = strings.SplitN(line, ":", 2)
+	if len(ps) < 2 || len(ps[1]) < 1 {
+		fmt.Println(line)
+		return nil
+	}
+	ps[0] = strings.ToLower(strings.Trim(ps[0], " \t"))
+	if ps[0] == "l" {
+		return f.load(base, ps[1])
+	}
+	if cs := strings.SplitN(ps[0], "==", 2); len(cs) == 2 {
+		if f.EnvReplace(cs[0]) == f.EnvReplace(cs[1]) {
+			return f.exec(base, ps[1])
+		} else {
+			return nil
+		}
+	}
+	if cs := strings.SplitN(ps[0], "!=", 2); len(cs) == 2 {
+		if f.EnvReplace(cs[0]) != f.EnvReplace(cs[1]) {
+			return f.exec(base, ps[1])
+		} else {
+			return nil
+		}
+	}
+	//all other will print line.
+	fmt.Println(line)
 	return nil
+}
+func (f *Fcfg) load(base, line string) error {
+	if !(strings.HasPrefix(line, "http://") || filepath.IsAbs(line)) {
+		line = base + line
+	}
+	cfg, err := NewFcfg(line)
+	cfg.Show()
+	if err == nil {
+		f.Merge(cfg)
+	}
+	return err
 }
 
 //initial the configure by .properties file.
@@ -210,7 +244,7 @@ func (f *Fcfg) Merge(t *Fcfg) {
 	if t == nil {
 		return
 	}
-	for k, v := range map[string]interface{}(*t) {
+	for k, v := range *t {
 		(*f)[k] = v
 	}
 }
