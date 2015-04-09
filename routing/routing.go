@@ -372,6 +372,9 @@ func (h *HTTPSession) SendT(data string, ctype string) {
 	header.Set("Expires", "0")
 	h.W.Write([]byte(data))
 }
+func (h *HTTPSession) SendT2(data string) {
+	h.SendT(data, "text/plain")
+}
 
 //valid require value by format,limit require.
 func (h *HTTPSession) ValidRVal(f string, args ...interface{}) error {
