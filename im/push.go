@@ -48,9 +48,9 @@ func (p *PushSrv) PushV(s string, r []string, c []byte, t uint32) (*Msg, error) 
 	}
 	for _, r := range ur {
 		if len(msg.Ms[r]) < 1 {
-			msg.Ms[r] = MS_PENDING + MS_SEQ + r
+			msg.Ms[r] = MS_PENDING + MS_SEQ + s
 		} else {
-			msg.Ms[r] += MS_SEQ + r
+			msg.Ms[r] += MS_SEQ + s
 		}
 	}
 	gur, err := p.Db.ListUsrR(gr)
