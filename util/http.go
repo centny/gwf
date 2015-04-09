@@ -3,6 +3,7 @@ package util
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +16,13 @@ import (
 	"strings"
 )
 
-var HTTPClient HClient
+var HTTPClient = HClient{
+	Client: http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	},
+}
 
 type HClient struct {
 	http.Client

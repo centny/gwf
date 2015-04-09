@@ -53,13 +53,14 @@ func TestOpenError(t *testing.T) {
 }
 func TestValType(t *testing.T) {
 	f := &Fcfg{}
-	err := f.InitWithFilePath("fcfg_data.properties")
+	err := f.InitWithFilePath("fcfg_data.properties?ukk=123")
 	if err != nil {
 		fmt.Println("error:", err)
 	}
 	fmt.Println(f.FloatVal("floata"))
 	fmt.Println(f.FloatVal("floatb"))
 	fmt.Println(f.FloatVal("inta"))
+	fmt.Println(f.FloatVal("ukk"))
 }
 
 func TestLoad(t *testing.T) {

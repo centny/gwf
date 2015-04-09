@@ -298,3 +298,7 @@ func TestPostN2(t *testing.T) {
 	_, err := http.NewRequest("POT", "123%45%6://www.ss.com?", nil)
 	fmt.Println(err)
 }
+
+func TestHttps(t *testing.T) {
+	fmt.Println(HGet("https://qnear.com"))
+}

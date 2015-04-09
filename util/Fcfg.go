@@ -99,6 +99,12 @@ func (f *Fcfg) Exist(key string) bool {
 
 //initial the configure by .properties file.
 func (f *Fcfg) InitWithFilePath(fp string) error {
+	turl, _ := nurl.Parse(fp)
+	qs := turl.Query()
+	for k, _ := range qs {
+		f.SetVal(k, qs.Get(k))
+	}
+	fp = turl.Path
 	if !Fexists(fp) {
 		return Err("file(%v) not found", fp)
 	}
@@ -187,7 +193,6 @@ func (f *Fcfg) load(base, line string) error {
 	}
 	line = f.EnvReplace(line)
 	cfg, err := NewFcfg(line)
-	cfg.Show()
 	if err == nil {
 		f.Merge(cfg)
 	}
@@ -253,4 +258,12 @@ func (f *Fcfg) Merge(t *Fcfg) {
 	for k, v := range *t {
 		(*f)[k] = v
 	}
+}
+
+func (f *Fcfg) String() string {
+	buf := bytes.NewBuffer(nil)
+	for k, v := range *f {
+		buf.WriteString(fmt.Sprintf("%v=%v\n", k, v))
+	}
+	return buf.String()
 }
