@@ -30,10 +30,14 @@ func (d *srh) OnSrF(hs *routing.HTTPSession, aid, ver, dev, sp, sf string) error
 func (d *srh) OnSrL(hs *routing.HTTPSession, aid, ver, prev, dev string, from, all int64) (interface{}, error) {
 	return nil, util.Err("normal error")
 }
+func (d *srh) OnSrPkg(hs *routing.HTTPSession, aid, dev string) (interface{}, error) {
+	return map[string]interface{}{}, nil
+}
 
 type srh_q_h struct {
-	b  bool
-	le int
+	b   bool
+	le  int
+	pkg bool
 }
 
 func (sr *srh_q_h) Args(s *SRH_Q, hs *routing.HTTPSession, aid, ver, dev, sp, sf string) (util.Map, error) {
@@ -58,6 +62,14 @@ func (sr *srh_q_h) ListSr(s *SRH_Q, hs *routing.HTTPSession, aid, ver, prev, dev
 		return []interface{}{}, nil
 	}
 }
+func (sr *srh_q_h) ListPkg(s *SRH_Q, hs *routing.HTTPSession, aid, dev string) (interface{}, error) {
+	if sr.pkg {
+		return nil, util.Err("normal error")
+	} else {
+		sr.pkg = true
+		return map[string]interface{}{}, nil
+	}
+}
 func TestAddSr(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	sr := NewSR("/tmp")
@@ -75,6 +87,9 @@ func TestAddSr(t *testing.T) {
 		"exec": "A",
 		"aid":  "org..",
 		"ver":  "0.0.1",
+	})
+	ts.PostF2("", "sr_f", "sr.go", map[string]string{
+		"exec": "A",
 	})
 	sr.R = "/sdfs"
 	ts.PostF2("", "sr_f", "sr.go", map[string]string{
@@ -139,6 +154,9 @@ func TestAddSr(t *testing.T) {
 	fmt.Println(ts2.G2("?exec=L&pn=sss"))
 	fmt.Println(ts2.G2("?exec=L&aid=org&ver=0.0.1&all=x"))
 	fmt.Println(ts2.G2("?exec=L&aid=org&ver=0.0.1&from=999999999999"))
+	fmt.Println(ts2.G2("?exec=P"))
+	fmt.Println(ts2.G2("?exec=P"))
+	fmt.Println(ts2.G2("?exec=X"))
 	time.Sleep(500 * time.Millisecond)
 	sqh.b = true
 	ts2.PostF2("", "sr_f", "sr_f.zip", map[string]string{
@@ -152,6 +170,7 @@ func TestAddSr(t *testing.T) {
 	//
 	kk := &SRH_N{}
 	kk.OnSrL(nil, "aid", "ver", "", "", 0, 0)
+	kk.OnSrPkg(nil, "aid", "dev")
 }
 
 // func TestListSr(t *testing.T) {

@@ -20,6 +20,7 @@ type SRH interface {
 	Path(hs *routing.HTTPSession, sr *SR) (string, error)
 	OnSrF(hs *routing.HTTPSession, aid, ver, dev, sp, sf string) error
 	OnSrL(hs *routing.HTTPSession, aid, ver, prev, dev string, from, all int64) (interface{}, error)
+	OnSrPkg(hs *routing.HTTPSession, aid, dev string) (interface{}, error)
 }
 type SR struct {
 	H SRH
@@ -46,24 +47,31 @@ func NewSR3(r string, h SRH_Q_H) (*SR, *SRH_Q) {
 }
 func (s *SR) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	var action string = "L"
-	var dev, aid, ver string
 	err := hs.ValidCheckVal(`
-		dev,O|S,L:0;
-		aid,R|S,L:0;
-		ver,R|S,L:0;
-		exec,O|S,O:A~L;
-		`, &dev, &aid, &ver, &action)
+		exec,O|S,O:A~L~P;
+		`, &action)
 	if err != nil {
 		return hs.MsgResErr2(1, "arg-err", err)
 	}
 	switch action {
 	case "A":
-		return s.AddSr(hs, aid, ver, dev)
+		return s.AddSr(hs)
+	case "P":
+		return s.ListPkg(hs)
 	default:
-		return s.ListSr(hs, aid, ver, dev)
+		return s.ListSr(hs)
 	}
 }
-func (s *SR) AddSr(hs *routing.HTTPSession, aid, ver, dev string) routing.HResult {
+func (s *SR) AddSr(hs *routing.HTTPSession) routing.HResult {
+	var dev, aid, ver string
+	err := hs.ValidCheckVal(`
+		dev,O|S,L:0;
+		aid,R|S,L:0;
+		ver,R|S,L:0;
+		`, &dev, &aid, &ver)
+	if err != nil {
+		return hs.MsgResErr2(1, "arg-err", err)
+	}
 	sp, err := s.H.Path(hs, s)
 	if err != nil {
 		return hs.MsgResErr2(1, "arg-err", err)
@@ -80,14 +88,18 @@ func (s *SR) AddSr(hs *routing.HTTPSession, aid, ver, dev string) routing.HResul
 		return hs.MsgResErr2(1, "srv-err", err)
 	}
 }
-func (s *SR) ListSr(hs *routing.HTTPSession, aid, ver, dev string) routing.HResult {
+func (s *SR) ListSr(hs *routing.HTTPSession) routing.HResult {
 	var prev string
 	var from, all int64 = 0, 0
+	var dev, aid, ver string
 	err := hs.ValidCheckVal(`
 		prev,O|S,L:0;
 		from,O|I,R:0;
 		all,O|I,O:0~1;
-		`, &prev, &from, &all)
+		dev,O|S,L:0;
+		aid,R|S,L:0;
+		ver,R|S,L:0;
+		`, &prev, &from, &all, &dev, &aid, &ver)
 	if err != nil {
 		return hs.MsgResErr2(1, "arg-err", err)
 	}
@@ -96,6 +108,20 @@ func (s *SR) ListSr(hs *routing.HTTPSession, aid, ver, dev string) routing.HResu
 		return hs.MsgRes(data)
 	} else if err == util.NOT_FOUND {
 		return hs.MsgRes2(404, []interface{}{})
+	} else {
+		return hs.MsgResErr2(1, "srv-err", err)
+	}
+}
+
+func (s *SR) ListPkg(hs *routing.HTTPSession) routing.HResult {
+	var dev, aid string
+	hs.ValidCheckVal(`
+		dev,O|S,L:0;
+		aid,O|S,L:0;
+		`, &dev, &aid)
+	data, err := s.H.OnSrPkg(hs, aid, dev)
+	if err == nil {
+		return hs.MsgRes(data)
 	} else {
 		return hs.MsgResErr2(1, "srv-err", err)
 	}
@@ -115,6 +141,9 @@ func (s *SRH_N) OnSrF(hs *routing.HTTPSession, aid, ver, dev, sp, sf string) err
 func (s *SRH_N) OnSrL(hs *routing.HTTPSession, aid, ver, prev, dev string, from, all int64) (interface{}, error) {
 	return []interface{}{}, nil
 }
+func (s *SRH_N) OnSrPkg(hs *routing.HTTPSession, aid, dev string) (interface{}, error) {
+	return map[string]interface{}{}, nil
+}
 
 type SRH_Q_I struct {
 	Id   interface{} `bson:"_id" json:"id"`
@@ -130,6 +159,7 @@ type SRH_Q_H interface {
 	Args(s *SRH_Q, hs *routing.HTTPSession, aid, ver, dev, sp, sf string) (util.Map, error)
 	Proc(s *SRH_Q, i *SRH_Q_I) error
 	ListSr(s *SRH_Q, hs *routing.HTTPSession, aid, ver, prev, dev string, from, all int64) (interface{}, error)
+	ListPkg(s *SRH_Q, hs *routing.HTTPSession, aid, dev string) (interface{}, error)
 }
 type SRH_Q struct {
 	SRH_N
@@ -165,6 +195,9 @@ func (s *SRH_Q) OnSrF(hs *routing.HTTPSession, aid, ver, dev, sp, sf string) err
 }
 func (s *SRH_Q) OnSrL(hs *routing.HTTPSession, aid, ver, prev, dev string, from, all int64) (interface{}, error) {
 	return s.H.ListSr(s, hs, aid, ver, prev, dev, from, all)
+}
+func (s *SRH_Q) OnSrPkg(hs *routing.HTTPSession, aid, dev string) (interface{}, error) {
+	return s.H.ListPkg(s, hs, aid, dev)
 }
 func (s *SRH_Q) Proc() {
 	tick := time.Tick(500 * time.Millisecond)
