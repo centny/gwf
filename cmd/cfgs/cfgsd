@@ -15,6 +15,7 @@ pro_n=cfgs
 srv_n=$pro_n"d"
 usr_n=$srv_n
 addr=:9700
+cfgs_wd=www
 token=conf/token.properties
 PIDFILE=/var/run/$srv_n.pid
 lockfile=/var/lock/$srv_n.lock
@@ -25,7 +26,7 @@ start() {
 	umask 077
 
         echo -n "Starting $srv_n server: "
-        daemonize -o /var/log/$srv_n/out.log -e /var/log/$srv_n/err.log -c $SRV_D -p $PIDFILE -u $usr_n -l $lockfile $exec $addr $token $SRV_HOME
+        daemonize -o /var/log/$srv_n/out.log -e /var/log/$srv_n/err.log -c $SRV_D -p $PIDFILE -u $usr_n -l $lockfile $exec $addr $token $cfgs_wd
         RETVAL=$?
 	echo
         [ $RETVAL -eq 0 ] && touch $lockfile
