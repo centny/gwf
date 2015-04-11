@@ -11,13 +11,14 @@ export LD_LIBRARY_PATH=/usr/local/lib
 RETVAL=0
 SRV_HOME=RV_SRVD_HOME
 SRV_D=$SRV_HOME
-srv_n=cfgsd
-usr_n=cfgsd
+pro_n=cfgs
+srv_n=$pro_n"d"
+usr_n=$srv_n
 addr=:9700
 token=conf/token.properties
 PIDFILE=/var/run/$srv_n.pid
 lockfile=/var/lock/$srv_n.lock
-exec=$SRV_D/main
+exec=$SRV_D/$pro_n
 start() {
 	[ -x $exec ] || exit 5
 
