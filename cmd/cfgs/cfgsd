@@ -9,11 +9,12 @@
 
 export LD_LIBRARY_PATH=/usr/local/lib
 RETVAL=0
-SRV_HOME=/home/cfgs/
+SRV_HOME=RV_SRVD_HOME
 SRV_D=$SRV_HOME
 srv_n=cfgsd
-usr_n=im
-addr=:9900
+usr_n=cfgsd
+addr=:9700
+token=conf/token.properties
 PIDFILE=/var/run/$srv_n.pid
 lockfile=/var/lock/$srv_n.lock
 exec=$SRV_D/main
@@ -23,7 +24,7 @@ start() {
 	umask 077
 
         echo -n "Starting $srv_n server: "
-        daemonize -o /var/log/$srv_n/out.log -e /var/log/$srv_n/err.log -c $SRV_D -p $PIDFILE -u $usr_n -l $lockfile $exec $addr $SRV_HOME
+        daemonize -o /var/log/$srv_n/out.log -e /var/log/$srv_n/err.log -c $SRV_D -p $PIDFILE -u $usr_n -l $lockfile $exec $addr $token $SRV_HOME
         RETVAL=$?
 	echo
         [ $RETVAL -eq 0 ] && touch $lockfile
