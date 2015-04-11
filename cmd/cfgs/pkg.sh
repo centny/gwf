@@ -23,7 +23,7 @@ cp token.properties $o_srv/conf
 if [ "$1" != "" ];then
 	curl -o $o_srv/srvd_i $1
 	chmod +x $o_srv/srvd_i
-	echo "./srvd_i \$1 srd" >$o_srv/install.sh
+	echo "./srvd_i \$1 cfgsd" >$o_srv/install.sh
 	chmod +x $o_srv/install.sh
 fi 
 cd $o_dir
