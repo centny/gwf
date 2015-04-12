@@ -150,7 +150,7 @@ func (f *Fcfg) exec(base, line string) error {
 	if !strings.HasPrefix(line, "@") {
 		ps = strings.SplitN(line, "=", 2)
 		if len(ps) < 2 {
-			fmt.Println("not value key found:", ps[0])
+			// fmt.Println("not value key found:", ps[0])
 		} else {
 			key := f.EnvReplace(strings.Trim(ps[0], " "))
 			val := f.EnvReplace(strings.Trim(ps[1], " "))
@@ -208,7 +208,7 @@ func (f *Fcfg) InitWithFile(tfile *os.File) error {
 
 //initial the configure by network .properties URL.
 func (f *Fcfg) InitWithURL(url string) error {
-	fmt.Println("loading remote configure->" + url)
+	// fmt.Println("loading remote configure->" + url)
 	sres, err := HGet(url)
 	if err == nil {
 		turl, _ := nurl.Parse(url)
