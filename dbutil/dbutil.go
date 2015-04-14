@@ -3,6 +3,8 @@
 package dbutil
 
 import (
+	"bufio"
+	"bytes"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -366,14 +368,39 @@ func DbExecScript(db *sql.DB, script string) error {
 	script = regexp.MustCompile("(?msU)/\\*.*\\*/\n?").ReplaceAllString(script, "")
 	script = regexp.MustCompile("--.*\n?").ReplaceAllString(script, "")
 	script = regexp.MustCompile("\n{2,}").ReplaceAllString(script, "\n")
-	blocks := strings.Split(script, ";")
-	// fmt.Println(blocks)
-	for _, b := range blocks {
-		b = strings.Trim(b, " \t\n\r")
+	// fmt.Println(script)
+	data := bufio.NewReader(bytes.NewBufferString(script))
+	var stackf func(*bytes.Buffer, rune) error
+	stackf = func(bw *bytes.Buffer, last rune) error {
+		for {
+			ru, _, err := data.ReadRune()
+			if err != nil {
+				return err
+			}
+			if ru == last {
+				bw.WriteRune(ru)
+				return nil
+			}
+			if ru == rune(';') && last == 0 {
+				return nil
+			}
+			bw.WriteRune(ru)
+			switch ru {
+			case rune('"'):
+				stackf(bw, rune('"'))
+			case rune('\''):
+				stackf(bw, rune('\''))
+			}
+		}
+	}
+	var terr error = nil
+	for terr == nil {
+		buf := bytes.NewBuffer(nil)
+		terr = stackf(buf, 0)
+		b := strings.Trim(buf.String(), " \t\n\r")
 		if len(b) < 1 {
 			continue
 		}
-		// fmt.Println(b)
 		_, err := db.Exec(b)
 		if err != nil {
 			return errors.New(fmt.Sprintf("%v:%v", b, err.Error()))

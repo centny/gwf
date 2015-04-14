@@ -474,3 +474,353 @@ func TestCov(t *testing.T) {
 		t.Error("error")
 	}
 }
+
+var fsrv_sql string = `/*==============================================================*/
+/* DBMS name:      MySQL 5.0                                    */
+/* Created on:     4/11/2015 6:39:35 PM                         */
+/*==============================================================*/
+
+
+drop table if exists RCP_ACTIVITY;
+
+drop table if exists RCP_AUDIT_COURSE;
+
+drop table if exists RCP_AUDIT_STRATEGY;
+
+drop table if exists RCP_CATEGORY;
+
+drop table if exists RCP_COURSE;
+
+drop table if exists RCP_COURSE_CATEGORY;
+
+drop table if exists RCP_COURSE_REF;
+
+drop table if exists RCP_LIVE;
+
+drop table if exists RCP_QUALIFICATION;
+
+drop table if exists RCP_SCORE;
+
+drop table if exists RCP_SECTION;
+
+drop table if exists RCP_STUDY_STAT;
+
+drop table if exists RCP_TEACH;
+
+drop table if exists RCP_TRACE_RECORD;
+
+drop table if exists RCP_U_C_AUTH;
+
+/*==============================================================*/
+/* Table: RCP_ACTIVITY                                          */
+/*==============================================================*/
+create table RCP_ACTIVITY
+(
+   TID                  integer not null auto_increment,
+   CID                  integer,
+   NAME                 varchar(255),
+   START_TIME           timestamp default '0000-00-00 00:00:00',
+   END_TIME             timestamp default '0000-00-00 00:00:00',
+   CONTENT              longtext,
+   STATUS               varchar(255),
+   TIME                 timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   ADD1                 varchar(255),
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_AUDIT_COURSE                                      */
+/*==============================================================*/
+create table RCP_AUDIT_COURSE
+(
+   TID                  int not null auto_increment,
+   COURSE_ID            int comment '课程id',
+   AUDITOR              int comment '审核人',
+   ORG_ID               int comment '机构ID/所属ID',
+   STATUS               int comment '待审核10、审核未通过20、审核通过30、',
+   REASON               varchar(255) comment '通过或未通过的理由',
+   AUDIT_TIME           timestamp,
+   AUTO_CHECK           int comment '是否自动审核通过0 否 1是',
+   CREATED_TIME         timestamp,
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_AUDIT_STRATEGY                                    */
+/*==============================================================*/
+create table RCP_AUDIT_STRATEGY
+(
+   TID                  int not null auto_increment,
+   AUTO_CHECK           int,
+   ORG_ID               int,
+   UID                  int comment '老师',
+   TIME                 timestamp,
+   OPERATOR             int comment '操作者',
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_CATEGORY                                          */
+/*==============================================================*/
+create table RCP_CATEGORY
+(
+   TID                  int not null auto_increment,
+   PID                  int,
+   UID                  int,
+   NAME                 varchar(255),
+   TYPE                 int,
+   SYS_FLAG             int,
+   TIME                 timestamp,
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_COURSE                                            */
+/*==============================================================*/
+create table RCP_COURSE
+(
+   TID                  INTEGER not null auto_increment,
+   NAME                 VARCHAR(255),
+   IMGS                 VARCHAR(1024),
+   START_TIME           timestamp default '0000-00-00 00:00:00',
+   BURDEN_TYPE          integer comment '1:每周；2:每天',
+   BURDEN               float comment '课程负载',
+   GUIDE                varchar(255) comment '导学老师，id逗号分割',
+   CREDIT               float comment '学分',
+   DESCRIPTION          longtext,
+   TOTAL_PRICE          float,
+   SECTION_PRICE        float,
+   TEACH_PRICE          float,
+   ANSWER_PRICE         float,
+   ACTIVITY_PRICE       float,
+   TEST_PRICE           float,
+   USER_NAME            varchar(255),
+   USER                 integer,
+   COURSE_TYPE          INTEGER comment '10:课程;20：题库;30:活动',
+   BANK_ID              INTEGER comment '评测系统题库id',
+   EXT                  varchar(1024) comment 'json格式备用字段',
+   TAGS                 varchar(2048),
+   STATUS               varchar(255),
+   TIME                 timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   ADD1                 varchar(255),
+   key AK_KEY_1 (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_COURSE_CATEGORY                                   */
+/*==============================================================*/
+create table RCP_COURSE_CATEGORY
+(
+   TID                  int not null auto_increment,
+   COURSE_ID            int,
+   CATEGORY_ID          int,
+   TIME                 timestamp,
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_COURSE_REF                                        */
+/*==============================================================*/
+create table RCP_COURSE_REF
+(
+   TID                  integer not null auto_increment,
+   L_ID                 integer,
+   R_ID                 integer comment '被指向的课程',
+   TYPE                 integer comment '20：相关课程，左id为本课程，右id为相关课程；
+            10：前置课程，左id为本课程，右id为指向课程；
+            30：后置课程，左id为本课程，右id为指向课程；',
+   CID                  integer comment '添加此记录的课程id',
+   STATUS               varchar(255),
+   TIME                 timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   ADD1                 varchar(255),
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_LIVE                                              */
+/*==============================================================*/
+create table RCP_LIVE
+(
+   TID                  int not null auto_increment,
+   CONF_ID              varchar(255) comment '会议id',
+   TOPIC                varchar(255) comment '主题名称',
+   CHAIRMAN_PASS        varchar(255) comment '主播密码',
+   ACTIVE_PASS          varchar(255) comment '参与者密码',
+   BEGINTIME            varchar(255) comment '开始时间',
+   ENDTIME              varchar(255) comment '结束时间',
+   ATTEND_NUM           int comment '参与人数',
+   COURSE_ID            int comment '课程id',
+   UID                  int comment '课程者uid',
+   TYPE                 integer comment '10:教学；20:答疑；30:评测',
+   STATUS               varchar(255),
+   TIME                 timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   ADD1                 varchar(255),
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_QUALIFICATION                                     */
+/*==============================================================*/
+create table RCP_QUALIFICATION
+(
+   TID                  int not null auto_increment,
+   UID                  int,
+   TITLE                varchar(255),
+   PICS                 varchar(2048),
+   DESCRIPTION          text,
+   TIME                 timestamp,
+   key AK_KEY_1 (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_SCORE                                             */
+/*==============================================================*/
+create table RCP_SCORE
+(
+   TID                  integer not null auto_increment,
+   UID                  integer,
+   STUDENT_ID           integer,
+   STUDENT_NO           varchar(255),
+   STUDENT_NAME         varchar(255),
+   OWNER                integer comment '成绩类型 ：10 课程 20 题库',
+   OID                  integer,
+   USUALLY              float comment '平时成绩',
+   USUALLY_SOURCE       varchar(255) comment '平时成绩来源试卷',
+   USUALLY_PERCENT      float comment '平时成绩比例',
+   PERIOD               float comment '期中成绩',
+   PERIOD_SOURCE        varchar(255) comment '期中成绩来源试卷',
+   PERIOD_PERCENT       float comment '期中成绩比例',
+   ENDING               float comment '期末成绩',
+   ENDING_SOURCE        varchar(255) comment '期末成绩来源试卷',
+   ENDING_PERCENT       float comment '期末成绩比例',
+   TOTAL                float comment '总分',
+   TOTAL_TYPE           integer comment '总分类型  10 百分制 20 五分制',
+   CREDIT               float comment '学分',
+   REMARK               varchar(255) comment '备注',
+   STATUS               varchar(255),
+   TIME                 timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   ADD1                 varchar(255),
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_SECTION                                           */
+/*==============================================================*/
+create table RCP_SECTION
+(
+   TID                  integer not null auto_increment,
+   NAME                 varchar(255),
+   CONTENT              longtext,
+   CONTENT_TYPE         varchar(255),
+   EXTRA                longtext comment '用来保存额外信息 格式自定',
+   PRE_TAG              varchar(255),
+   NEXT_TAG             varchar(255),
+   REF_TAG              varchar(255) comment '相关知识点标签',
+   CID                  integer,
+   PID                  integer,
+   SEQ                  integer comment '序号',
+   PRICE                float,
+   STATUS               varchar(255),
+   TIME                 timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   ADD1                 varchar(255),
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_STUDY_STAT                                        */
+/*==============================================================*/
+create table RCP_STUDY_STAT
+(
+   TID                  int not null auto_increment,
+   UID                  int,
+   CID                  int,
+   SECTION_ID           int,
+   SECTION_PID          int,
+   STUDY_TIME           bigint,
+   USE_COUNT            int,
+   PROGRESS             float,
+   LAST_STUDY_TIME      timestamp,
+   TIME                 timestamp,
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Index: CID                                                   */
+/*==============================================================*/
+create index CID on RCP_STUDY_STAT
+(
+   CID
+);
+
+/*==============================================================*/
+/* Table: RCP_TEACH                                             */
+/*==============================================================*/
+create table RCP_TEACH
+(
+   TID                  integer not null auto_increment,
+   NAME                 varchar(255),
+   CID                  integer,
+   PRICE                float,
+   START_DATE           date,
+   END_DATE             date,
+   START_TIME           time,
+   END_TIME             time,
+   TIME_GROUP           varchar(255),
+   DESCRIPTION          longtext comment '描述',
+   TEACHER              varchar(255) comment '老师ID',
+   TEACHER_NAME         varchar(255) comment '老师名称',
+   TYPE                 integer comment '10:教学；20:答疑；30:评测',
+   EXTRA                longtext comment '保存额外信息',
+   USR_LIMIT            integer comment '在线答疑每人限制次数，-1为无限次数',
+   STATUS               varchar(255),
+   TIME                 timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   ADD1                 varchar(255),
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_TRACE_RECORD                                      */
+/*==============================================================*/
+create table RCP_TRACE_RECORD
+(
+   TID                  int not null auto_increment,
+   OPERATION_ID         varchar(24),
+   START_TIME           timestamp,
+   END_TIME             timestamp,
+   TIME                 timestamp,
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Table: RCP_U_C_AUTH                                          */
+/*==============================================================*/
+create table RCP_U_C_AUTH
+(
+   TID                  integer not null auto_increment,
+   CID                  integer,
+   UID                  integer,
+   OID                  integer,
+   OWNER                integer comment '10:整门课程；""20:教学、评测；30:活动；40:章节;',
+   STATUS               varchar(255),
+   TIME                 timestamp,
+   ADD1                 varchar(255),
+   primary key (TID)
+);
+
+/*==============================================================*/
+/* Index: INDEX_1                                               */
+/*==============================================================*/
+create index INDEX_1 on RCP_U_C_AUTH
+(
+   CID
+)
+`
+
+func TestDbs(t *testing.T) {
+	db, _ := sql.Open("mysql", test.TDbCon)
+	defer db.Close()
+	err := DbExecScript(db, fsrv_sql)
+	if err != nil {
+		t.Error(err.Error())
+	}
+}
