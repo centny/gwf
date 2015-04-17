@@ -108,4 +108,6 @@ func TestSection(t *testing.T) {
 		return
 	}
 	fmt.Println("%v", f)
+	f.Exist("kjuu")
+	f.Val("kjuu")
 }

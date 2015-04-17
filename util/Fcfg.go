@@ -52,6 +52,8 @@ func (f *Fcfg) slog(fs string, args ...interface{}) {
 func (f *Fcfg) Val(key string) string {
 	if val, ok := f.Map[key]; ok {
 		return val.(string)
+	} else if val, ok := f.Map["loc/"+key]; ok {
+		return val.(string)
 	} else {
 		return ""
 	}
@@ -108,8 +110,13 @@ func (f *Fcfg) Del(key string) *Fcfg {
 
 //check if exist by key.
 func (f *Fcfg) Exist(key string) bool {
-	_, ok := f.Map[key]
-	return ok
+	if _, ok := f.Map[key]; ok {
+		return true
+	} else if _, ok := f.Map["loc/"+key]; ok {
+		return true
+	} else {
+		return false
+	}
 }
 
 //initial the configure by .properties file.
