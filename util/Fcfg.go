@@ -18,12 +18,12 @@ import (
 //the file configure
 //
 type Fcfg struct {
-	Map      map[string]interface{}
-	ShowLog  bool
-	sec      string
-	Lines    []string
-	Sections []string
-	SecLine  map[string]int
+	Map     map[string]interface{}
+	ShowLog bool
+	sec     string
+	Lines   []string
+	Seces   []string
+	SecLn   map[string]int
 }
 
 func NewFcfg(uri string) (*Fcfg, error) {
@@ -31,7 +31,7 @@ func NewFcfg(uri string) (*Fcfg, error) {
 	cfg := &Fcfg{
 		Map:     Map{},
 		ShowLog: true,
-		SecLine: map[string]int{},
+		SecLn:   map[string]int{},
 	}
 	if strings.HasPrefix(uri, "http://") {
 		return cfg, cfg.InitWithURL(uri)
@@ -43,7 +43,7 @@ func NewFcfg2(data string) (*Fcfg, error) {
 	cfg := &Fcfg{
 		Map:     Map{},
 		ShowLog: true,
-		SecLine: map[string]int{},
+		SecLn:   map[string]int{},
 	}
 	return cfg, cfg.InitWithData(data)
 }
@@ -51,7 +51,7 @@ func NewFcfg3() *Fcfg {
 	return &Fcfg{
 		Map:     Map{},
 		ShowLog: true,
-		SecLine: map[string]int{},
+		SecLn:   map[string]int{},
 	}
 }
 func (f *Fcfg) slog(fs string, args ...interface{}) {
@@ -182,10 +182,10 @@ func (f *Fcfg) exec(base, line string) error {
 		return nil
 	}
 	line = strings.Trim(ps[0], " \t")
-	if regexp.MustCompile("[\t ]*\\[[^\\]]*\\][\t ]*").MatchString(line) {
+	if regexp.MustCompile("^\\[[^\\]]*\\][\t ]*$").MatchString(line) {
 		f.sec = strings.Trim(line, "\t []") + "/"
-		f.Sections = append(f.Sections, f.sec)
-		f.SecLine[f.sec] = len(f.Lines)
+		f.Seces = append(f.Seces, f.sec)
+		f.SecLn[f.sec] = len(f.Lines)
 		return nil
 	}
 	if !strings.HasPrefix(line, "@") {
@@ -338,7 +338,7 @@ func (f *Fcfg) String() string {
 }
 func (f *Fcfg) Store(sec, fp string) error {
 	// var seci int = -1
-	// for idx, s := range f.Sections {
+	// for idx, s := range f.Seces {
 	// 	if s == sec {
 	// 		seci = idx
 	// 	}
@@ -346,11 +346,15 @@ func (f *Fcfg) Store(sec, fp string) error {
 	// if seci < 0 {
 	// 	return Err("section not found by %v", sec)
 	// }
-
+	// var beg, end int = f.SecLn[sec], len(f.Lines)
+	// if seci < len(f.Seces)-1 {
+	// 	end = f.SecLn[f.Seces[seci+1]]
+	// }
 	// tf, err := os.OpenFile(fp, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
 	// if err != nil {
 	// 	return err
 	// }
+
 	// tf.WriteString(s)
 	return nil
 }

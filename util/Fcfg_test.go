@@ -96,5 +96,5 @@ func TestSection(t *testing.T) {
 	fmt.Println("%v", f)
 	f.Exist("kjuu")
 	f.Val("kjuu")
-	fmt.Println(f.Sections)
+	fmt.Println("-->", f.Val("teachers"), "<--")
 }
