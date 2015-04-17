@@ -243,13 +243,13 @@ func (f *Fcfg) exec(base, line string) error {
 	return nil
 }
 func (f *Fcfg) load(base, line string) error {
-	if !(strings.HasPrefix(line, "http://") || filepath.IsAbs(line)) {
-		line = base + line
-	}
 	line = f.EnvReplaceV(line, true)
 	line = strings.Trim(line, "\t ")
 	if len(line) < 1 {
 		return nil
+	}
+	if !(strings.HasPrefix(line, "http://") || filepath.IsAbs(line)) {
+		line = base + line
 	}
 	cfg, err := NewFcfg(line)
 	if err == nil {
