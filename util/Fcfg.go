@@ -99,13 +99,22 @@ func (f *Fcfg) FloatVal(key string) float64 {
 func (f *Fcfg) Show() string {
 	sdata := ""
 	for k, v := range f.Map {
-		sdata = fmt.Sprintf("%v\t%v=%v\n", sdata, k, v)
+		sdata = fmt.Sprintf("%v %v=%v\n", sdata, k, v)
 	}
 	return sdata
 }
 
 func (f *Fcfg) Print() {
 	fmt.Println(f.Show())
+}
+func (f *Fcfg) PrintSec(sec string) {
+	sdata := ""
+	for k, v := range f.Map {
+		if strings.HasPrefix(k, sec) {
+			sdata = fmt.Sprintf("%v %v=%v\n", sdata, k, v)
+		}
+	}
+	fmt.Println(sdata)
 }
 
 //set the value by key and value.
