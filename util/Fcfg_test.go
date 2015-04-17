@@ -8,13 +8,19 @@ import (
 )
 
 func TestEnvReplace(t *testing.T) {
-	f := &Fcfg{}
+	f := &Fcfg{
+		Map:     Map{},
+		ShowLog: true,
+	}
 	f.SetVal("a", "b111111")
 	fmt.Println(f.EnvReplace("sss${a} ${abc} ${da} ${HOME} ${}"))
 }
 
 func TestInit(t *testing.T) {
-	f := &Fcfg{}
+	f := &Fcfg{
+		Map:     Map{},
+		ShowLog: true,
+	}
 	err := f.InitWithFilePath("not_found.properties")
 	if err == nil {
 		panic("init error")
@@ -24,7 +30,7 @@ func TestInit(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	for key, val := range *f {
+	for key, val := range f.Map {
 		fmt.Println(key, ":", val)
 	}
 	fmt.Println(f.Val("inta"))
@@ -40,7 +46,10 @@ func TestInit(t *testing.T) {
 	fmt.Println(f.Show())
 }
 func TestOpenError(t *testing.T) {
-	f := &Fcfg{}
+	f := &Fcfg{
+		Map:     Map{},
+		ShowLog: true,
+	}
 	fmt.Println(exec.Command("touch", "/tmp/fcg").Run())
 	fmt.Println(exec.Command("chmod", "000", "/tmp/fcg").Run())
 	fi, e := os.Open("/tmp/fcg")
@@ -52,7 +61,9 @@ func TestOpenError(t *testing.T) {
 	fmt.Println(exec.Command("rm", "-f", "/tmp/fcg").Run())
 }
 func TestValType(t *testing.T) {
-	f := &Fcfg{}
+	f := &Fcfg{
+		Map: Map{},
+	}
 	err := f.InitWithFilePath("fcfg_data.properties?ukk=123")
 	if err != nil {
 		fmt.Println("error:", err)
@@ -77,4 +88,24 @@ func TestLoad(t *testing.T) {
 	}
 	NewFcfg2("@l:http://127.0.0.1:6x")
 	cfg.Merge(nil)
+}
+
+func TestSection(t *testing.T) {
+	f := &Fcfg{
+		Map:     Map{},
+		ShowLog: true,
+	}
+	err := f.InitWithFilePath("fcfg_data.properties?ukk=123")
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	if f.Val("abc/txabc") != "1" {
+		t.Error("not right")
+		return
+	}
+	if f.Val("abd/dxabc") != "1" {
+		t.Error("not right")
+		return
+	}
+	fmt.Println("%v", f)
 }

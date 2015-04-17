@@ -42,7 +42,7 @@ echo "Running Test"
 #  github.com/Centny/gwf/im\
 # "
 pkgs="\
-  github.com/Centny/gwf/dbutil\
+  github.com/Centny/gwf/util\
 "
 echo "mode: set" > a.out
 for p in $pkgs;

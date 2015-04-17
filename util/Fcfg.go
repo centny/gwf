@@ -17,11 +17,18 @@ import (
 //
 //the file configure
 //
-type Fcfg map[string]interface{}
+type Fcfg struct {
+	Map     map[string]interface{}
+	ShowLog bool
+	sec     string
+}
 
 func NewFcfg(uri string) (*Fcfg, error) {
 	uri = strings.Trim(uri, " \t")
-	cfg := &Fcfg{}
+	cfg := &Fcfg{
+		Map:     Map{},
+		ShowLog: true,
+	}
 	if strings.HasPrefix(uri, "http://") {
 		return cfg, cfg.InitWithURL(uri)
 	} else {
@@ -29,13 +36,21 @@ func NewFcfg(uri string) (*Fcfg, error) {
 	}
 }
 func NewFcfg2(data string) (*Fcfg, error) {
-	cfg := &Fcfg{}
+	cfg := &Fcfg{
+		Map:     Map{},
+		ShowLog: true,
+	}
 	return cfg, cfg.InitWithData(data)
+}
+func (f *Fcfg) slog(fs string, args ...interface{}) {
+	if f.ShowLog {
+		fmt.Println(fmt.Sprintf(fs, args...))
+	}
 }
 
 //get the value by key.
 func (f *Fcfg) Val(key string) string {
-	if val, ok := (*f)[key]; ok {
+	if val, ok := f.Map[key]; ok {
 		return val.(string)
 	} else {
 		return ""
@@ -69,7 +84,7 @@ func (f *Fcfg) FloatVal(key string) float64 {
 //
 func (f *Fcfg) Show() string {
 	sdata := ""
-	for k, v := range *f {
+	for k, v := range f.Map {
 		sdata = fmt.Sprintf("%v\t%v=%v\n", sdata, k, v)
 	}
 	return sdata
@@ -81,19 +96,19 @@ func (f *Fcfg) Print() {
 
 //set the value by key and value.
 func (f *Fcfg) SetVal(key string, val string) *Fcfg {
-	(*f)[key] = val
+	f.Map[key] = val
 	return f
 }
 
 //delete the value by key.
 func (f *Fcfg) Del(key string) *Fcfg {
-	delete(*f, key)
+	delete(f.Map, key)
 	return f
 }
 
 //check if exist by key.
 func (f *Fcfg) Exist(key string) bool {
-	_, ok := (*f)[key]
+	_, ok := f.Map[key]
 	return ok
 }
 
@@ -147,26 +162,34 @@ func (f *Fcfg) exec(base, line string) error {
 		return nil
 	}
 	line = strings.Trim(ps[0], " \t")
+	if regexp.MustCompile("[\t ]*\\[[^\\]]*\\][\t ]*").MatchString(line) {
+		f.sec = strings.Trim(line, "\t []") + "/"
+		return nil
+	}
 	if !strings.HasPrefix(line, "@") {
 		ps = strings.SplitN(line, "=", 2)
 		if len(ps) < 2 {
-			// fmt.Println("not value key found:", ps[0])
+			f.slog("not value key found:%v", ps[0])
 		} else {
-			key := f.EnvReplace(strings.Trim(ps[0], " "))
+			key := f.sec + f.EnvReplace(strings.Trim(ps[0], " "))
 			val := f.EnvReplace(strings.Trim(ps[1], " "))
-			(*f)[key] = val
+			f.Map[key] = val
 		}
 		return nil
 	}
 	line = strings.TrimPrefix(line, "@")
 	ps = strings.SplitN(line, ":", 2)
 	if len(ps) < 2 || len(ps[1]) < 1 {
-		fmt.Println(f.EnvReplace(line))
+		f.slog("%v", f.EnvReplace(line))
 		return nil
 	}
 	ps[0] = strings.ToLower(strings.Trim(ps[0], " \t"))
 	ps[0] = f.EnvReplace(ps[0])
 	if ps[0] == "l" {
+		ps[1] = strings.Trim(ps[1], " \t")
+		if len(ps[1]) < 1 {
+
+		}
 		return f.load(base, ps[1])
 	}
 	if cs := strings.SplitN(ps[0], "==", 2); len(cs) == 2 {
@@ -184,14 +207,18 @@ func (f *Fcfg) exec(base, line string) error {
 		}
 	}
 	//all other will print line.
-	fmt.Println(f.EnvReplace(line))
+	f.slog("%v", f.EnvReplace(line))
 	return nil
 }
 func (f *Fcfg) load(base, line string) error {
 	if !(strings.HasPrefix(line, "http://") || filepath.IsAbs(line)) {
 		line = base + line
 	}
-	line = f.EnvReplace(line)
+	line = f.EnvReplaceV(line, true)
+	line = strings.Trim(line, "\t ")
+	if len(line) < 1 {
+		return nil
+	}
 	cfg, err := NewFcfg(line)
 	if err == nil {
 		f.Merge(cfg)
@@ -208,7 +235,7 @@ func (f *Fcfg) InitWithFile(tfile *os.File) error {
 
 //initial the configure by network .properties URL.
 func (f *Fcfg) InitWithURL(url string) error {
-	// fmt.Println("loading remote configure->" + url)
+	f.slog("loading remote configure->%v", url)
 	sres, err := HGet(url)
 	if err == nil {
 		turl, _ := nurl.Parse(url)
@@ -223,30 +250,50 @@ func (f *Fcfg) InitWithURL(url string) error {
 func (f *Fcfg) InitWithData(data string) error {
 	return f.InitWithReader(bufio.NewReader(bytes.NewBufferString(data)))
 }
+func (f *Fcfg) EnvReplace(val string) string {
+	return f.EnvReplaceV(val, false)
+}
 
 //replace tartget patter by ${key} with value in configure map or system environment value.
-func (f *Fcfg) EnvReplace(val string) string {
-	reg, _ := regexp.Compile("\\$\\{[^\\}]*\\}")
-	var rval string = ""
-	mhs := reg.FindAll([]byte(val), -1)
-	for i := 0; i < len(mhs); i++ {
-		bys := mhs[i]
-		ptn := string(bys)
-		bys = bys[2 : len(bys)-1]
-		if len(bys) < 1 {
-			continue
-		}
-		key := string(bys)
+func (f *Fcfg) EnvReplaceV(val string, empty bool) string {
+	reg := regexp.MustCompile("\\$\\{[^\\}]*\\}")
+	var rval string
+	val = reg.ReplaceAllStringFunc(val, func(m string) string {
+		key := strings.Trim(m, "${}\t ")
 		if f.Exist(key) {
 			rval = f.Val(key)
 		} else {
 			rval = os.Getenv(key)
-			if len(rval) < 1 {
-				continue
-			}
 		}
-		val = strings.Replace(val, ptn, rval, 1)
-	}
+		if len(rval) > 0 {
+			return rval
+		}
+		if empty {
+			return ""
+		} else {
+			return m
+		}
+	})
+	// var rval string = ""
+	// mhs := reg.FindAll([]byte(val), -1)
+	// for i := 0; i < len(mhs); i++ {
+	// 	bys := mhs[i]
+	// 	ptn := string(bys)
+	// 	bys = bys[2 : len(bys)-1]
+	// 	if len(bys) < 1 {
+	// 		continue
+	// 	}
+	// 	key := string(bys)
+	// 	if f.Exist(key) {
+	// 		rval = f.Val(key)
+	// 	} else {
+	// 		rval = os.Getenv(key)
+	// 		if len(rval) < 1 {
+	// 			continue
+	// 		}
+	// 	}
+	// 	val = strings.Replace(val, ptn, rval, 1)
+	// }
 	return val
 }
 
@@ -255,14 +302,14 @@ func (f *Fcfg) Merge(t *Fcfg) {
 	if t == nil {
 		return
 	}
-	for k, v := range *t {
-		(*f)[k] = v
+	for k, v := range t.Map {
+		f.Map[k] = v
 	}
 }
 
 func (f *Fcfg) String() string {
 	buf := bytes.NewBuffer(nil)
-	for k, v := range *f {
+	for k, v := range f.Map {
 		buf.WriteString(fmt.Sprintf("%v=%v\n", k, v))
 	}
 	return buf.String()
