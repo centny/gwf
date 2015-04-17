@@ -183,9 +183,10 @@ func (f *Fcfg) exec(base, line string) error {
 	}
 	line = strings.Trim(ps[0], " \t")
 	if regexp.MustCompile("^\\[[^\\]]*\\][\t ]*$").MatchString(line) {
-		f.sec = strings.Trim(line, "\t []") + "/"
-		f.Seces = append(f.Seces, f.sec)
-		f.SecLn[f.sec] = len(f.Lines)
+		sec := strings.Trim(line, "\t []")
+		f.sec = sec + "/"
+		f.Seces = append(f.Seces, sec)
+		f.SecLn[sec] = len(f.Lines)
 		return nil
 	}
 	if !strings.HasPrefix(line, "@") {
@@ -336,25 +337,30 @@ func (f *Fcfg) String() string {
 	}
 	return buf.String()
 }
-func (f *Fcfg) Store(sec, fp string) error {
-	// var seci int = -1
-	// for idx, s := range f.Seces {
-	// 	if s == sec {
-	// 		seci = idx
-	// 	}
-	// }
-	// if seci < 0 {
-	// 	return Err("section not found by %v", sec)
-	// }
-	// var beg, end int = f.SecLn[sec], len(f.Lines)
-	// if seci < len(f.Seces)-1 {
-	// 	end = f.SecLn[f.Seces[seci+1]]
-	// }
-	// tf, err := os.OpenFile(fp, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// tf.WriteString(s)
-	return nil
+func (f *Fcfg) Store(sec, fp, tsec string) error {
+	var seci int = -1
+	for idx, s := range f.Seces {
+		if s == sec {
+			seci = idx
+		}
+	}
+	if seci < 0 {
+		return Err("section not found by %v", sec)
+	}
+	var beg, end int = f.SecLn[sec], len(f.Lines)
+	if seci < len(f.Seces)-1 {
+		end = f.SecLn[f.Seces[seci+1]] - 1
+	}
+	tf, err := os.OpenFile(fp, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer tf.Close()
+	buf := bufio.NewWriter(tf)
+	buf.WriteString("[" + tsec + "]\n")
+	for i := beg; i < end; i++ {
+		buf.WriteString(f.Lines[i])
+		buf.WriteString("\n")
+	}
+	return buf.Flush()
 }

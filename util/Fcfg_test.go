@@ -96,5 +96,13 @@ func TestSection(t *testing.T) {
 	fmt.Println("%v", f)
 	f.Exist("kjuu")
 	f.Val("kjuu")
-	fmt.Println("-->", f.Val("teachers"), "<--")
+	fmt.Println(f.Seces)
+	os.Remove("tt.properties")
+	err = f.Store("abc", "tt.properties", "xx")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	f.Store("adkkdbc", "tt.properties", "xx")
+	f.Store("abc", "/tt.properties", "xx")
 }
