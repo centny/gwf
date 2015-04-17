@@ -8,19 +8,13 @@ import (
 )
 
 func TestEnvReplace(t *testing.T) {
-	f := &Fcfg{
-		Map:     Map{},
-		ShowLog: true,
-	}
+	f := NewFcfg3()
 	f.SetVal("a", "b111111")
 	fmt.Println(f.EnvReplace("sss${a} ${abc} ${da} ${HOME} ${}"))
 }
 
 func TestInit(t *testing.T) {
-	f := &Fcfg{
-		Map:     Map{},
-		ShowLog: true,
-	}
+	f := NewFcfg3()
 	err := f.InitWithFilePath("not_found.properties")
 	if err == nil {
 		panic("init error")
@@ -46,10 +40,7 @@ func TestInit(t *testing.T) {
 	fmt.Println(f.Show())
 }
 func TestOpenError(t *testing.T) {
-	f := &Fcfg{
-		Map:     Map{},
-		ShowLog: true,
-	}
+	f := NewFcfg3()
 	fmt.Println(exec.Command("touch", "/tmp/fcg").Run())
 	fmt.Println(exec.Command("chmod", "000", "/tmp/fcg").Run())
 	fi, e := os.Open("/tmp/fcg")
@@ -61,9 +52,7 @@ func TestOpenError(t *testing.T) {
 	fmt.Println(exec.Command("rm", "-f", "/tmp/fcg").Run())
 }
 func TestValType(t *testing.T) {
-	f := &Fcfg{
-		Map: Map{},
-	}
+	f := NewFcfg3()
 	err := f.InitWithFilePath("fcfg_data.properties?ukk=123")
 	if err != nil {
 		fmt.Println("error:", err)
@@ -91,10 +80,7 @@ func TestLoad(t *testing.T) {
 }
 
 func TestSection(t *testing.T) {
-	f := &Fcfg{
-		Map:     Map{},
-		ShowLog: true,
-	}
+	f := NewFcfg3()
 	err := f.InitWithFilePath("fcfg_data.properties?ukk=123")
 	if err != nil {
 		fmt.Println("error:", err)
@@ -110,4 +96,5 @@ func TestSection(t *testing.T) {
 	fmt.Println("%v", f)
 	f.Exist("kjuu")
 	f.Val("kjuu")
+	fmt.Println(f.Sections)
 }

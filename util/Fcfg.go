@@ -18,9 +18,12 @@ import (
 //the file configure
 //
 type Fcfg struct {
-	Map     map[string]interface{}
-	ShowLog bool
-	sec     string
+	Map      map[string]interface{}
+	ShowLog  bool
+	sec      string
+	Lines    []string
+	Sections []string
+	SecLine  map[string]int
 }
 
 func NewFcfg(uri string) (*Fcfg, error) {
@@ -28,6 +31,7 @@ func NewFcfg(uri string) (*Fcfg, error) {
 	cfg := &Fcfg{
 		Map:     Map{},
 		ShowLog: true,
+		SecLine: map[string]int{},
 	}
 	if strings.HasPrefix(uri, "http://") {
 		return cfg, cfg.InitWithURL(uri)
@@ -39,8 +43,16 @@ func NewFcfg2(data string) (*Fcfg, error) {
 	cfg := &Fcfg{
 		Map:     Map{},
 		ShowLog: true,
+		SecLine: map[string]int{},
 	}
 	return cfg, cfg.InitWithData(data)
+}
+func NewFcfg3() *Fcfg {
+	return &Fcfg{
+		Map:     Map{},
+		ShowLog: true,
+		SecLine: map[string]int{},
+	}
 }
 func (f *Fcfg) slog(fs string, args ...interface{}) {
 	if f.ShowLog {
@@ -151,6 +163,7 @@ func (f *Fcfg) InitWithReader2(base string, reader *bufio.Reader) error {
 		}
 		//
 		line := string(bys)
+		f.Lines = append(f.Lines, line)
 		line = strings.Trim(line, " ")
 		if len(line) < 1 {
 			continue
@@ -171,6 +184,8 @@ func (f *Fcfg) exec(base, line string) error {
 	line = strings.Trim(ps[0], " \t")
 	if regexp.MustCompile("[\t ]*\\[[^\\]]*\\][\t ]*").MatchString(line) {
 		f.sec = strings.Trim(line, "\t []") + "/"
+		f.Sections = append(f.Sections, f.sec)
+		f.SecLine[f.sec] = len(f.Lines)
 		return nil
 	}
 	if !strings.HasPrefix(line, "@") {
@@ -320,4 +335,22 @@ func (f *Fcfg) String() string {
 		buf.WriteString(fmt.Sprintf("%v=%v\n", k, v))
 	}
 	return buf.String()
+}
+func (f *Fcfg) Store(sec, fp string) error {
+	// var seci int = -1
+	// for idx, s := range f.Sections {
+	// 	if s == sec {
+	// 		seci = idx
+	// 	}
+	// }
+	// if seci < 0 {
+	// 	return Err("section not found by %v", sec)
+	// }
+
+	// tf, err := os.OpenFile(fp, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
+	// if err != nil {
+	// 	return err
+	// }
+	// tf.WriteString(s)
+	return nil
 }
