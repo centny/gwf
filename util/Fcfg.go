@@ -291,11 +291,16 @@ func (f *Fcfg) EnvReplaceV(val string, empty bool) string {
 	reg := regexp.MustCompile("\\$\\{[^\\}]*\\}")
 	var rval string
 	val = reg.ReplaceAllStringFunc(val, func(m string) string {
-		key := strings.Trim(m, "${}\t ")
-		if f.Exist(key) {
-			rval = f.Val(key)
-		} else {
-			rval = os.Getenv(key)
+		keys := strings.Split(strings.Trim(m, "${}\t "), ",")
+		for _, key := range keys {
+			if f.Exist(key) {
+				rval = f.Val(key)
+			} else {
+				rval = os.Getenv(key)
+			}
+			if len(rval) > 0 {
+				break
+			}
 		}
 		if len(rval) > 0 {
 			return rval

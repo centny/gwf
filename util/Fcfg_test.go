@@ -105,4 +105,7 @@ func TestSection(t *testing.T) {
 	}
 	f.Store("adkkdbc", "tt.properties", "xx")
 	f.Store("abc", "/tt.properties", "xx")
+
+	fmt.Println(f.Val("wwwk"))
+	fmt.Println(f.Val("wxk"))
 }
