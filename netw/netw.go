@@ -8,6 +8,7 @@ package netw
 import (
 	"bufio"
 	"bytes"
+	"code.google.com/p/go.net/websocket"
 	"encoding/binary"
 	"fmt"
 	"github.com/Centny/gwf/log"
@@ -36,6 +37,14 @@ func log_d(f string, args ...interface{}) {
 //the protocol modes
 const H_MOD = "^~^"
 
+//
+//the connection command mode
+const (
+	CM_H = "H" //the header mode.
+	CM_L = "L" //the line mode
+	CM_N = "N" //the normal mode.
+)
+
 //the default connection timeout for not data receive
 const CON_TIMEOUT int64 = 5000
 
@@ -50,6 +59,11 @@ type V2Byte func(v interface{}) ([]byte, error)
 
 //func for covert []byte to struct or map.
 type Byte2V func(bys []byte, v interface{}) (interface{}, error)
+
+//the func to execute connection
+type ConRunner interface {
+	Run(cp ConPool, p *pool.BytePool, con Con) error
+}
 
 //the base connection event handler
 type ConHandler interface {
@@ -71,6 +85,18 @@ type CCHandler interface {
 	CmdHandler
 }
 
+type wsConn struct {
+	*websocket.Conn
+	net.Addr
+}
+
+func (w *wsConn) RemoteAddr() net.Addr {
+	return w
+}
+func (w *wsConn) String() string {
+	return w.Request().RemoteAddr
+}
+
 /*
 
 */
@@ -80,6 +106,11 @@ type CCHandler interface {
 type Con interface {
 	//the base connection
 	net.Conn
+	Closed() bool
+	//get the write mode.
+	Mod() string
+	//setting the write mode,default is CM_H
+	SetMod(m string)
 	//the ConPool
 	CP() ConPool
 	//the memory pool
@@ -100,6 +131,8 @@ type Con interface {
 	Waiting() bool
 	//read byte data and wait until have receive p length data.
 	ReadW(p []byte) error
+	//read one line data.
+	ReadL(limit int, end bool) ([]byte, error)
 	//write multi []byte to conection.
 	//it will be joined to MOD|lenght|[]byte|[]byte|[]byte....
 	Writeb(bys ...[]byte) (int, error)
@@ -119,7 +152,8 @@ type Con interface {
 
 //the base implement to Con
 type Con_ struct {
-	net.Conn                //the base connection
+	net.Conn //the base connection
+	Mod_     string
 	CP_      ConPool        //the ConPool
 	P_       *pool.BytePool //the memory pool
 	R_       *bufio.Reader  //the buffer reader
@@ -132,18 +166,35 @@ type Con_ struct {
 	ID_      string         //the connection id
 	c_l      sync.RWMutex   //connection lock.
 	buf      []byte         //the buf to store the data len which will be writed to connection.
+	closed_  bool
 	ShowLog  bool
 	// r_l      sync.RWMutex
 }
 
 //new Con by ConPool/BytePool and normal connection.
-func NewCon(cp ConPool, p *pool.BytePool, con net.Conn) Con {
-	return NewCon_(cp, p, con)
+func NewConN(cp ConPool, p *pool.BytePool, con net.Conn) Con {
+	c := NewCon_(cp, p, con)
+	c.SetMod(CM_N)
+	return c
 }
+func NewConH(cp ConPool, p *pool.BytePool, con net.Conn) Con {
+	c := NewCon_(cp, p, con)
+	c.SetMod(CM_H)
+	return c
+}
+func NewConL(cp ConPool, p *pool.BytePool, con net.Conn) Con {
+	c := NewCon_(cp, p, con)
+	c.SetMod(CM_L)
+	return c
+}
+
+var NewCon = NewConH
 
 //Con_ creator.
 func NewCon_(cp ConPool, p *pool.BytePool, con net.Conn) *Con_ {
 	return &Con_{
+		closed_:  false,
+		Mod_:     CM_H,
 		CP_:      cp,
 		P_:       p,
 		Conn:     con,
@@ -166,6 +217,19 @@ func (c *Con_) log_d(f string, args ...interface{}) {
 	if c.ShowLog {
 		log.D(f, args...)
 	}
+}
+func (c *Con_) Closed() bool {
+	return c.closed_
+}
+func (c *Con_) Close() error {
+	c.closed_ = true
+	return c.Conn.Close()
+}
+func (c *Con_) Mod() string {
+	return c.Mod_
+}
+func (c *Con_) SetMod(m string) {
+	c.Mod_ = m
 }
 func (c *Con_) CP() ConPool {
 	return c.CP_
@@ -198,6 +262,7 @@ func (c *Con_) SetWait(t bool) {
 	} else {
 		atomic.StoreInt32(&c.Waiting_, 0)
 	}
+	log_d("set waiting(%v) for %v:%v", t, c.ID_, c.RemoteAddr())
 }
 func (c *Con_) Waiting() bool {
 	return c.Waiting_ > 0
@@ -208,6 +273,9 @@ func (c *Con_) ReadW(p []byte) error {
 	// c.r_l.Lock()
 	// defer c.r_l.Unlock()
 	return util.ReadW(c.R_, p, &c.Last_)
+}
+func (c *Con_) ReadL(limit int, end bool) ([]byte, error) {
+	return util.ReadLineV(c.R_, limit, end, &c.Last_)
 }
 
 //rewrite to forbiden call.
@@ -220,7 +288,15 @@ func (c *Con_) Write(b []byte) (n int, err error) {
 func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
-	total, _ := Writeb(c.W_, bys...)
+	var total int
+	switch c.Mod_ {
+	case CM_H:
+		total, _ = Writeh(c.W_, bys...)
+	case CM_L:
+		total, _ = Writel(c.W_, bys...)
+	default:
+		total, _ = Writen(c.W_, bys...)
+	}
 	c.log_d("write data(%v) to %v", total, c.RemoteAddr().String())
 	return total, c.Flush()
 }
@@ -302,31 +378,49 @@ type ConPool interface {
 	Find(id string) Con
 	Id() string
 	SetId(id string)
+	Handler() CCHandler
+	Runner() ConRunner
 }
 
 //the connection pool
 type LConPool struct {
-	T  int64          //the timeout of not data received
-	P  *pool.BytePool //the memory pool
-	Wg sync.WaitGroup //wait group.
-	H  CCHandler      //command handler
+	Name string
+	T    int64          //the timeout of not data received
+	P    *pool.BytePool //the memory pool
+	Wg   sync.WaitGroup //wait group.
+	H    CCHandler      //command handler
 	// Wc     chan int       //the wait chan.
-	NewCon NewConF
-	t_r    bool
-	cons   map[string]Con
-	cons_l sync.RWMutex
-	Err_   CmdErrF
-	Id_    string
+	NewCon  NewConF
+	Runner_ ConRunner
+	t_r     bool
+	cons    map[string]Con
+	cons_l  sync.RWMutex
+	Err_    CmdErrF
+	Id_     string
 }
 
 //new connection pool.
-func NewLConPool(p *pool.BytePool, h CCHandler, n string) *LConPool {
+// func NewLConPoolN(p *pool.BytePool, h CCHandler, n string) *LConPool {
+// 	return NewLConPoolV(p, h, n, NewConN)
+// }
+// func NewLConPoolH(p *pool.BytePool, h CCHandler, n string) *LConPool {
+// 	lc := NewLConPoolV(p, h, n, NewConH)
+// 	lc.Runner_ = NewModRunner()
+// 	return lc
+// }
+// func NewLConPoolL(p *pool.BytePool, h CCHandler, n string) *LConPool {
+// 	lc := NewLConPoolV(p, h, n, NewConL)
+// 	lc.Runner_ = NewNLineRunner()
+// 	return lc
+// }
+func NewLConPoolV(p *pool.BytePool, h CCHandler, n string, ncf NewConF) *LConPool {
 	return &LConPool{
-		T:      CON_TIMEOUT,
-		P:      p,
-		H:      h,
-		cons:   map[string]Con{},
-		NewCon: NewCon,
+		T:       CON_TIMEOUT,
+		P:       p,
+		H:       h,
+		cons:    map[string]Con{},
+		NewCon:  ncf,
+		Runner_: NewModRunner(),
 		Err_: func(c Cmd, d int, code byte, f string, args ...interface{}) {
 			log.D_(d, f, args...)
 		},
@@ -349,14 +443,21 @@ func (l *LConPool) LoopTimeout() {
 			}
 		}
 		if (len(cons)) > 0 {
-			log.D("closing %v connection for timeout", len(cons))
+			log.D("closing %v connection for timeout on %v", len(cons), l.Name)
 		}
 		for _, con := range cons {
+			log.D("close connection(%v,%v) for timeout on %v", con.RemoteAddr(), con.Id(), l.Name)
 			con.Close()
 		}
 		time.Sleep(time.Duration(l.T) * time.Millisecond)
 	}
 	// l.Wc <- 0
+}
+func (l *LConPool) Handler() CCHandler {
+	return l.H
+}
+func (l *LConPool) Runner() ConRunner {
+	return l.Runner_
 }
 
 //close all connection
@@ -409,7 +510,7 @@ func (l *LConPool) RunC_(con Con) {
 }
 func (l *LConPool) runc_(con Con) {
 	defer func() {
-		log_d("closing connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())
+		log_d("%v:closing connection(%v,%v) in pool(%v)", l.Name, con.RemoteAddr().String(), con.Id(), l.Id())
 		l.H.OnClose(con)
 		con.Close()
 		l.del_c(con)
@@ -419,43 +520,11 @@ func (l *LConPool) runc_(con Con) {
 			log.E("RunC_ close err(%v),stack:\n%v", err, string(buf[0:blen]))
 		}
 	}()
-	log_d("running connection(%v,%v) in pool(%v)", con.RemoteAddr().String(), con.Id(), l.Id())
-	//
-	buf := make([]byte, 5)
-	mod := []byte(H_MOD)
-	mod_l := len(mod)
-	//
-	for {
-		err := con.ReadW(buf)
-		if err != nil {
-			log_d("read head mod from(%v) error:%v", con.RemoteAddr().String(), err.Error())
-			break
-		}
-		if !bytes.HasPrefix(buf, mod) {
-			log.W("reading invalid mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
-			continue
-		}
-		dlen := binary.BigEndian.Uint16(buf[mod_l:])
-		if dlen < 2 {
-			log.W("reading invalid data len for mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
-			continue
-		}
-		dbuf := l.P.Alloc(int(dlen))
-		err = con.ReadW(dbuf)
-		if err != nil {
-			log_d("read data from(%v) error:%v", con.RemoteAddr().String(), err.Error())
-			break
-		}
-		// if len(dbuf) < 3 {
-		// 	continue
-		// }
-		l.H.OnCmd(&Cmd_{
-			Con:   con,
-			Data_: dbuf,
-			data_: dbuf,
-			d:     2,
-		})
+	if l.Name == "WIM" {
+		log_d("%v:running connection(%v,%v) in pool(%v)", l.Name, con.RemoteAddr().String(), con.Id(), l.Id())
 	}
+	//
+	l.Runner_.Run(l, l.P, con)
 }
 func (l *LConPool) Err() CmdErrF {
 	return l.Err_
@@ -488,4 +557,97 @@ func (l *LConPool) Writev(val interface{}) int {
 		con.Writev(val)
 	}
 	return len(l.cons)
+}
+func (l *LConPool) accept_ws(wc *websocket.Conn) {
+	con := &wsConn{
+		Conn: wc,
+		Addr: wc.RemoteAddr(),
+	}
+	log_d("%v:accepting ws connect(%v) in pool(%v)", l.Name, con.RemoteAddr().String(), l.Id())
+	tcon := l.NewCon(l, l.P, con)
+	if l.H.OnConn(tcon) {
+		l.RunC_(tcon)
+	}
+}
+
+//create websocket handler
+func (l *LConPool) WsH() websocket.Handler {
+	return websocket.Handler(l.accept_ws)
+}
+func (l *LConPool) WsS() *websocket.Server {
+	return &websocket.Server{Handler: l.WsH()}
+}
+
+type ModRunner struct {
+}
+
+func NewModRunner() *ModRunner {
+	return &ModRunner{}
+}
+func (m *ModRunner) Run(cp ConPool, p *pool.BytePool, con Con) error {
+	buf := make([]byte, 5)
+	mod := []byte(H_MOD)
+	mod_l := len(mod)
+	h := cp.Handler()
+	//
+	for {
+		err := con.ReadW(buf)
+		if err != nil {
+			log_d("read head mod from(%v) error:%v", con.RemoteAddr().String(), err.Error())
+			break
+		}
+		if !bytes.HasPrefix(buf, mod) {
+			log.W("reading invalid mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
+			continue
+		}
+		dlen := binary.BigEndian.Uint16(buf[mod_l:])
+		if dlen < 2 {
+			log.W("reading invalid data len for mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
+			continue
+		}
+		dbuf := p.Alloc(int(dlen))
+		err = con.ReadW(dbuf)
+		if err != nil {
+			log_d("read data from(%v) error:%v", con.RemoteAddr().String(), err.Error())
+			break
+		}
+		// if len(dbuf) < 3 {
+		// 	continue
+		// }
+		h.OnCmd(&Cmd_{
+			Con:   con,
+			Data_: dbuf,
+			data_: dbuf,
+			d:     2,
+		})
+	}
+	return nil
+}
+
+type NLineRunner struct {
+	Limit int
+}
+
+func NewNLineRunner() *NLineRunner {
+	return &NLineRunner{
+		Limit: 10240,
+	}
+}
+func (n *NLineRunner) Run(cp ConPool, p *pool.BytePool, con Con) error {
+	h := cp.Handler()
+	//
+	for {
+		bys, err := con.ReadL(n.Limit, false)
+		if err != nil {
+			log_d("reading line from(%v) err:%v", con.RemoteAddr().String(), err.Error())
+			break
+		}
+		h.OnCmd(&Cmd_{
+			Con:   con,
+			Data_: bys,
+			data_: bys,
+			d:     2,
+		})
+	}
+	return nil
 }

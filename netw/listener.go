@@ -1,7 +1,6 @@
 package netw
 
 import (
-	"code.google.com/p/go.net/websocket"
 	"errors"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/pool"
@@ -27,10 +26,9 @@ func NewListener2(p *pool.BytePool, port string, h CCHandler) *Listener {
 func NewListenerN(p *pool.BytePool, port string, n string, h CCHandler, ncf NewConF) *Listener {
 	ls := &Listener{
 		Port:     port,
-		LConPool: NewLConPool(p, h, n),
+		LConPool: NewLConPoolV(p, h, n, ncf),
 		Wc:       make(chan int),
 	}
-	ls.NewCon = ncf
 	return ls
 }
 func NewListenerN2(p *pool.BytePool, port string, h CCHandler, ncf NewConF) *Listener {
@@ -81,13 +79,6 @@ func (l *Listener) LoopAccept() {
 	l.Running = false
 	l.Wc <- 0
 }
-func (l *Listener) accept_ws(con *websocket.Conn) {
-	log_d("accepting ws connect(%v) in pool(%v)", con.RemoteAddr().String(), l.Id())
-	tcon := l.NewCon(l, l.P, con)
-	if l.H.OnConn(tcon) {
-		l.RunC_(tcon)
-	}
-}
 
 //close the listener.
 func (l *Listener) Close() {
@@ -99,9 +90,4 @@ func (l *Listener) Close() {
 //wait the listener close.
 func (l *Listener) Wait() {
 	<-l.Wc
-}
-
-//create websocket handler
-func (l *Listener) WsH() websocket.Handler {
-	return websocket.Handler(l.accept_ws)
 }

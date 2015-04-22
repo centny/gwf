@@ -92,6 +92,10 @@ func FCopy(src string, dst string) error {
 	return err
 }
 func ReadLine(r *bufio.Reader, limit int, end bool) ([]byte, error) {
+	var last int64
+	return ReadLineV(r, limit, end, &last)
+}
+func ReadLineV(r *bufio.Reader, limit int, end bool, last *int64) ([]byte, error) {
 	var isPrefix bool = true
 	var bys []byte
 	var tmp []byte
@@ -102,6 +106,7 @@ func ReadLine(r *bufio.Reader, limit int, end bool) ([]byte, error) {
 			return nil, err
 		}
 		bys = append(bys, tmp...)
+		*last = Now()
 	}
 	if end {
 		bys = append(bys, '\n')

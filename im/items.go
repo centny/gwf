@@ -43,10 +43,13 @@ type Con struct {
 
 //online server
 type Srv struct {
-	Sid   string `bson:"_id" json:"sid"` //server id
-	Host  string `json:"host"`           //server addr
-	Port  int    `json:"port"`           //server port.
-	Token string `json:"token"`          //server login token
+	Sid     string `bson:"_id" json:"sid"` //server id
+	Host    string `json:"host"`           //server addr
+	Port    int    `json:"port"`           //server port.
+	WsAddr  string `json:"ws_addr"`        //server port.
+	PubHost string `json:"pub_host"`       //server public port.
+	PubPort int    `json:"pub_port"`       //server public port.
+	Token   string `json:"token"`          //server login token
 }
 
 func (s *Srv) Addr() string {

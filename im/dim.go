@@ -32,6 +32,9 @@ func (d *DIM_Rh) Find(id string) netw.Con {
 }
 func (d *DIM_Rh) OnCmd(c netw.Cmd) int {
 	defer c.Done()
+	if c.Closed() {
+		return -1
+	}
 	var dm pb.DsMsg
 	_, err := c.V(&dm)
 	if err != nil {
@@ -68,6 +71,9 @@ func (d *DIM_Rh) OnCmd(c netw.Cmd) int {
 	}
 }
 func (d *DIM_Rh) Exec(r *impl.RCM_Cmd) (interface{}, error) {
+	if r.Closed() {
+		return nil, util.Err("connection is closed")
+	}
 	switch r.Name {
 	case "LI":
 		return d.LI(r)

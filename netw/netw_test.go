@@ -245,7 +245,7 @@ func TestWs(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	tv, err := Writeb(con, []byte("AAXX"))
+	tv, err := Writen(con, []byte("AAXX"))
 	if err != nil {
 		t.Error(err.Error())
 		return

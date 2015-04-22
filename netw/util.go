@@ -13,7 +13,7 @@ func Writev(c Con, val interface{}) (int, error) {
 		return 0, err
 	}
 }
-func Writeb(w io.Writer, bys ...[]byte) (int, error) {
+func Writeh(w io.Writer, bys ...[]byte) (int, error) {
 	total, err := w.Write([]byte(H_MOD))
 	var tlen uint16 = 0
 	for _, b := range bys {
@@ -23,6 +23,19 @@ func Writeb(w io.Writer, bys ...[]byte) (int, error) {
 	binary.BigEndian.PutUint16(buf, tlen)
 	tv, err := w.Write(buf)
 	total += tv
+	for _, b := range bys {
+		tv, err = w.Write(b)
+		total += tv
+	}
+	return total, err
+}
+func Writel(w io.Writer, bys ...[]byte) (int, error) {
+	bys = append(bys, []byte("\n"))
+	return Writen(w, bys...)
+}
+func Writen(w io.Writer, bys ...[]byte) (int, error) {
+	total, tv := 0, 0
+	var err error
 	for _, b := range bys {
 		tv, err = w.Write(b)
 		total += tv

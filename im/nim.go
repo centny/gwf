@@ -41,10 +41,14 @@ func (n *NIM_Rh) OnClose(c netw.Con) {
 
 func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
 	defer c.Done()
+	if c.Closed() {
+		return -1
+	}
 	// log_d("NIM_Rh receive data:%v", string(c.Data()))
 	sid, tn := n.Db.FUsrR(c), util.Now()
 	if len(sid) < 1 {
 		log.W("receive message for not login connect->%v", c.Data())
+		c.Close()
 		return -1
 	}
 	var mc Msg
@@ -58,28 +62,6 @@ func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
 	mc.Ms = map[string]string{}
 	mc.Time = &tn
 	return n.OnMsg(&mc)
-}
-func (n *NIM_Rh) DoRobot(mc *Msg) int {
-	if len(mc.R) < 1 {
-		log.E("empty R(%v) from:%v", mc.R, mc.RemoteAddr().String())
-		return -1
-	}
-	ss := mc.R[0]
-	if !strings.HasPrefix(ss, "S-Robot") {
-		return 0
-	}
-	mi := fmt.Sprintf("RMI-%v", atomic.AddInt64(&n.idc, 1))
-	mc.I = &mi
-	mc.D = mc.S
-	mc.S = &ss
-	mc.R = []string{*mc.D}
-	err := n.SS.Send(mc.Id(), &mc.ImMsg)
-	if err == nil {
-		return 1
-	} else {
-		log.E("send message err(%v) for:%v", err.Error(), mc.RemoteAddr().String())
-		return -1
-	}
 }
 func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	if dr := n.DoRobot(mc); dr != 0 {
@@ -117,6 +99,28 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 		}
 	}
 	return n.do_dis(mc, dr_rc)
+}
+func (n *NIM_Rh) DoRobot(mc *Msg) int {
+	if len(mc.R) < 1 {
+		log.E("empty R(%v) from:%v", mc.R, mc.RemoteAddr().String())
+		return -1
+	}
+	ss := mc.R[0]
+	if !strings.HasPrefix(ss, "S-Robot") {
+		return 0
+	}
+	mi := fmt.Sprintf("RMI-%v", atomic.AddInt64(&n.idc, 1))
+	mc.I = &mi
+	mc.D = mc.S
+	mc.S = &ss
+	mc.R = []string{*mc.D}
+	err := n.SS.Send(mc.Id(), &mc.ImMsg)
+	if err == nil {
+		return 1
+	} else {
+		log.E("send message err(%v) for:%v", err.Error(), mc.RemoteAddr().String())
+		return -1
+	}
 }
 
 //
@@ -242,6 +246,10 @@ func (n *NIM_Rh) writev_ce(c netw.Cmd, err string) int {
 	return 0
 }
 func (n *NIM_Rh) LI(r netw.Cmd) int {
+	defer r.Done()
+	if r.Closed() {
+		return -1
+	}
 	var args util.Map
 	_, err := r.V(&args)
 	if err != nil {
@@ -275,6 +283,10 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	return res
 }
 func (n *NIM_Rh) LO(r netw.Cmd) int {
+	defer r.Done()
+	if r.Closed() {
+		return -1
+	}
 	var args util.Map
 	_, err := r.V(&args)
 	if err != nil {
@@ -294,10 +306,14 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 		log.W("LO DelCon fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
-	log_d("LO success by wait(%v) for:%v", w, r.RemoteAddr().String())
+	log.D("LO success by wait(%v) for:%v", w, r.RemoteAddr().String())
 	return n.writev_c(r, con)
 }
 func (n *NIM_Rh) UR(r netw.Cmd) int {
+	defer r.Done()
+	if r.Closed() {
+		return -1
+	}
 	tr := n.Db.FUsrR(r)
 	if len(tr) < 1 {
 		return n.writev_ce(r, "not login")

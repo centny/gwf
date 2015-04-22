@@ -1,13 +1,18 @@
 package im
 
 import (
+	"bufio"
+	"bytes"
+	"code.google.com/p/go.net/websocket"
 	"fmt"
 	"github.com/Centny/gwf/im/pb"
+	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"math/rand"
+	"net/http"
 	"runtime"
 	"strings"
 	"sync"
@@ -28,12 +33,15 @@ func (r *rec_msg) OnCmd(c netw.Cmd) int {
 	}
 	return 0
 }
+func (r *rec_msg) add() {
+	atomic.AddUint64(&r.cc, 1)
+}
 
 var crun bool = false
-var s_cc_c uint64 = 0
-var m_cc_c uint64 = 0
-var hr_cc_c uint64 = 0
-var h_cc_c uint64 = 0
+var s_cc_c uint64 = 0 //user count ->s
+var m_cc_c uint64 = 0 //message count ->s
+// var hr_cc_c uint64 = 0 //command count ->r
+// var h_cc_c uint64 = 0
 var client_c uint64 = 0
 var cc_ws sync.WaitGroup
 var cc_ws2 sync.WaitGroup
@@ -150,6 +158,103 @@ func run_im_nc(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	l.Close()
 	con.Close()
 }
+func run_im_w(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
+	srvs, err := db.ListSrv("")
+	if err != nil {
+		panic(err.Error())
+	}
+	if len(srvs) < 1 {
+		panic("not service")
+	}
+	srv := srvs[rand.Intn(len(srvs))]
+	wsc, err := websocket.Dial("ws://127.0.0.1"+srv.WsAddr, "", "http://127.0.0.1"+srv.WsAddr)
+	if err != nil {
+		panic(err.Error())
+	}
+	li_c := make(chan int, 10)
+	go func() {
+		li_c <- 0
+		r := bufio.NewReader(wsc)
+		for {
+			bys, err := util.ReadLine(r, 102400, false)
+			if err != nil {
+				break
+			}
+			tbys := bytes.SplitN(bys, []byte(WIM_SEQ), 2)
+			switch string(tbys[0]) {
+			case "m":
+				rm.add()
+				// fmt.Println("m-->", string(tbys[1]))
+			case "li":
+				li_c <- 1
+				// fmt.Println("li-->", string(tbys[1]))
+			case "ur":
+				//do nothing.
+				li_c <- 1
+				// fmt.Println("ur-->", string(tbys[1]))
+			case "lo":
+				//do nothing.
+				// fmt.Println("lo-->", string(tbys[1]))
+			default:
+				panic("unknow->" + string(bys))
+			}
+		}
+	}()
+	<-li_c
+	wsc.Write([]byte("li" + WIM_SEQ + util.S2Json(map[string]interface{}{
+		"token": "abc",
+	}) + "\n"))
+	//
+	<-li_c
+	wsc.Write([]byte("ur" + WIM_SEQ + "{}\n"))
+	// fmt.Println("----->")
+	atomic.AddUint64(&m_cc_c, 1) //marking for auto create unread message.
+	atomic.AddUint64(&s_cc_c, 1)
+	var tt uint32 = 0
+	wsc.Write([]byte("m" + WIM_SEQ + util.S2Json(&pb.ImMsg{
+		R: []string{"S-Robot"},
+		T: &tt,
+		C: []byte{1, 2, 4},
+	}) + "\n"))
+	<-li_c
+	for i := 0; i < 1000; i++ {
+		rs := []string{}
+		uc := 0
+		if i%2 == 0 {
+			rs = db.RandUsr()
+			uc = len(rs)
+		} else {
+			gs, uc_ := db.RandGrp()
+			rs = []string{gs}
+			uc = uc_
+		}
+		if len(rs) < 1 {
+			fmt.Println("user not found")
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		mm := &pb.ImMsg{
+			R: rs,
+			T: &tt,
+			C: []byte{1, 2, 4},
+		}
+		_, err = wsc.Write([]byte("m" + WIM_SEQ + util.S2Json(mm) + "\n"))
+		if err != nil {
+			panic(err.Error())
+		}
+		atomic.AddUint64(&s_cc_c, uint64(uc))
+		atomic.AddUint64(&m_cc_c, 1)
+		time.Sleep(time.Millisecond)
+	}
+	cc_ws.Done()
+	cc_ws2.Wait()
+	wsc.Write([]byte("lo" + WIM_SEQ + "{}\n"))
+	time.Sleep(1 * time.Second)
+	wsc.Close()
+	// atomic.AddUint64(&hr_cc_c, tc.RCC)
+	// atomic.AddUint64(&h_cc_c, tcch.RCC)
+	// fmt.Print("run_im_w end...")
+}
 func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	srvs, err := db.ListSrv("")
 	if err != nil {
@@ -227,12 +332,12 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
-		_, err := msgc.Writev(
-			&pb.ImMsg{
-				R: rs,
-				T: &tt,
-				C: []byte{1, 2, 4},
-			})
+		mm := &pb.ImMsg{
+			R: rs,
+			T: &tt,
+			C: []byte{1, 2, 4},
+		}
+		_, err = msgc.Writev(mm)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -253,13 +358,14 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	}
 	time.Sleep(1 * time.Second)
 	l.Close()
-	atomic.AddUint64(&hr_cc_c, tc.RCC)
+	// atomic.AddUint64(&hr_cc_c, tc.RCC)
 	// atomic.AddUint64(&h_cc_c, tcch.RCC)
+	// fmt.Print("h_cc_c end...")
 }
 func show_cc(db *MemDbH, rm *rec_msg, p *pool.BytePool) {
 	for {
 		time.Sleep(4 * time.Second)
-		fmt.Printf("Waiting->M:%v, R:%v==S:%v, HR:%v, H:%v, MS:%v\n", m_cc_c, rm.cc, s_cc_c, hr_cc_c, h_cc_c, p.Size())
+		fmt.Printf("Waiting->M(s):%v, R(r):%v==S(s):%v, MemS:%v\n", m_cc_c, rm.cc, s_cc_c, p.Size())
 	}
 
 }
@@ -268,7 +374,7 @@ func wait_rec(db *MemDbH, rm *rec_msg) {
 		time.Sleep(4 * time.Second)
 		m, _, _, _, d := db.Show()
 		if m < m_cc_c {
-			fmt.Printf("Waiting msg(%v),done(%v)\n", m, m_cc_c)
+			fmt.Printf("Waiting msg(r:%v),done(s:%v)\n", m, m_cc_c)
 			continue
 		}
 		if rm.cc < d {
@@ -283,12 +389,14 @@ func wait_rec(db *MemDbH, rm *rec_msg) {
 }
 func run_c(db *MemDbH, p *pool.BytePool, rm *rec_msg) {
 	crun = true
-	client_c = 400
-	cc_ws.Add(400)
+	xl, yl := 4, 20
+	client_c = uint64(xl * yl * 3)
+	cc_ws.Add(xl * yl * 3)
 	cc_ws2.Add(1)
-	for i := 0; i < 4; i++ {
-		for i := 0; i < 50; i++ {
+	for i := 0; i < xl; i++ {
+		for j := 0; j < yl; j++ {
 			go run_im_c(p, db, rm)
+			go run_im_w(p, db, rm)
 			go run_im_nc(p, db, rm)
 			time.Sleep(time.Millisecond)
 		}
@@ -328,9 +436,19 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 		time.Sleep(3 * time.Second)
 	}()
 	for i := 0; i < 5; i++ {
-		l := NewListner2(db, fmt.Sprintf("S-vv-%v", i), p, 9890+i)
-		l.T = 30000
+		l := NewListner3(db, fmt.Sprintf("S-vv-%v", i), p, 9890+i, 1000000)
+		l.WsAddr = fmt.Sprintf(":%v", 9870+i)
 		l.PushSrvAddr = "127.0.0.1:5598"
+		rc := make(chan int)
+		go func() {
+			rc <- 1
+			hs := &http.Server{
+				Handler: l.WIM_L.WsS(),
+				Addr:    l.WsAddr,
+			}
+			hs.ListenAndServe()
+		}()
+		<-rc
 		err = l.Run()
 		if err != nil {
 			panic(err.Error())
@@ -342,7 +460,8 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 		// 		fmt.Println("-->", l.NIM.DC, l.NIM.SS.(*MarkConPoolSender).EC)
 		// 	}
 		// }()
-		time.Sleep(3 * time.Second)
+		log.W("----->NewListner2->%v", 9890+i)
+		time.Sleep(time.Duration(i+1) * time.Second)
 	}
 	cc_ws2.Wait()
 
@@ -361,9 +480,9 @@ func TestIm(t *testing.T) {
 	p := pool.NewBytePool(8, 102400)
 	go db.GrpBuilder()
 	go run_s(db, p)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(2000 * time.Millisecond)
 	run_c(db, p, rm)
-	fmt.Printf("Done->M:%v, R:%v==S:%v, HR:%v, H:%v\n", m_cc_c, rm.cc, s_cc_c, hr_cc_c, h_cc_c)
+	fmt.Printf("Done->M:%v, R:%v==S:%v\n", m_cc_c, rm.cc, s_cc_c)
 	p.T = 10
 	time.Sleep(100 * time.Millisecond)
 	p.GC()

@@ -16,7 +16,7 @@ type NConPool struct {
 //new client connection pool.
 func NewNConPool(p *pool.BytePool, h CCHandler, n string) *NConPool {
 	return &NConPool{
-		LConPool: NewLConPool(p, h, n),
+		LConPool: NewLConPoolV(p, h, n, NewConH),
 	}
 }
 func NewNConPool2(p *pool.BytePool, h CCHandler) *NConPool {

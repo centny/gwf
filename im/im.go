@@ -11,6 +11,7 @@ import (
 	"github.com/Centny/gwf/util"
 	"github.com/golang/protobuf/proto"
 	"net"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -106,17 +107,50 @@ func (m *MultiFinder) Find(id string) netw.Con {
 	return nil
 }
 
+type MultiSender struct {
+	Id_ string
+	SS  []Sender
+}
+
+func NewMultiSender(id string, ss ...Sender) *MultiSender {
+	return &MultiSender{
+		Id_: id,
+		SS:  ss,
+	}
+}
+func (m *MultiSender) Id() string {
+	return m.Id_
+}
+func (m *MultiSender) Send(cid string, v interface{}) error {
+	for _, s := range m.SS {
+		err := s.Send(cid, v)
+		if util.IsNotFound(err) {
+			continue
+		} else {
+			return err
+		}
+	}
+	return util.NewNotFound("con not found by id(%v) in pool(%v)", cid, m.Id_)
+}
+
 type MarkConPoolSender struct {
 	Mark []byte
+	End  []byte
 	CP   Finder
 	Id_  string
+
 	// EC   uint64
 	// lck  sync.RWMutex
 }
 
 func NewMarkConPoolSender(mark []byte, cp Finder, sid string) *MarkConPoolSender {
+	return NewMarkConPoolSenderV(mark, nil, cp, sid)
+}
+
+func NewMarkConPoolSenderV(mark, end []byte, cp Finder, sid string) *MarkConPoolSender {
 	return &MarkConPoolSender{
 		Mark: mark,
+		End:  end,
 		CP:   cp,
 		Id_:  sid,
 	}
@@ -127,7 +161,7 @@ func (m *MarkConPoolSender) Id() string {
 func (m *MarkConPoolSender) Send(cid string, v interface{}) error {
 	cc := m.CP.Find(cid)
 	if cc == nil {
-		return util.Err("con not found by id(%v) in pool(%v)", cid, m.Id_)
+		return util.NewNotFound("con not found by id(%v) in pool(%v)", cid, m.Id_)
 	} else {
 		return m.SendC(cc, v)
 	}
@@ -142,7 +176,7 @@ func (m *MarkConPoolSender) SendC(con netw.Con, v interface{}) error {
 	// fmt.Println(fmt.Sprintf("%v", mm), string(bys))
 	// m.lck.Lock()
 	// defer m.lck.Unlock()
-	_, err = con.Writeb(m.Mark, bys)
+	_, err = con.Writeb(m.Mark, bys, m.End)
 	// if err == nil || vv < len(bys) {
 	// atomic.AddUint64(&m.EC, 1)
 	// }
@@ -155,9 +189,13 @@ type Listener struct {
 	NIM     *NIM_Rh
 	DIP     *DimPool
 	DIM     *DIM_Rh
+	WIM     *WIM_Rh
+	WIM_L   *netw.LConPool
 	Db      DbH
 	P       *pool.BytePool
+	Host    string
 	Port    int
+	WsAddr  string
 	Sid     string
 	PubHost string
 	PubPort int
@@ -168,7 +206,7 @@ type Listener struct {
 	PushConRunner *netw.NConRunner
 }
 
-func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte, b2v netw.Byte2V, nd impl.ND_F, nav impl.NAV_F, vna impl.VNA_F) *Listener {
+func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, v2b netw.V2Byte, b2v netw.Byte2V, nd impl.ND_F, nav impl.NAV_F, vna impl.VNA_F) *Listener {
 	//
 	//
 	obdh := impl.NewOBDH()
@@ -203,23 +241,44 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte,
 		return cc
 	}
 	dip := NewDimPool(db, sid, p, v2b, b2v, nav, ncf, dim)
-	cch := netw.NewCCH(netw.NewQueueConH(dim, nim, nch), obdh)
+	cch := netw.NewCCH(netw.NewQueueConH(dim, nim, nch), impl.NewChanH2(obdh, runtime.NumCPU()-1))
 	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), sid, cch, ncf)
+	l.T = timeout
+	l.Name = "NIM"
 	// l.LConPool.SetId(sid)
 	// l.SetId(sid)
-	nim.SS = NewMarkConPoolSender([]byte{MK_NIM}, l, sid)
+	wim := &WIM_Rh{}
+	wim.NIM_Rh = nim
+	wim_ncf := func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+		cc := netw.NewCon_(rl, p, con)
+		cc.SetMod(netw.CM_L)
+		cc.V2B_ = impl.Json_V2B
+		cc.B2V_ = impl.Json_B2V
+		return cc
+	}
+	wim_cch := netw.NewCCH(netw.NewQueueConH(dim, wim, nch), impl.NewChanH2(wim, runtime.NumCPU()-1))
+	wim_l := netw.NewLConPoolV(p, wim_cch, sid, wim_ncf)
+	wim_l.Runner_ = netw.NewNLineRunner()
+	wim_l.T = timeout
+	wim_l.Name = "WIM"
+	nim.SS = NewMultiSender(sid, NewMarkConPoolSender([]byte("m"+WIM_SEQ), wim_l, sid), NewMarkConPoolSender([]byte{MK_NIM}, l, sid))
+	// nim.SS = NewMarkConPoolSender([]byte{MK_NIM}, l, sid)
 	dim.SS = nim.SS
 	nch.SS = nim.SS
 	nim.DS = NewMarkConPoolSender([]byte{MK_DIM}, NewMultiFinder(dim, dip), sid)
 	var tl = &Listener{
 		Listener:    l,
 		Obdh:        obdh,
+		WIM:         wim,
+		WIM_L:       wim_l,
 		NIM:         nim,
 		DIP:         dip,
 		DIM:         dim,
 		Db:          db,
 		P:           p,
+		Host:        "127.0.0.1",
 		Port:        port,
+		WsAddr:      "",
 		Sid:         sid,
 		PubHost:     "127.0.0.1",
 		PubPort:     port,
@@ -228,11 +287,19 @@ func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte,
 	rl = tl
 	return tl
 }
+func NewListner(db DbH, sid string, p *pool.BytePool, port int, v2b netw.V2Byte, b2v netw.Byte2V, nd impl.ND_F, nav impl.NAV_F, vna impl.VNA_F) *Listener {
+	return NewListnerV(db, sid, p, port, 10000, v2b, b2v, nd, nav, vna)
+}
 func NewListner2(db DbH, sid string, p *pool.BytePool, port int) *Listener {
 	return NewListner(db, sid, p, port,
 		IM_V2B, IM_B2V, impl.Json_ND, impl.Json_NAV, impl.Json_VNA)
 }
+func NewListner3(db DbH, sid string, p *pool.BytePool, port int, timeout int64) *Listener {
+	return NewListnerV(db, sid, p, port, timeout,
+		IM_V2B, IM_B2V, impl.Json_ND, impl.Json_NAV, impl.Json_VNA)
+}
 func (l *Listener) Run() error {
+	log.D("starting IM server(%v)", l.Sid)
 	err := l.DIP.Dail()
 	if err != nil {
 		return err
@@ -243,10 +310,13 @@ func (l *Listener) Run() error {
 		return err
 	}
 	err = l.Db.AddSrv(&Srv{
-		Sid:   l.Sid,
-		Host:  l.PubHost,
-		Port:  l.PubPort,
-		Token: uuid.New(),
+		Sid:     l.Sid,
+		Host:    l.Host,
+		Port:    l.Port,
+		WsAddr:  l.WsAddr,
+		PubHost: l.PubHost,
+		PubPort: l.PubPort,
+		Token:   uuid.New(),
 	})
 	if err != nil {
 		l.DIP.Close()
@@ -256,6 +326,9 @@ func (l *Listener) Run() error {
 	if len(l.PushSrvAddr) > 0 {
 		l.ConPushSrv(l.PushSrvAddr)
 		l.NIM.StartPushTask()
+	}
+	if len(l.WsAddr) > 0 {
+		go l.WIM_L.LoopTimeout()
 	}
 	return nil
 }
