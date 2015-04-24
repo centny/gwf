@@ -217,7 +217,7 @@ func run_im_w(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 		C: []byte{1, 2, 4},
 	}) + "\n"))
 	<-li_c
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 3000; i++ {
 		rs := []string{}
 		uc := 0
 		if i%2 == 0 {
@@ -316,7 +316,7 @@ func run_im_c(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
 	// nodec_m := impl.NewOBDH_Con(MK_NODE_M, con)
 	// nodec := impl.NewOBDH_Con(MK_NODE, con)
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 3000; i++ {
 		rs := []string{}
 		uc := 0
 		if i%2 == 0 {

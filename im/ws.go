@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	WIM_SEQ = "<~>"
+	WIM_SEQ = "^-^"
 )
 
 type WIM_Cmd struct {

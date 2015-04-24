@@ -1,3 +1,16 @@
+//
+//
+
+/*
+Package im provides the implmentation of common im.
+Protocol suported websocket and TCP
+
+Websocket protocol is `command+"^-^"+arguments+"\n".` for example:
+	login: li^-^login arguments with json format.
+	logou: lo^-^logout arguments with json format.
+	message: m^-^message arguments with json format(pb.ImMsg)
+	unread: ur^-^{}
+*/
 package im
 
 import (

@@ -279,7 +279,7 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	// con.Sid = ""
 	res := n.writev_c(r, con)
 	// go SendUnread(n.SS, n.Db, r, rv, ct)
-	log_d("LI success by R(%v),CT(%v) for:%v", rv, ct, r.RemoteAddr().String())
+	log.D("LI success by R(%v),CT(%v) for:%v", rv, ct, r.RemoteAddr().String())
 	return res
 }
 func (n *NIM_Rh) LO(r netw.Cmd) int {
