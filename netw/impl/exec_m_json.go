@@ -20,7 +20,12 @@ func Json_V2B(v interface{}) ([]byte, error) {
 }
 
 func Json_B2V(bys []byte, v interface{}) (interface{}, error) {
-	return v, json.Unmarshal(bys, v)
+	err := json.Unmarshal(bys, v)
+	if err == nil {
+		return v, nil
+	} else {
+		return v, util.Err("Json_B2V err(%v) by data:%v", err.Error(), string(bys))
+	}
 }
 
 /*

@@ -16,6 +16,7 @@ func main() {
 	p := pool.NewBytePool(8, 1024)
 	go db.GrpBuilder()
 	l := im.NewListner2(db, "S-vv-1", p, 9891)
+	l.WsAddr = ":9892/ws"
 	err := l.Run()
 	if err != nil {
 		panic(err.Error())
@@ -23,7 +24,7 @@ func main() {
 	mux := routing.NewSessionMux2("")
 	mux.HFunc("/listSrv", ListSrv)
 	mux.HFunc("/listRs", ListRs)
-	mux.Handler("/ws", l.WsH())
+	mux.Handler("^/ws$", l.WIM_L.WsS())
 	mux.Handler("^.*$", http.FileServer(http.Dir("www")))
 	http.Handle("/", mux)
 	http.ListenAndServe(":9892", nil)

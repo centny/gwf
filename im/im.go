@@ -341,6 +341,7 @@ func (l *Listener) Run() error {
 		l.NIM.StartPushTask()
 	}
 	if len(l.WsAddr) > 0 {
+		log.I("running websocket on %v", l.WsAddr)
 		go l.WIM_L.LoopTimeout()
 	}
 	return nil
