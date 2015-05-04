@@ -123,17 +123,18 @@ func (n *NodeCmds) ULI(c netw.Cmd) int {
 		log.E("Node Cmd data(%v) to value err:%v", string(c.Data()), err.Error())
 		return n.writev_ce(c, na, err.Error())
 	}
-	rv, ct, err := n.Db.OnLogin(c, &na.V)
+	rv, token, ct, err := n.Db.OnLogin(c, &na.V)
 	if err != nil {
 		return n.writev_ce(c, na, err.Error())
 	}
 	con := &Con{
-		Sid: n.SS.Id(),
-		Cid: c.Id(),
-		R:   rv,
-		S:   "N",
-		T:   CT_WS,
-		C:   ct,
+		Sid:   n.SS.Id(),
+		Cid:   c.Id(),
+		R:     rv,
+		S:     "N",
+		T:     CT_WS,
+		C:     ct,
+		Token: token,
 	}
 	err = n.Db.AddCon(con)
 	if err == nil {

@@ -256,18 +256,19 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 		log.W("LI V fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
-	rv, ct, err := n.Db.OnLogin(r, &args)
+	rv, token, ct, err := n.Db.OnLogin(r, &args)
 	if err != nil {
 		log.W("LI OnLogin fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
 	con := &Con{
-		Sid: n.SS.Id(),
-		Cid: r.Id(),
-		R:   rv,
-		S:   "N",
-		T:   CT_TCP,
-		C:   ct,
+		Sid:   n.SS.Id(),
+		Cid:   r.Id(),
+		R:     rv,
+		S:     "N",
+		T:     CT_TCP,
+		C:     ct,
+		Token: token,
 	}
 	err = n.Db.AddCon(con)
 	if err != nil {
