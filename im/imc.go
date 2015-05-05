@@ -26,7 +26,7 @@ type IMC struct {
 	RC   uint64 //receive message count.
 }
 
-func NewIMC(srv *Srv, token string) *IMC {
+func NewIMC(srv, token string) *IMC {
 	p := pool.NewBytePool(8, 1024000)
 	imc := &IMC{
 		OnM: func(i *IMC, c netw.Cmd, m *pb.ImMsg) int {
@@ -40,18 +40,22 @@ func NewIMC(srv *Srv, token string) *IMC {
 	}
 	imc.obdh.AddH(MK_NRC, imc.tc)
 	imc.obdh.AddH(MK_NIM, imc)
-	imc.NConRunner = netw.NewNConRunnerN(p, srv.Addr(), impl.NewChanH2(imc.obdh, 5), IM_NewCon)
+	imc.NConRunner = netw.NewNConRunnerN(p, srv, impl.NewChanH2(imc.obdh, 5), IM_NewCon)
+	imc.NConRunner.TickData = []byte{}
 	imc.ConH = imc
 	imc.C = impl.NewRC_Con(nil, imc.tc) //initial con after connected.
 	imc.C.Start()
 	log_d("creating IMC by %v", srv)
 	return imc
 }
-func NewIMC2(srvs []Srv, token string) *IMC {
-	srv := srvs[rand.Intn(len(srvs))]
-	return NewIMC(&srv, token)
+func NewIMC2(srv *Srv, token string) *IMC {
+	return NewIMC(srv.Addr(), token)
 }
-func NewIMC3(sl, token string) (*IMC, error) {
+func NewIMC3(srvs []Srv, token string) *IMC {
+	srv := srvs[rand.Intn(len(srvs))]
+	return NewIMC2(&srv, token)
+}
+func NewIMC4(sl, token string) (*IMC, error) {
 	ssm, err := util.HGet2(sl)
 	if err != nil {
 		return nil, err
@@ -64,7 +68,7 @@ func NewIMC3(sl, token string) (*IMC, error) {
 	if len(ssl) < 1 {
 		return nil, util.Err("im server not found on listSrv(%v) by %v", sl, ssm)
 	}
-	return NewIMC2(ssl, token), nil
+	return NewIMC3(ssl, token), nil
 }
 func (i *IMC) OnCmd(c netw.Cmd) int {
 	var msg pb.ImMsg
@@ -109,7 +113,7 @@ func (i *IMC) login(c netw.Con) {
 	i.MCon = impl.NewOBDH_Con(MK_NIM, c)
 	util.Json2S(util.S2Json(res.Val("res")), &i.IC)
 	c.SetWait(true)
-	log.D("IMC login succes by token(%v)", i.Token)
+	log.D("IMC login succes by token(%v)->%v", i.Token, i.IC)
 	i.LC <- 0
 }
 func (i *IMC) SMS(s string, t int, c string) (int, error) {

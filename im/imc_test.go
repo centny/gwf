@@ -36,11 +36,11 @@ func TestIMC(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	imc := NewIMC2(srvs, "token")
+	imc := NewIMC3(srvs, "token")
 	// imc.ShowLog = true
 	imc.TickData = []byte{}
 	imc.StartRunner()
-	imc2, err := NewIMC3(ts.URL, "token")
+	imc2, err := NewIMC4(ts.URL, "token")
 	if err != nil {
 		t.Error(err.Error())
 		return

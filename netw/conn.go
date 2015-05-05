@@ -85,10 +85,9 @@ func (n *NConRunner) StartRunner() {
 }
 func (n *NConRunner) StopRunner() {
 	n.Running = false
-	if n.NConPool == nil {
-		return
+	if n.NConPool != nil {
+		n.NConPool.Close()
 	}
-	n.NConPool.Close()
 	n.WC <- 0
 }
 func (n *NConRunner) StartTick() {
