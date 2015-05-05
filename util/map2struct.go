@@ -184,6 +184,18 @@ func Ms2Ss(ms interface{}, dest interface{}) {
 }
 
 func Json2S(data string, dest interface{}) error {
+	return json.Unmarshal([]byte(data), dest)
+}
+
+func Json2Ss(data string, dest interface{}) error {
+	return json.Unmarshal([]byte(data), dest)
+}
+func S2Json(v interface{}) string {
+	bys, _ := json.Marshal(v)
+	return string(bys)
+}
+
+func J2S(data string, dest interface{}) error {
 	m, err := Json2Map(data)
 	if err != nil {
 		return err
@@ -191,16 +203,11 @@ func Json2S(data string, dest interface{}) error {
 	M2S(m, dest)
 	return nil
 }
-
-func Json2Ss(data string, dest interface{}) error {
+func J2Ss(data string, dest interface{}) error {
 	ms, err := Json2Ary(data)
 	if err != nil {
 		return err
 	}
 	Ms2Ss(ms, dest)
 	return nil
-}
-func S2Json(v interface{}) string {
-	bys, _ := json.Marshal(v)
-	return string(bys)
 }

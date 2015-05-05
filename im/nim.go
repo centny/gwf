@@ -64,6 +64,18 @@ func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
 	return n.OnMsg(&mc)
 }
 func (n *NIM_Rh) OnMsg(mc *Msg) int {
+	if len(mc.R) < 1 {
+		log.E("receive empty R from %v", mc.RemoteAddr())
+		mc.Close()
+		return -1
+	}
+	for _, tr := range mc.R {
+		if len(strings.Trim(tr, "\t ")) < 1 {
+			log.E("receive empty string in R from %v", mc.RemoteAddr())
+			mc.Close()
+			return -1
+		}
+	}
 	if dr := n.DoRobot(mc); dr != 0 {
 		return dr
 	}

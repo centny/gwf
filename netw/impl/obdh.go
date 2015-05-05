@@ -86,7 +86,7 @@ func (o *OBDH) OnCmd(c netw.Cmd) int {
 		blen := runtime.Stack(buf, false)
 		log.E("OBDH call stack:\n%v", string(buf[0:blen]))
 	}
-	log_d("OBDH receive data:%v", c.Data())
+	log_d("OBDH receive(%v) data:%v", c.RemoteAddr(), c.Data())
 	mark, data := util.SplitTwo(c.Data(), 1)
 	if hh, ok := o.HS[mark[0]]; ok {
 		c.SetErrd(3)

@@ -520,9 +520,9 @@ func (l *LConPool) runc_(con Con) {
 			log.E("RunC_ close err(%v),stack:\n%v", err, string(buf[0:blen]))
 		}
 	}()
-	if l.Name == "WIM" {
-		log_d("%v:running connection(%v,%v) in pool(%v)", l.Name, con.RemoteAddr().String(), con.Id(), l.Id())
-	}
+	// if l.Name == "WIM" {
+	log_d("%v:running connection(%v,%v) in pool(%v)", l.Name, con.RemoteAddr().String(), con.Id(), l.Id())
+	// }
 	//
 	l.Runner_.Run(l, l.P, con)
 }

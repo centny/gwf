@@ -54,7 +54,7 @@ type Srv struct {
 }
 
 func (s *Srv) Addr() string {
-	return fmt.Sprintf("%v:%v", s.Host, s.Port)
+	return fmt.Sprintf("%v:%v", s.PubHost, s.PubPort)
 }
 
 // type PCM struct {

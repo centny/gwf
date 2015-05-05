@@ -84,6 +84,7 @@ func NewRC_C() *RC_C {
 	}
 }
 func (r *RC_C) OnCmd(c netw.Cmd) int {
+	// log_d("RC_C OnCmd")
 	atomic.AddUint64(&r.RCC, 1)
 	if len(c.Data()) < 3 {
 		c.Done()
@@ -91,6 +92,7 @@ func (r *RC_C) OnCmd(c netw.Cmd) int {
 		return -1
 	}
 	rid, ms, data := util.SplitThree(c.Data(), 2, 3)
+	log_d("RC_C receive data:%v", data)
 	r.back_c <- &rc_h_cmd{
 		Cmd:   c,
 		mark:  ms[0],
@@ -211,9 +213,9 @@ func (r *RC_Con) Run_() {
 	var trun bool = true
 	tk := time.Tick(r.Sleep * time.Millisecond)
 	for trun {
-		con := r.Con
 		select {
 		case cmd := <-r.bc.back_c:
+			// log.D("cmd ->%p->%v", r, cmd)
 			tid := binary.BigEndian.Uint16(cmd.rid)
 			if tc, ok := cm[tid]; ok {
 				r.exec_c--
@@ -227,9 +229,12 @@ func (r *RC_Con) Run_() {
 				}
 			} else {
 				cmd.Done()
-				log.W("back chan not found by id:%v", tid)
+				log.W("back chan not found by id(%v) on %v", tid, cm)
 			}
 		case tc := <-r.req_c:
+			con := r.Con
+			// log.D("tc ->%p->%v", r, tc)
+			r.exec_id++
 			binary.BigEndian.PutUint16(buf, r.exec_id)
 			buf[2] = 0
 			if tc.BS {
@@ -240,7 +245,6 @@ func (r *RC_Con) Run_() {
 			if tc.Err == nil {
 				cm[r.exec_id] = tc
 				r.exec_c++
-				r.exec_id++
 			} else {
 				r.err = tc.Err
 				tc.C <- false

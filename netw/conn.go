@@ -55,12 +55,14 @@ type NConRunner struct {
 	Running   bool
 	Retry     time.Duration
 	Tick      time.Duration
+	TickData  []byte
 	//
 	Addr    string
 	NCF     NewConF
 	BP      *pool.BytePool
 	CmdH    CmdHandler
 	ShowLog bool //setting the ShowLog to Con_
+	WC      chan int
 }
 
 func (n *NConRunner) OnConn(c Con) bool {
@@ -87,8 +89,12 @@ func (n *NConRunner) StopRunner() {
 		return
 	}
 	n.NConPool.Close()
+	n.WC <- 0
 }
 func (n *NConRunner) StartTick() {
+	if len(n.TickData) < 1 {
+		return
+	}
 	go n.RunTick_()
 }
 func (n *NConRunner) RunTick_() {
@@ -101,7 +107,7 @@ func (n *NConRunner) RunTick_() {
 		case <-tk:
 			c = n.C
 			if c != nil {
-				c.Writeb([]byte("Tick\n"))
+				c.Writeb(n.TickData)
 				// log_d("sending tick message to Push Server")
 			}
 		}
@@ -112,10 +118,11 @@ func (n *NConRunner) Try() {
 	n.Running = true
 	for n.Running {
 		err := n.Dail()
+		log.D("connect to server(%v) success", n.Addr)
 		if err == nil {
 			break
 		}
-		log.D("try connect to server(%v) err:%v,will retry after %v ms", n.Addr, err.Error(), 5000)
+		log.D("try connect to server(%v) err:%v,will retry after %v ms", n.Addr, err.Error(), n.Retry)
 		time.Sleep(n.Retry * time.Millisecond)
 	}
 	// log.D("connect try stopped")
@@ -135,12 +142,14 @@ func (n *NConRunner) Dail() error {
 
 func NewNConRunnerN(bp *pool.BytePool, addr string, h CmdHandler, ncf NewConF) *NConRunner {
 	return &NConRunner{
-		Addr:  addr,
-		NCF:   ncf,
-		BP:    bp,
-		CmdH:  h,
-		Retry: 5000,
-		Tick:  30000,
+		Addr:     addr,
+		NCF:      ncf,
+		BP:       bp,
+		CmdH:     h,
+		Retry:    5000,
+		Tick:     30000,
+		TickData: []byte("Tick\n"),
+		WC:       make(chan int),
 	}
 }
 func NewNConRunner(bp *pool.BytePool, addr string, h CmdHandler) *NConRunner {
