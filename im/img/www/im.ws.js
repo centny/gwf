@@ -4,6 +4,7 @@ var IM = (function() {
         this.EV = {};
         this.recon = recon;
         this.times = 0;
+        this.tdata = "";
         this.closed = true;
         this.showlog = true;
         this.conn();
@@ -113,7 +114,7 @@ var IM = (function() {
     };
     //send text message.
     IM.prototype.sms = function(r, t, c) {
-        if (!r || t === undefined || !c) {
+        if (!r || r.length < 1 || t === undefined || !c) {
             this.log("sms args error", r, t, c);
             return;
         }
@@ -122,6 +123,14 @@ var IM = (function() {
             t: t,
             c: $.base64.btoa(c),
         });
+    };
+    IM.prototype.sms2 = function(m) {
+        if (!m.r || m.r.length < 1 || m.t === undefined || !m.c) {
+            this.log("sms args error", m);
+            return;
+        }
+        m.c = $.base64.btoa(c);
+        this.emit("m", m);
     };
     IM.NewIm = function(url, recon) {
         return new IM(url, recon);
