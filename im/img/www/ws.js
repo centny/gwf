@@ -2,51 +2,39 @@ $.base64.utf8encode = true;
 
 function getCookie(name) {
   var arr = document.cookie.match(new RegExp("(^| )" + name + "=([^;]*)(;|$)"));
-  if (arr != null) return unescape(arr[2]);
+  if (arr !== null) return unescape(arr[2]);
   return null;
 }
 loc = window.location;
-var im_ws = new WebSocket('ws://' + loc.host + "/ws");
+var im_ws = new IM.NewIm('ws://' + loc.host + "/ws", true);
 im_ws.tdata = "";
-im_ws.onerror = function(event) {
+im_ws.on("error", function(ev) {
   console.log("onerror");
-};
+});
 
-im_ws.onopen = function(event) {
-  console.log("onopen");
-  send("li^-^" + JSON.stringify({
+im_ws.on("connect", function(ev) {
+  im_ws.emit("li", {
     "token": "abc",
-  }));
-};
-
-im_ws.onmessage = function(ev) {
-  im_ws.tdata += ev.data;
-  if (im_ws.tdata.substr(im_ws.tdata.length - 1) != "\n") {
-    return;
+  });
+});
+im_ws.on("m", function(m) {
+  console.log(m);
+});
+im_ws.on("close", function() {
+  clearInterval(im_ws.timer);
+});
+im_ws.on("li", function(arg) {
+  if (arg.code !== 0) {
+    console.error("login error->", arg);
+  } else {
+    console.log("login success->", arg);
+    im_ws.timer = setInterval(msg, 3000);
   }
-  var tdata = im_ws.tdata;
-  var cmds = tdata.split("^-^");
-  im_ws.tdata = "";
-  if (cmds.length < 2) {
-    console.log("receive invalid data:" + tdata);
-    return;
-  }
-  var args = JSON.parse(cmds[1]);
-  if (cmds[0] == "m") {
-    args.c = $.base64.atob(args.c, true)
-  }
-  console.log(cmds[0], args);
-};
-
-function send(data) {
-  console.log("sending->" + data);
-  im_ws.send(data + "\n");
-};
+});
 
 function msg() {
-  send("m^-^" + JSON.stringify({
-    r: ["S-Robot-0"],
-    c: $.base64.btoa("message->这是中文"),
-  }));
+  if (im_ws.closed) {
+    return;
+  }
+  im_ws.sms(["S-Robot-0"], 0, "message->这是中文");
 }
-setInterval(msg, 3000);
