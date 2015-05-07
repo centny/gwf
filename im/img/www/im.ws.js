@@ -129,7 +129,7 @@ var IM = (function() {
             this.log("sms args error", m);
             return;
         }
-        m.c = $.base64.btoa(c);
+        m.c = $.base64.btoa(m.c);
         this.emit("m", m);
     };
     IM.NewIm = function(url, recon) {
