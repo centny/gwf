@@ -143,5 +143,6 @@ func run() int {
 		imc.StartHB()
 	}
 	<-imc.WC
+	imc = nil
 	return 0
 }

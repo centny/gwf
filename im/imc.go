@@ -43,6 +43,7 @@ func NewIMC(srv, token string) *IMC {
 		Token: token,
 		HBT:   1000 * time.Millisecond,
 	}
+	imc.LC.Add(1)
 	imc.obdh.AddH(MK_NRC, imc.tc)
 	imc.obdh.AddH(MK_NIM, imc)
 	imc.NConRunner = netw.NewNConRunnerN(p, srv, impl.NewChanH2(imc.obdh, 5), IM_NewCon)
@@ -87,7 +88,6 @@ func (i *IMC) OnCmd(c netw.Cmd) int {
 	return i.OnM(i, c, &msg)
 }
 func (i *IMC) OnConn(c netw.Con) bool {
-	i.LC.Add(1)
 	go i.login(c) //must async for exec remove command.
 	return true
 }
@@ -128,6 +128,7 @@ func (i *IMC) HB(data string) (string, error) {
 func (i *IMC) rhb(delay time.Duration) {
 	var times_ time.Duration = 0
 	i.hbing = true
+	log.D("running HB by delay(%v)...", delay)
 	for i.hbing {
 		d, err := i.HB("D->")
 		if err == nil && d == "D->" {
@@ -139,14 +140,19 @@ func (i *IMC) rhb(delay time.Duration) {
 			log.W("HB(%v) error->%v", d, err)
 		}
 	}
+	log.D("HB is stopped...")
 }
 func (i *IMC) StartHB() {
+	log.D("IMC starting HB by delay(%v)", i.HBT)
 	go i.rhb(i.HBT)
 }
 func (i *IMC) SMS(s string, t int, c string) (int, error) {
 	return i.SMS_V([]string{s}, t, []byte(c))
 }
 func (i *IMC) SMS_V(rs []string, t int, c []byte) (int, error) {
+	if i.MCon == nil {
+		panic("the connect is nil")
+	}
 	var tt uint32 = uint32(t)
 	mm := &pb.ImMsg{
 		R: rs,
@@ -157,6 +163,7 @@ func (i *IMC) SMS_V(rs []string, t int, c []byte) (int, error) {
 }
 func (i *IMC) OnClose(c netw.Con) {
 	log.D("IMC OnClose...")
+	i.LC.Add(1)
 }
 func (i *IMC) Logined() bool {
 	return i.logined

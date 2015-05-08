@@ -48,10 +48,11 @@ func TestImr(t *testing.T) {
 		run()
 		wwc <- 1
 	}()
+	fmt.Println("xxx-->")
 	time.Sleep(time.Second)
+	imc.LC.Wait()
 	timc.SMS(imc.IC.R, 0, "abcc")
 	time.Sleep(time.Second)
-	imc.StopRunner()
 	imc.Close()
 	fmt.Println("---->>>")
 	<-wwc
@@ -63,10 +64,15 @@ func TestImr(t *testing.T) {
 		wwc <- 1
 	}()
 	time.Sleep(time.Second)
+	imc.LC.Wait()
 	timc.SMS(imc.IC.R, 0, "abcc")
+	fmt.Println("sending stop1")
 	time.Sleep(time.Second)
-	imc.StopRunner()
+	fmt.Println("sending stop2")
+	imc.Close()
+	fmt.Println("waiting stop")
 	<-wwc
+	fmt.Println("other")
 	os.Args = []string{"ss"}
 	run()
 	os.Args = []string{"imr", "-t", "xxx", "-s", ":9790", "-m", "C", "-L", "/sd/ds.log"}
@@ -87,8 +93,6 @@ func TestImr(t *testing.T) {
 	run()
 	os.Args = []string{"imr", "-t", "sss", "-m", "R", "-L", "SS"}
 	run()
-	ef = func(c int) {
-
-	}
+	ef = func(c int) {}
 	main()
 }
