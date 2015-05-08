@@ -8,6 +8,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"math/rand"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -20,13 +21,14 @@ type IMC struct {
 	Token string
 	IC    Con
 	MCon  *impl.OBDH_Con
-	LC    chan int
+	LC    sync.WaitGroup
 	//
-	obdh  *impl.OBDH
-	tc    *impl.RC_C
-	hbing bool
-	HBT   time.Duration
-	RC    uint64 //receive message count.
+	obdh    *impl.OBDH
+	tc      *impl.RC_C
+	hbing   bool
+	logined bool
+	HBT     time.Duration
+	RC      uint64 //receive message count.
 }
 
 func NewIMC(srv, token string) *IMC {
@@ -39,7 +41,6 @@ func NewIMC(srv, token string) *IMC {
 		tc:    impl.NewRC_C(),
 		P:     p,
 		Token: token,
-		LC:    make(chan int),
 		HBT:   1000 * time.Millisecond,
 	}
 	imc.obdh.AddH(MK_NRC, imc.tc)
@@ -86,10 +87,13 @@ func (i *IMC) OnCmd(c netw.Cmd) int {
 	return i.OnM(i, c, &msg)
 }
 func (i *IMC) OnConn(c netw.Con) bool {
+	i.LC.Add(1)
 	go i.login(c) //must async for exec remove command.
 	return true
 }
 func (i *IMC) login(c netw.Con) {
+	defer i.LC.Done()
+	log.D("doing login by token(%v)", i.Token)
 	i.C.Con = impl.NewOBDH_Con(MK_NRC, c)
 	//
 	var res util.Map
@@ -97,22 +101,22 @@ func (i *IMC) login(c netw.Con) {
 		"token": i.Token,
 	}, &res)
 	if err != nil {
-		i.StopRunner()
 		log.E("IM login by token(%v) err->%v", i.Token, err)
-		i.LC <- 1
+		i.logined = false
+		i.StopRunner()
 		return
 	}
 	if res.IntVal("code") != 0 {
-		i.StopRunner()
 		log.E("IM login by token(%v) err->%v", i.Token, res)
-		i.LC <- 1
+		i.logined = false
+		i.StopRunner()
 		return
 	}
 	i.MCon = impl.NewOBDH_Con(MK_NIM, c)
 	util.Json2S(util.S2Json(res.Val("res")), &i.IC)
 	c.SetWait(true)
 	log.D("IMC login succes by token(%v)->%v", i.Token, i.IC)
-	i.LC <- 0
+	i.logined = true
 }
 func (i *IMC) HB(data string) (string, error) {
 	var res util.Map
@@ -154,8 +158,11 @@ func (i *IMC) SMS_V(rs []string, t int, c []byte) (int, error) {
 func (i *IMC) OnClose(c netw.Con) {
 	log.D("IMC OnClose...")
 }
-
+func (i *IMC) Logined() bool {
+	return i.logined
+}
 func (i *IMC) Close() {
+	log.D("IMC closing...")
 	if i.C != nil {
 		i.C.Stop()
 	}

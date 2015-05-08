@@ -101,7 +101,7 @@ func run() int {
 			return 0
 		}
 		go func() {
-			<-imc.LC
+			imc.LC.Wait()
 			buf := bufio.NewReader(os.Stdin)
 			last := ""
 			for {
@@ -138,6 +138,10 @@ func run() int {
 	}
 	//
 	imc.StartRunner()
+	imc.LC.Wait()
+	if imc.Logined() {
+		imc.StartHB()
+	}
 	<-imc.WC
 	return 0
 }
