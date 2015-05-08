@@ -38,7 +38,7 @@ func TestImr(t *testing.T) {
 	timc := im.NewIMC3(srvs, "token")
 	// imc.ShowLog = true
 	timc.StartRunner()
-	<-timc.LC
+	timc.LC.Wait()
 	util.FWrite("t.txt", fmt.Sprintf("sskkdd\n%v abcc\nabkkk", timc.IC.R))
 	//
 	var wwc chan int = make(chan int)
