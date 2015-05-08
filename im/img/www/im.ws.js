@@ -131,8 +131,11 @@ var IM = (function() {
             this.log("sms args error", m);
             return;
         }
-        m.c = $.base64.btoa(m.c);
-        this.emit("m", m);
+        this.emit("m", {
+            r: m.r,
+            t: m.t,
+            c: $.base64.btoa(m.c),
+        });
     };
     IM.NewIm = function(url, recon) {
         return new IM(url, recon);
