@@ -49,8 +49,8 @@ func TestIMC(t *testing.T) {
 	// imc2.ShowLog = true
 	imc2.TickData = []byte{}
 	imc2.StartRunner()
-	<-imc.LC
-	<-imc2.LC
+	imc.LC.Wait()
+	imc2.LC.Wait()
 	fmt.Println(imc.IC)
 	fmt.Println(imc2.IC)
 	for i := 0; i < 10; i++ {
@@ -61,7 +61,7 @@ func TestIMC(t *testing.T) {
 		time.Sleep(500 * time.Millisecond)
 	}
 	imc.MCon.Close()
-	<-imc.LC
+	imc.LC.Wait()
 	for i := 0; i < 10; i++ {
 		imc.SMS(imc2.IC.R, 0, "imc1-00--->")
 		imc2.SMS(imc.IC.R, 0, "imc2-00--->")
