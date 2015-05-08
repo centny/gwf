@@ -9,6 +9,7 @@ import (
 	"github.com/Centny/gwf/util"
 	"math/rand"
 	"sync/atomic"
+	"time"
 )
 
 type IMC struct {
@@ -21,9 +22,11 @@ type IMC struct {
 	MCon  *impl.OBDH_Con
 	LC    chan int
 	//
-	obdh *impl.OBDH
-	tc   *impl.RC_C
-	RC   uint64 //receive message count.
+	obdh  *impl.OBDH
+	tc    *impl.RC_C
+	hbing bool
+	HBT   time.Duration
+	RC    uint64 //receive message count.
 }
 
 func NewIMC(srv, token string) *IMC {
@@ -37,6 +40,7 @@ func NewIMC(srv, token string) *IMC {
 		P:     p,
 		Token: token,
 		LC:    make(chan int),
+		HBT:   1000 * time.Millisecond,
 	}
 	imc.obdh.AddH(MK_NRC, imc.tc)
 	imc.obdh.AddH(MK_NIM, imc)
@@ -93,19 +97,13 @@ func (i *IMC) login(c netw.Con) {
 		"token": i.Token,
 	}, &res)
 	if err != nil {
-		i.C.Stop()
-		c.Close()
-		i.C = nil
-		i.MCon = nil
+		i.StopRunner()
 		log.E("IM login by token(%v) err->%v", i.Token, err)
 		i.LC <- 1
 		return
 	}
 	if res.IntVal("code") != 0 {
-		i.C.Stop()
-		c.Close()
-		i.C = nil
-		i.MCon = nil
+		i.StopRunner()
 		log.E("IM login by token(%v) err->%v", i.Token, res)
 		i.LC <- 1
 		return
@@ -115,6 +113,31 @@ func (i *IMC) login(c netw.Con) {
 	c.SetWait(true)
 	log.D("IMC login succes by token(%v)->%v", i.Token, i.IC)
 	i.LC <- 0
+}
+func (i *IMC) HB(data string) (string, error) {
+	var res util.Map
+	_, err := i.C.Execm(MK_NRC_HB, map[string]interface{}{
+		"D": data,
+	}, &res)
+	return res.StrVal("D"), err
+}
+func (i *IMC) rhb(delay time.Duration) {
+	var times_ time.Duration = 0
+	i.hbing = true
+	for i.hbing {
+		d, err := i.HB("D->")
+		if err == nil && d == "D->" {
+			times_++
+			log.D("HB(%v) success, will retry after %v", d, times_*delay)
+			time.Sleep(times_ * delay)
+		} else {
+			times_ = 0
+			log.W("HB(%v) error->%v", d, err)
+		}
+	}
+}
+func (i *IMC) StartHB() {
+	go i.rhb(i.HBT)
 }
 func (i *IMC) SMS(s string, t int, c string) (int, error) {
 	return i.SMS_V([]string{s}, t, []byte(c))
@@ -137,6 +160,6 @@ func (i *IMC) Close() {
 		i.C.Stop()
 	}
 	if i.NConRunner != nil {
-		i.NConRunner.Close()
+		i.StopRunner()
 	}
 }

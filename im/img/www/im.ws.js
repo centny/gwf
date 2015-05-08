@@ -50,6 +50,7 @@ var IM = (function() {
         this.log("connecting->" + this.url);
     };
     IM.prototype.onerror = function(ev) {
+        this.log("onerror->", ev);
         if (this.EV.error) {
             this.EV.error(ev);
         }
@@ -87,11 +88,12 @@ var IM = (function() {
         this.on_(cmds[0], args);
     };
     IM.prototype.onclose = function(ev) {
+        this.log("onclose->", ev);
         this.closed = true;
         if (this.EV.close) {
             this.EV.close(ev);
         }
-        console.log("ws is closed..");
+        this.log("ws is closed..");
         if (this.recon) {
             this.log("ws will reconnect after " + (this.times * 100) + " ms");
             var tim = this;

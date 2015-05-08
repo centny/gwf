@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	MK_NRC_HB = 9
 	MK_NRC_LI = 10
 	MK_NRC_LO = 20
 	MK_NRC_UR = 30
@@ -228,6 +229,7 @@ func (n *NIM_Rh) do_dis(mc *Msg, dr_rc map[string][]*pb.RC) int {
 	return 0
 }
 func (n *NIM_Rh) H(obdh *impl.OBDH) {
+	obdh.AddF(MK_NRC_HB, n.HB)
 	obdh.AddF(MK_NRC_LI, n.LI)
 	obdh.AddF(MK_NRC_LO, n.LO)
 	obdh.AddF(MK_NRC_UR, n.UR)
@@ -333,6 +335,11 @@ func (n *NIM_Rh) UR(r netw.Cmd) int {
 	}
 	SendUnread(n.SS, n.Db, r, tr, 0)
 	return n.writev_c(r, "OK")
+}
+func (n *NIM_Rh) HB(r netw.Cmd) int {
+	defer r.Done()
+	r.Writeb(r.Data())
+	return 0
 }
 func (n *NIM_Rh) Push(mid string) {
 	n.PushChan <- mid

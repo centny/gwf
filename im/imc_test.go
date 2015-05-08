@@ -40,6 +40,7 @@ func TestIMC(t *testing.T) {
 	// imc.ShowLog = true
 	imc.TickData = []byte{}
 	imc.StartRunner()
+	imc.StartHB()
 	imc2, err := NewIMC4(ts.URL, "token")
 	if err != nil {
 		t.Error(err.Error())

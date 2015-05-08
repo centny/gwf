@@ -6,7 +6,7 @@ function getCookie(name) {
   return null;
 }
 loc = window.location;
-var im_ws = new IM.NewIm('ws://' + loc.host + "/ws", true);
+var im_ws = new IM.NewIm('ws://im.dev.jxzy.com/im', true);
 im_ws.tdata = "";
 im_ws.on("error", function(ev) {
   console.log("onerror");
@@ -14,7 +14,7 @@ im_ws.on("error", function(ev) {
 
 im_ws.on("connect", function(ev) {
   im_ws.emit("li", {
-    "token": "abc",
+    "token": "b66dc44cd9882859d84670604ae276e6-ec6e5337-8852-41ee-9953-135158a7a1ac",
   });
 });
 im_ws.on("m", function(m) {
@@ -36,5 +36,5 @@ function msg() {
   if (im_ws.closed) {
     return;
   }
-  im_ws.sms(["S-Robot-0"], 0, "message->这是中文");
+  // im_ws.sms(["U-202996"], 0, "message->这是中文");
 }

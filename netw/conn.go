@@ -82,12 +82,14 @@ func (n *NConRunner) OnClose(c Con) {
 func (n *NConRunner) StartRunner() {
 	go n.Try()
 	go n.StartTick()
+	log.D("starting runner...")
 }
 func (n *NConRunner) StopRunner() {
 	n.Running = false
 	if n.NConPool != nil {
 		n.NConPool.Close()
 	}
+	log.D("stopping runner...")
 	n.WC <- 0
 }
 func (n *NConRunner) StartTick() {

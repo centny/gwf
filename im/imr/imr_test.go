@@ -87,5 +87,8 @@ func TestImr(t *testing.T) {
 	run()
 	os.Args = []string{"imr", "-t", "sss", "-m", "R", "-L", "SS"}
 	run()
-	// main()
+	ef = func(c int) {
+
+	}
+	main()
 }

@@ -26,9 +26,10 @@ Usage: imr -t <login token> [-s <server address> | -l <server list url>] [-m R|C
 }
 
 var imc *im.IMC
+var ef func(code int) = os.Exit
 
 func main() {
-	os.Exit(run())
+	ef(run())
 }
 func run() int {
 	var l, s, t string
