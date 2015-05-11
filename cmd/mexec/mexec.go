@@ -7,28 +7,33 @@ import (
 	"github.com/Centny/gwf/util"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
 var exit = os.Exit
 
 func usage() {
-	fmt.Print(`Usage: mexec [-min=0] [-max=8] [-total=8] [-file=save path] [-id] [-log] bin args
+	fmt.Print(`Usage: mexec [-min=0] [-max=8] [-total=8] [-file=save path] [-id] [-log] [-MT=10000] bin args
    -min minimum executer.
    -max maximum executer.
    -total total executer.
    -file save execute reslut to file, default is mexec.json.
    -id append executer id to the end of arguments.
    -log show log.
+   -MT keep max time, default is 10000 ms.
 `)
 }
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	var err error
 	var id bool = false
 	var log bool = false
 	var file string
 	var min, max, total int = 0, 8, 8
 	var args []string = []string{}
+	var MT int64 = 10000
+	var for_brk = false
 	for idx, arg := range os.Args {
 		if idx == 0 {
 			continue
@@ -55,6 +60,13 @@ func main() {
 				usage()
 				exit(1)
 			}
+		case strings.HasPrefix(arg, "-MT="):
+			MT, err = util.ParseInt64(strings.TrimPrefix(arg, "-MT="))
+			if err != nil {
+				fmt.Println(err.Error())
+				usage()
+				exit(1)
+			}
 		case strings.HasPrefix(arg, "-file="):
 			file = strings.TrimPrefix(arg, "-file=")
 		case strings.HasPrefix(arg, "-log"):
@@ -62,13 +74,17 @@ func main() {
 		case strings.HasPrefix(arg, "-id"):
 			id = true
 		default:
-			if len(os.Args)-1 > idx {
+			if len(os.Args)-1 >= idx {
 				args = os.Args[idx:]
 			}
+			for_brk = true
+			break
+		}
+		if for_brk {
 			break
 		}
 	}
-	if max < 1 || total < 1 || max < total || len(args) < 1 {
+	if max < 1 || total < 1 || max > total || len(args) < 1 {
 		usage()
 		exit(1)
 		return
@@ -85,6 +101,7 @@ func main() {
 		}
 		return exec.Command(exe.Bin, args...)
 	}
+	exk.MT = MT
 	exk.ShowLog = log
 	exk.Start()
 	exk.Wait()

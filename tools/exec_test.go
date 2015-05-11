@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"testing"
 	"time"
 )
 
 func TestExec(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	os.Remove("res.json")
 	exc := NewExec("/bin/bash", "-c", "echo abc")
 	exc.ShowLog = true

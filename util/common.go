@@ -64,3 +64,7 @@ func ParseInt(s string) (int, error) {
 	val, err := strconv.ParseInt(s, 10, 32)
 	return int(val), err
 }
+
+func ParseInt64(s string) (int64, error) {
+	return strconv.ParseInt(s, 10, 64)
+}
