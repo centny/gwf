@@ -22,3 +22,13 @@ func TestArray(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	fmt.Println(Err("aaa:%v", "kkk"))
 }
+
+func TestParseInt(t *testing.T) {
+	val, err := ParseInt("10")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(val)
+	fmt.Println(ParseInt("sfs"))
+}

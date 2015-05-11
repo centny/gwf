@@ -26,3 +26,9 @@ util/tt.properties
 im/imr/t.log
 
 im/imr/t.txt
+
+tools/res.json
+
+mexec.json
+
+cmd/mexec/sp.json
