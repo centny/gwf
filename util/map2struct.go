@@ -50,6 +50,9 @@ func M2S(m Map, dest interface{}) {
 					if len(df) < 1 {
 						df = D_DATEFORMAT
 					}
+					if len(v.(string)) < 1 {
+						break
+					}
 					t, err := time.Parse(df, v.(string))
 					if err == nil {
 						pval.Field(i).Set(reflect.ValueOf(t))
