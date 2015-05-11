@@ -227,3 +227,15 @@ func TestS2Json(t *testing.T) {
 	fmt.Println(vary)
 	fmt.Println(S2Json(TestIs2Ss))
 }
+
+type St struct {
+	T time.Time `m2s:"t"`
+}
+
+func TestS2Time(t *testing.T) {
+	m := Map{}
+	m["t"] = ""
+	st := St{}
+	M2S(m, &st)
+	fmt.Println(st)
+}
