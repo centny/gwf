@@ -156,6 +156,7 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 		}
 		sr_ed[con.R] = 1
 		if con.Sid == c_sid { //in current server
+			log_d("sending message(%v) to con(%v)", mc.ImMsg, con)
 			mc.D = &con.R
 			mc.A = &r                           //setting current receive user R.
 			err = n.SS.Send(con.Cid, &mc.ImMsg) //send message to client.
