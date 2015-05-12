@@ -288,16 +288,20 @@ func (c *Con_) Write(b []byte) (n int, err error) {
 func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
+	var err error
 	var total int
 	switch c.Mod_ {
 	case CM_H:
-		total, _ = Writeh(c.W_, bys...)
+		total, err = Writeh(c.W_, bys...)
 	case CM_L:
-		total, _ = Writel(c.W_, bys...)
+		total, err = Writel(c.W_, bys...)
 	default:
-		total, _ = Writen(c.W_, bys...)
+		total, err = Writen(c.W_, bys...)
 	}
-	err := c.Flush()
+	if err != nil {
+		return 0, err
+	}
+	err = c.Flush()
 	c.log_d("write data(%v) to %v, res:%v", total, c.RemoteAddr().String(), err)
 	return total, err
 }

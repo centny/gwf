@@ -5,6 +5,7 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/pool"
 	"net"
+	"time"
 )
 
 //the TCP server listener.
@@ -70,6 +71,9 @@ func (l *Listener) LoopAccept() {
 			log_d("accept %s error:%s", l.Port, err.Error())
 			break
 		}
+		con.(*net.TCPConn).SetNoDelay(true)
+		con.(*net.TCPConn).SetWriteBuffer(5)
+		con.(*net.TCPConn).SetWriteDeadline(time.Now().Add(5 * time.Second))
 		log_d("accepting tcp connect(%v) in pool(%v)", con.RemoteAddr().String(), l.Id())
 		tcon := l.NewCon(l, l.P, con)
 		if l.H.OnConn(tcon) {
