@@ -288,6 +288,10 @@ func (c *Con_) Write(b []byte) (n int, err error) {
 func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
+	switch c.Conn.(type) {
+	case *net.TCPConn:
+		c.Conn.(*net.TCPConn).SetWriteDeadline(time.Now().Add(5 * time.Second))
+	}
 	var err error
 	var total int
 	switch c.Mod_ {
