@@ -297,8 +297,9 @@ func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	default:
 		total, _ = Writen(c.W_, bys...)
 	}
-	c.log_d("write data(%v) to %v", total, c.RemoteAddr().String())
-	return total, c.Flush()
+	err := c.Flush()
+	c.log_d("write data(%v) to %v, res:%v", total, c.RemoteAddr().String(), err)
+	return total, err
 }
 func (c *Con_) Writev(val interface{}) (int, error) {
 	return Writev(c, val)
