@@ -298,17 +298,20 @@ func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	var total int
 	switch c.Mod_ {
 	case CM_H:
-		total, err = Writeh(c.W_, bys...)
+		total, err = Writeh(c.Conn, bys...)
 	case CM_L:
-		total, err = Writel(c.W_, bys...)
+		total, err = Writel(c.Conn, bys...)
 	default:
-		total, err = Writen(c.W_, bys...)
+		total, err = Writen(c.Conn, bys...)
 	}
-	if err != nil {
-		return 0, err
-	}
-	err = c.Flush()
 	c.log_d("write data(%v) to %v, res:%v", total, c.RemoteAddr().String(), err)
+	if err != nil {
+		c.Conn.Close()
+	}
+	// if err != nil {
+	// 	return 0, err
+	// }
+	// err = c.Flush()
 	return total, err
 }
 func (c *Con_) Writev(val interface{}) (int, error) {
