@@ -85,7 +85,7 @@ type DbH interface {
 	// Update(mid string, rs map[string]string) error
 	//store mesage
 	Store(m *Msg) error
-	MarkRecv(r, mid string) error
+	MarkRecv(r, a, mid string) error
 	//send unread message
 	ListUnread(r string, ct int) ([]Msg, error)
 }

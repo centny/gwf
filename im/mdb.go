@@ -227,7 +227,7 @@ func (m *MemDbH) Store(ms *Msg) error {
 	// }
 	return nil
 }
-func (m *MemDbH) MarkRecv(r, mid string) error {
+func (m *MemDbH) MarkRecv(r, a, mid string) error {
 	if len(mid) < 1 {
 		return util.Err("the message is empty")
 	}

@@ -40,7 +40,16 @@ func (n *NMR_Rh) OnCmd(r netw.Cmd) int {
 		log.W("MR V fail:%v", err.Error())
 		return -1
 	}
-	err = n.Db.MarkRecv(tr, args.StrVal("i"))
+	var i, a string
+	err = args.ValidF(`
+		i,R|S,L:0;
+		a,R|S,L:0;
+		`, &i, &a)
+	if err != nil {
+		log.W("MR args(%v) fail:%v", args, err.Error())
+		return -1
+	}
+	err = n.Db.MarkRecv(tr, a, i)
 	if err == nil {
 		return 0
 	} else {

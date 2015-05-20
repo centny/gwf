@@ -34,8 +34,12 @@ func (r *rec_msg) OnCmd(c netw.Cmd) int {
 	if err != nil {
 		panic(err)
 	}
+	if len(msg.GetA()) < 1 {
+		panic("----xxxxx--A is empty-->")
+	}
 	_, err = r.con.Writev(map[string]interface{}{
 		"i": msg.GetI(),
+		"a": msg.GetA(),
 	})
 	if err != nil {
 		panic(err)
@@ -201,6 +205,7 @@ func run_im_w(p *pool.BytePool, db *MemDbH) {
 				}
 				wsc.Write([]byte("mr" + WIM_SEQ + util.S2Json(map[string]interface{}{
 					"i": mv.StrVal("i"),
+					"a": mv.StrVal("a"),
 				}) + "\n"))
 				add_r_cc()
 				// fmt.Println("m-->", string(tbys[1]))

@@ -50,6 +50,7 @@ func (d *DIM_Rh) OnCmd(c netw.Cmd) int {
 	for _, con := range dm.Rc {
 		dm.M.D = con.R
 		// tr := con.GetR()
+		dm.M.A = con.A
 		err = d.SS.Send(con.GetC(), dm.M)
 		if err != nil {
 			log.E("sending message(%v) to R(%v) in S(%v) err:%v", dm.M, con.GetR(), d.SS.Id(), err.Error())

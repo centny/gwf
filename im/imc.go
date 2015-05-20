@@ -36,7 +36,7 @@ func NewIMC(srv, token string) *IMC {
 	p := pool.NewBytePool(8, 1024000)
 	imc := &IMC{
 		OnM: func(i *IMC, c netw.Cmd, m *pb.ImMsg) int {
-			go i.MR(m.GetI())
+			go i.MR(m.GetA(), m.GetI())
 			return 0
 		},
 		obdh:  impl.NewOBDH(),
@@ -149,12 +149,13 @@ func (i *IMC) UR() error {
 		return util.Err("%v", res.StrVal("err"))
 	}
 }
-func (i *IMC) MR(mid string) error {
+func (i *IMC) MR(a, mid string) error {
 	if i.MRC == nil {
 		panic("not start connect")
 	}
 	_, err := i.MRC.Writev(map[string]interface{}{
 		"i": mid,
+		"a": a,
 	})
 	return err
 }
