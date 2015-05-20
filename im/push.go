@@ -41,17 +41,13 @@ func (p *PushSrv) PushV(s string, r []string, c []byte, t uint32) (*Msg, error) 
 	msg.I = &ii
 	msg.Time = &time
 	msg.S = &s
-	msg.Ms = map[string]string{}
+	msg.Ms = map[string][]*MSS{}
 	gr, ur, err := p.Db.Sift(msg.R)
 	if err != nil {
 		return nil, err
 	}
 	for _, r := range ur {
-		if len(msg.Ms[r]) < 1 {
-			msg.Ms[r] = MS_PENDING + MS_SEQ + s
-		} else {
-			msg.Ms[r] += MS_SEQ + s
-		}
+		msg.Ms[r] = append(msg.Ms[r], &MSS{R: s, S: MS_PENDING})
 	}
 	gur, err := p.Db.ListUsrR(gr)
 	if err != nil {
@@ -59,11 +55,7 @@ func (p *PushSrv) PushV(s string, r []string, c []byte, t uint32) (*Msg, error) 
 	}
 	for g, ur := range gur {
 		for _, r := range ur {
-			if len(msg.Ms[r]) < 1 {
-				msg.Ms[r] = MS_PENDING + MS_SEQ + g
-			} else {
-				msg.Ms[r] += MS_SEQ + g
-			}
+			msg.Ms[r] = append(msg.Ms[r], &MSS{R: g, S: MS_PENDING})
 		}
 	}
 	err = p.Db.Store(msg)

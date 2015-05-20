@@ -3,6 +3,7 @@ package im
 import (
 	"fmt"
 	"github.com/Centny/gwf/im/pb"
+	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/util"
 	"math/rand"
@@ -14,9 +15,10 @@ import (
 
 //the memory implement DbH interface for testing
 type MemDbH struct {
-	u_cc uint64
-	m_cc uint64
-	g_cc uint64
+	u_cc    uint64
+	m_cc    uint64
+	g_cc    uint64
+	mr_n_cc uint64
 
 	Cons  map[string]*Con
 	con_l sync.RWMutex
@@ -56,7 +58,7 @@ func (m *MemDbH) AddCon(c *Con) error {
 	m.con_l.Lock()
 	defer m.con_l.Unlock()
 	m.Cons[fmt.Sprintf("%v%v%v%v", c.Sid, c.Cid, c.R, c.T)] = c
-	log_d("adding connection %v", c)
+	log.D("adding connection %v", c)
 	return nil
 }
 func (m *MemDbH) DelCon(sid, cid, r string, t byte, ct int) (*Con, error) {
@@ -65,7 +67,7 @@ func (m *MemDbH) DelCon(sid, cid, r string, t byte, ct int) (*Con, error) {
 	key := fmt.Sprintf("%v%v%v%v", sid, cid, r, t)
 	c := m.Cons[key]
 	delete(m.Cons, key)
-	log_d("delete connection %v", c)
+	log.D("delete connection %v", c)
 	return c, nil
 }
 
@@ -173,11 +175,11 @@ func (m *MemDbH) OnLogin(r netw.Cmd, args *util.Map) (string, string, int, error
 	if args.Exist("token") {
 		ur := fmt.Sprintf("U-%v", atomic.AddUint64(&m.u_cc, 1))
 		m.Usr[ur] = 1
-		log_d("user login by R(%v)", ur)
+		log.D("user login by R(%v)", ur)
 		r.Kvs().SetVal("R", ur)
 		return ur, ur, 1, nil
 	} else {
-		log_d("user login fail for token not found")
+		log.D("user login fail for token not found")
 		return "", "", 0, util.Err("login fail:token not found")
 	}
 }
@@ -187,10 +189,10 @@ func (m *MemDbH) OnLogout(r netw.Cmd, args *util.Map) (string, int, bool, error)
 	rv := r.Kvs().StrVal("R")
 	if _, ok := m.Usr[rv]; ok {
 		delete(m.Usr, rv)
-		log_d("user logout by R(%v)", r)
+		log.D("user logout by R(%v)", r)
 		return rv, 1, true, nil
 	} else {
-		log_d("user logout fail:R not found")
+		log.D("user logout fail:R not found")
 		return "", 0, false, util.Err("login fail:R not found")
 	}
 }
@@ -198,19 +200,19 @@ func (m *MemDbH) OnLogout(r netw.Cmd, args *util.Map) (string, int, bool, error)
 //
 //
 //update the message R status
-func (m *MemDbH) Update(mid string, rs map[string]string) error {
-	m.ms_l.Lock()
-	defer m.ms_l.Unlock()
-	if tm, ok := m.Ms[mid]; ok {
-		for r, s := range rs {
-			tm.Ms[r] = s
-		}
-		m.Ms[mid] = tm
-		return nil
-	} else {
-		return util.Err("message not found by id(%v)", mid)
-	}
-}
+// func (m *MemDbH) Update(mid string, rs map[string]string) error {
+// 	m.ms_l.Lock()
+// 	defer m.ms_l.Unlock()
+// 	if tm, ok := m.Ms[mid]; ok {
+// 		for r, s := range rs {
+// 			tm.Ms[r] = s
+// 		}
+// 		m.Ms[mid] = tm
+// 		return nil
+// 	} else {
+// 		return util.Err("message not found by id(%v)", mid)
+// 	}
+// }
 func (m *MemDbH) NewMid() string {
 	return fmt.Sprintf("M-%v", atomic.AddUint64(&m.m_cc, 1))
 }
@@ -220,33 +222,53 @@ func (m *MemDbH) Store(ms *Msg) error {
 	m.ms_l.Lock()
 	defer m.ms_l.Unlock()
 	m.Ms[ms.GetI()] = ms
-	if len(ms.Ms) < 1 {
-		panic("message MS is empty")
-	}
+	// if len(ms.Ms) < 1 {
+	// 	panic("message MS is empty")
+	// }
 	return nil
 }
+func (m *MemDbH) MarkRecv(r, mid string) error {
+	if len(mid) < 1 {
+		return util.Err("the message is empty")
+	}
+	m.ms_l.Lock()
+	defer m.ms_l.Unlock()
+	if msg, ok := m.Ms[mid]; ok {
+		for _, mss := range msg.Ms[r] {
+			mss.S = MS_DONE
+		}
+		return nil
+	} else {
+		atomic.AddUint64(&m.mr_n_cc, 1)
+		return util.Err("the message not found by id(%v)", mid)
+	}
+}
 
-func (m *MemDbH) RandGrp() (string, int) {
+func (m *MemDbH) RandGrp() (string, int, []string) {
 	if len(m.Grp) < 1 {
-		return "", 0
+		return "", 0, nil
 	}
 	gs := []string{}
 	for gr, _ := range m.Grp {
 		gs = append(gs, gr)
 	}
 	g := gs[rand.Intn(len(gs))]
-	return g, len(m.Grp[g])
+	return g, len(m.Grp[g]), m.Grp[g]
 }
-func (m *MemDbH) RandUsr() []string {
+func (m *MemDbH) RandUsr(r string) []string {
 	ulen := len(m.Usr)
-	if ulen < 1 {
+	if ulen < 2 {
 		return []string{}
 	}
 	usrs, _ := m.ListR()
 	um := map[string]byte{}
-	tlen := rand.Intn(ulen)%16 + 1
+	tlen := rand.Intn(ulen)%16 + 2
 	for i := 0; i <= tlen; i++ {
-		um[usrs[rand.Intn(ulen)]] = 1
+		tr := usrs[rand.Intn(ulen)]
+		if tr == r {
+			continue
+		}
+		um[tr] = 1
 	}
 	tur := []string{}
 	for u, _ := range um {
@@ -274,7 +296,7 @@ func (m *MemDbH) GrpBuilder() {
 		m.Grp[g] = us
 	}
 }
-func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
+func (m *MemDbH) Show_() (uint64, uint64, uint64, uint64, uint64) {
 	mlen := uint64(len(m.Ms))
 	var rlen uint64 = 0
 	var plen uint64 = 0
@@ -283,15 +305,22 @@ func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
 	for _, m := range m.Ms {
 		rlen += uint64(len(m.Ms))
 		for _, s := range m.Ms {
-			if strings.HasPrefix(s, "E-") {
-				elen++
-			} else if strings.HasPrefix(s, MS_PENDING) {
-				plen++
-			} else {
-				dlen++
+			for _, mss := range s {
+				switch mss.S {
+				case MS_DONE:
+					dlen++
+				case MS_PENDING:
+					plen++
+				default:
+					elen++
+				}
 			}
 		}
 	}
+	return mlen, rlen, plen, elen, dlen
+}
+func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
+	mlen, rlen, plen, elen, dlen := m.Show_()
 	fmt.Printf("M:%v, R(%v)-P(%v)-E(%v)=%v, D:%v\n", mlen, rlen, plen, elen, rlen-plen-elen, dlen)
 	return mlen, rlen, plen, elen, dlen
 }
@@ -309,8 +338,13 @@ func (m *MemDbH) ListUnread(r string, ct int) ([]Msg, error) {
 		T: &tt,
 		C: []byte("Robot Unread Message"),
 	}
-	msg.Ms = map[string]string{
-		r: MS_PENDING + MS_SEQ + r,
+	msg.Ms = map[string][]*MSS{
+		r: []*MSS{
+			&MSS{
+				R: r,
+				S: MS_PENDING,
+			},
+		},
 	}
 	m.Store(&msg)
 	return []Msg{msg}, nil
@@ -322,7 +356,13 @@ func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []Con, error) {
 	}
 	cons := []Con{}
 	for r, v := range msg.Ms {
-		if v == "D" {
+		pc := 0
+		for _, mss := range v {
+			if mss.S == MS_PENDING {
+				pc++
+			}
+		}
+		if pc < 1 {
 			continue
 		}
 		for _, cc := range m.Cons {

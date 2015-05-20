@@ -2,9 +2,9 @@ package im
 
 import (
 	"fmt"
+	// "github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/routing/httptest"
-	// "github.com/Centny/gwf/netw"
 	// "github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
 	"runtime"
@@ -14,7 +14,7 @@ import (
 
 func TestIMC(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
-	// ShowLog = true
+	ShowLog = true
 	// impl.ShowLog = true
 	// netw.ShowLog = true
 	db := NewMemDbH()
@@ -36,11 +36,11 @@ func TestIMC(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+	fmt.Println("imc--->01-00")
 	imc := NewIMC3(srvs, "token")
 	// imc.ShowLog = true
 	imc.TickData = []byte{}
-	imc.StartRunner()
-	imc.StartHB()
+	imc.Start()
 	imc2, err := NewIMC4(ts.URL, "token")
 	if err != nil {
 		t.Error(err.Error())
@@ -48,28 +48,46 @@ func TestIMC(t *testing.T) {
 	}
 	// imc2.ShowLog = true
 	imc2.TickData = []byte{}
-	imc2.StartRunner()
+	imc2.Start()
+	fmt.Println("imc--->01-01")
 	imc.LC.Wait()
 	imc2.LC.Wait()
+	imc.StartHB()
+	imc2.StartHB()
+	fmt.Println("imc--->01-02")
 	fmt.Println(imc.IC)
 	fmt.Println(imc2.IC)
+	imc.UR()
+	imc2.UR()
+	fmt.Println(imc.Logined())
+	imc.SMS("S-Robot-X", 0, "Robot")
+	fmt.Println("\n\n\n")
+	time.Sleep(time.Second)
 	for i := 0; i < 10; i++ {
 		imc.SMS(imc2.IC.R, 0, "imc1-00--->")
 		imc2.SMS(imc.IC.R, 0, "imc2-00--->")
 	}
+	fmt.Println("imc--->01-03")
 	for imc.RC < 10 || imc2.RC < 10 {
-		time.Sleep(500 * time.Millisecond)
+		fmt.Println("-->", imc.RC)
+		time.Sleep(300 * time.Millisecond)
 	}
+	fmt.Println("\n\n\n")
 	imc.MCon.Close()
+	time.Sleep(time.Second)
 	imc.LC.Wait()
 	for i := 0; i < 10; i++ {
 		imc.SMS(imc2.IC.R, 0, "imc1-00--->")
 		imc2.SMS(imc.IC.R, 0, "imc2-00--->")
 	}
 	for imc.RC < 20 || imc2.RC < 20 {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(300 * time.Millisecond)
 	}
-	imc.Close()
-	imc2.Close()
+	fmt.Println("\n\n\n")
+	fmt.Println(db.Show())
+	go imc.Close()
+	<-imc.WC
+	go imc2.Close()
+	<-imc2.WC
 	fmt.Println("all done ....")
 }

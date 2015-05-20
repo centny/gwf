@@ -46,29 +46,33 @@ func (d *DIM_Rh) OnCmd(c netw.Cmd) int {
 		return -1
 	}
 	log_d("DIM_Rh recieve message:%v", &dm)
-	ms := map[string]string{}
+	// ms := map[string]string{}
 	for _, con := range dm.Rc {
 		dm.M.D = con.R
-		tr := con.GetR()
+		// tr := con.GetR()
 		err = d.SS.Send(con.GetC(), dm.M)
-		if err == nil {
-			ms[tr] = MS_DONE
-		} else {
+		if err != nil {
 			log.E("sending message(%v) to R(%v) in S(%v) err:%v", dm.M, con.GetR(), d.SS.Id(), err.Error())
-			if len(ms[tr]) < 1 {
-				ms[tr] = MS_PENDING + MS_SEQ + con.GetA()
-			} else {
-				ms[tr] += MS_SEQ + con.GetA()
-			}
 		}
+		// if err == nil {
+		// 	ms[tr] = MS_DONE
+		// } else {
+
+		// 	if len(ms[tr]) < 1 {
+		// 		ms[tr] = MS_PENDING + MS_SEQ + con.GetA()
+		// 	} else {
+		// 		ms[tr] += MS_SEQ + con.GetA()
+		// 	}
+		// }
 	}
-	err = d.Db.Update(dm.M.GetI(), ms)
-	if err == nil {
-		return 0
-	} else {
-		log.E("update message(%v) in Distribute server err:%v", &dm.M, err.Error())
-		return -1
-	}
+	return 0
+	// err = d.Db.Update(dm.M.GetI(), ms)
+	// if err == nil {
+	// 	return 0
+	// } else {
+	// 	log.E("update message(%v) in Distribute server err:%v", &dm.M, err.Error())
+	// 	return -1
+	// }
 }
 func (d *DIM_Rh) Exec(r *impl.RCM_Cmd) (interface{}, error) {
 	if r.Closed() {
@@ -185,7 +189,7 @@ func (d *DimPool) dail_(srv *Srv) error {
 	d.LS[srv.Sid] = l
 	d.DS[srv.Sid] = con
 	d.MC[srv.Sid] = rmcon
-	log.D("dail distribution server(%v) to pool(%v)", srv, d.DS)
+	log.D("dail distribution server(%v) to pool(%v) success", srv, d.DS)
 	return nil
 }
 

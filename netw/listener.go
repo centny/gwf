@@ -70,8 +70,8 @@ func (l *Listener) LoopAccept() {
 			log_d("accept %s error:%s", l.Port, err.Error())
 			break
 		}
-		con.(*net.TCPConn).SetNoDelay(true)
-		con.(*net.TCPConn).SetWriteBuffer(5)
+		// con.(*net.TCPConn).SetNoDelay(true)
+		// con.(*net.TCPConn).SetWriteBuffer(5)
 		log_d("accepting tcp connect(%v) in pool(%v)", con.RemoteAddr().String(), l.Id())
 		tcon := l.NewCon(l, l.P, con)
 		if l.H.OnConn(tcon) {

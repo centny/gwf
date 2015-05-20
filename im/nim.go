@@ -21,12 +21,40 @@ const (
 	MS_SEQ = "^->"
 )
 
+type NMR_Rh struct {
+	Db DbH
+}
+
+func (n *NMR_Rh) OnCmd(r netw.Cmd) int {
+	defer r.Done()
+	if r.Closed() {
+		return -1
+	}
+	tr := n.Db.FUsrR(r)
+	if len(tr) < 1 {
+		return -1
+	}
+	var args util.Map
+	_, err := r.V(&args)
+	if err != nil {
+		log.W("MR V fail:%v", err.Error())
+		return -1
+	}
+	err = n.Db.MarkRecv(tr, args.StrVal("i"))
+	if err == nil {
+		return 0
+	} else {
+		log.W("MarkRecv by i(%v) fail:%v", args.StrVal("i"), err.Error())
+		return -1
+	}
+}
+
 //
 type NIM_Rh struct {
-	Db       DbH
-	SS       Sender
-	DS       Sender
-	DC       uint64
+	Db DbH
+	SS Sender
+	DS Sender
+	// DC       uint64
 	idc      int64
 	Running  bool
 	PushChan chan string
@@ -60,7 +88,7 @@ func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
 	}
 	mc.S = &sid
 	mc.Cmd = c
-	mc.Ms = map[string]string{}
+	mc.Ms = map[string][]*MSS{}
 	mc.Time = &tn
 	return n.OnMsg(&mc)
 }
@@ -160,19 +188,15 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 			mc.D = &con.R
 			mc.A = &r                           //setting current receive user R.
 			err = n.SS.Send(con.Cid, &mc.ImMsg) //send message to client.
-			if err == nil {
-				atomic.AddUint64(&n.DC, 1)
-				mc.Ms[con.R] = MS_DONE //mark done
-			} else {
+			if err != nil {
 				log.E("sending message(%v) to R(%v) err:%v", mc.ImMsg, con.R, err.Error())
-				if len(mc.Ms[con.R]) < 1 {
-					mc.Ms[con.R] = MS_PENDING + MS_SEQ + r
-				} else {
-					mc.Ms[con.R] += MS_SEQ + r
-				}
+				// atomic.AddUint64(&n.DC, 1)
+				// mc.Ms[con.R] = MS_DONE //mark done
+				// mc.Ms[con.R] = MS_PENDING + MS_SEQ + r //mark done
 			}
+			mc.Ms[con.R] = append(mc.Ms[con.R], &MSS{R: r, S: MS_PENDING})
 		} else { //in other distribution server
-			mc.Ms[con.R] = MS_PENDING + MS_SEQ + r //mark to pending.
+			mc.Ms[con.R] = append(mc.Ms[con.R], &MSS{R: r, S: MS_PENDING})
 			tr, tc := con.R, con.Cid
 			if _, ok := dr_rc[con.Sid]; ok {
 				dr_rc[con.Sid] = append(dr_rc[con.Sid],
@@ -197,11 +221,10 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 		if _, ok := sr_ed[tr]; ok {
 			continue
 		}
-		if len(mc.Ms[tr]) < 1 {
-			mc.Ms[tr] = MS_PENDING + MS_SEQ + r
-		} else {
-			mc.Ms[tr] += MS_SEQ + r
+		if tr == sender {
+			continue
 		}
+		mc.Ms[tr] = append(mc.Ms[tr], &MSS{R: r, S: MS_PENDING})
 	}
 	return 0
 }
@@ -224,7 +247,7 @@ func (n *NIM_Rh) do_dis(mc *Msg, dr_rc map[string][]*pb.RC) int {
 		if err == nil { //if not err,the other distribution server will makr result.
 			continue
 		} else {
-			log.E("sending message(%v) to distribution server(%v) err:%v", mc.ImMsg, dr, err.Error())
+			log.E("sending message(%v) to distribution server(%v) err:%v", mc.GetI(), dr, err.Error())
 		}
 	}
 	return 0
@@ -376,26 +399,18 @@ func (n *NIM_Rh) DoPush_(mid string) (int, int, error) {
 		return 0, 0, nil
 	}
 	sc := 0
-	mv := map[string]string{}
+	// mv := map[string]string{}
 	for _, con := range cons {
 		msg.D = &con.R
-		av := msg.Ms[con.R]
-		avs := strings.Split(av, MS_SEQ)
-		avl := len(avs)
-		if avl < 2 {
-			log.W("invalid unread message->the receiver is empty for R(%v),msg:(%v),ms(%v)", con.R, msg, msg.Ms)
-			continue
-		}
-		for i := 1; i < avl; i++ {
-			msg.A = &avs[i]
+		for _, mss := range msg.Ms[con.R] {
+			if mss.S == MS_DONE {
+				continue
+			}
+			msg.A = &mss.S
 			err = n.SS.Send(con.Cid, &msg.ImMsg)
-		}
-		if err == nil {
-			sc++
-			mv[con.R] = "D"
-			n.Db.Update(msg.GetI(), mv)
-		} else {
-			log.W("sending push message(%v) err:%v", msg, err.Error())
+			if err != nil {
+				log.W("sending push message(%v) err:%v", msg, err.Error())
+			}
 		}
 	}
 	return sc, len(cons), nil

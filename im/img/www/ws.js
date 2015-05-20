@@ -19,6 +19,9 @@ im_ws.on("connect", function(ev) {
 });
 im_ws.on("m", function(m) {
   console.log(m);
+  im_ws.emit("mr", {
+    i: m.i,
+  });
 });
 im_ws.on("close", function() {
   clearInterval(im_ws.timer);

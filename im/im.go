@@ -25,7 +25,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"net"
 	"runtime"
-	"strings"
 	"time"
 )
 
@@ -39,6 +38,7 @@ func log_d(f string, args ...interface{}) {
 
 const (
 	MK_NIM    = 0
+	MK_NMR    = 2
 	MK_NRC    = 4
 	MK_DIM    = 8
 	MK_DRC    = 12
@@ -82,9 +82,10 @@ type DbH interface {
 	//
 	NewMid() string
 	//update the message R status
-	Update(mid string, rs map[string]string) error
+	// Update(mid string, rs map[string]string) error
 	//store mesage
 	Store(m *Msg) error
+	MarkRecv(r, mid string) error
 	//send unread message
 	ListUnread(r string, ct int) ([]Msg, error)
 }
@@ -237,13 +238,16 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 	obdh.AddH(MK_DIM, dim)
 	obdh.AddH(MK_DRC, impl.NewRC_S(dim_m))
 	//
-	ndh := impl.NewOBDH()
-	// ndh.ShowCall = true
-	nrh := &NodeRh{NIM: nim}
-	nch := &NodeCmds{Db: db, DS: map[string]netw.Con{}}
-	nch.H(ndh)
-	obdh.AddH(MK_NODE_C, ndh) //not using RC
-	obdh.AddH(MK_NODE_M, nrh)
+	nmr := &NMR_Rh{Db: db}
+	obdh.AddH(MK_NMR, nmr)
+	//
+	// ndh := impl.NewOBDH()
+	// // ndh.ShowCall = true
+	// nrh := &NodeRh{NIM: nim}
+	// nch := &NodeCmds{Db: db, DS: map[string]netw.Con{}}
+	// nch.H(ndh)
+	// obdh.AddH(MK_NODE_C, ndh) //not using RC
+	// obdh.AddH(MK_NODE_M, nrh)
 	//
 
 	//
@@ -255,7 +259,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		return cc
 	}
 	dip := NewDimPool(db, sid, p, v2b, b2v, nav, ncf, dim)
-	cch := netw.NewCCH(netw.NewQueueConH(dim, nim, nch), impl.NewChanH2(obdh, runtime.NumCPU()-1))
+	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), impl.NewChanH2(obdh, runtime.NumCPU()-1))
 	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), sid, cch, ncf)
 	l.T = timeout
 	l.Name = "NIM"
@@ -263,6 +267,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 	// l.SetId(sid)
 	wim := &WIM_Rh{}
 	wim.NIM_Rh = nim
+	wim.NMR_Rh = nmr
 	wim_ncf := func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		cc := netw.NewCon_(rl, p, con)
 		cc.SetMod(netw.CM_L)
@@ -270,7 +275,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		cc.B2V_ = impl.Json_B2V
 		return cc
 	}
-	wim_cch := netw.NewCCH(netw.NewQueueConH(dim, wim, nch), impl.NewChanH2(wim, runtime.NumCPU()-1))
+	wim_cch := netw.NewCCH(netw.NewQueueConH(dim, wim), impl.NewChanH2(wim, runtime.NumCPU()-1))
 	wim_l := netw.NewLConPoolV(p, wim_cch, sid, wim_ncf)
 	wim_l.Runner_ = netw.NewNLineRunner()
 	wim_l.T = timeout
@@ -278,7 +283,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 	nim.SS = NewMultiSender(sid, NewMarkConPoolSender([]byte("m"+WIM_SEQ), wim_l, sid), NewMarkConPoolSender([]byte{MK_NIM}, l, sid))
 	// nim.SS = NewMarkConPoolSender([]byte{MK_NIM}, l, sid)
 	dim.SS = nim.SS
-	nch.SS = nim.SS
+	// nch.SS = nim.SS
 	nim.DS = NewMarkConPoolSender([]byte{MK_DIM}, NewMultiFinder(dim, dip), sid)
 	var tl = &Listener{
 		Listener:    l,
@@ -458,22 +463,14 @@ func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int) {
 	}
 	for _, m := range ms {
 		m.D = &rv
-		av := m.Ms[rv]
-		avs := strings.Split(av, MS_SEQ)
-		avl := len(avs)
-		if avl < 2 {
-			log.W("invalid unread message:%v for R(%v)", m, rv)
-			continue
-		}
-		for i := 1; i < avl; i++ {
-			m.A = &avs[i]
+		for _, mss := range m.Ms[rv] {
+			m.A = &mss.R
 			err = ss.Send(r.Id(), &m.ImMsg)
 			if err != nil {
 				log.W("sending unread message(%v) error:%v", &m.ImMsg, err.Error())
 				return
 			}
 		}
-		db.Update(m.GetI(), map[string]string{rv: "D"})
 	}
 	log_d("SendUnread %v messages is sended to %v", len(ms), rv)
 }

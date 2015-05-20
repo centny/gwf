@@ -35,6 +35,7 @@ func (w *WIM_Cmd) V(dest interface{}) (interface{}, error) {
 
 type WIM_Rh struct {
 	*NIM_Rh
+	*NMR_Rh
 }
 
 func (n *WIM_Rh) OnCmd(c netw.Cmd) int {
@@ -49,14 +50,16 @@ func (n *WIM_Rh) OnCmd(c netw.Cmd) int {
 		data_: tbys[1],
 	}
 	switch tcmd.C {
+	case "m":
+		return n.NIM_Rh.OnCmd(tcmd)
 	case "li":
 		return n.LI(tcmd)
 	case "lo":
 		return n.LO(tcmd)
 	case "ur":
 		return n.UR(tcmd)
-	case "m":
-		return n.NIM_Rh.OnCmd(tcmd)
+	case "mr":
+		return n.NMR_Rh.OnCmd(tcmd)
 	default:
 		log.E("unknow command(%v) from (%v)", tcmd.C, c.RemoteAddr().String())
 		return -1

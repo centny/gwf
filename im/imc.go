@@ -16,6 +16,7 @@ import (
 type IMC struct {
 	*netw.NConRunner
 	C     *impl.RC_Con
+	MRC   *impl.OBDH_Con
 	P     *pool.BytePool
 	OnM   func(i *IMC, c netw.Cmd, m *pb.ImMsg) int
 	Token string
@@ -35,6 +36,7 @@ func NewIMC(srv, token string) *IMC {
 	p := pool.NewBytePool(8, 1024000)
 	imc := &IMC{
 		OnM: func(i *IMC, c netw.Cmd, m *pb.ImMsg) int {
+			go i.MR(m.GetI())
 			return 0
 		},
 		obdh:  impl.NewOBDH(),
@@ -43,14 +45,12 @@ func NewIMC(srv, token string) *IMC {
 		Token: token,
 		HBT:   1000 * time.Millisecond,
 	}
-	imc.LC.Add(1)
 	imc.obdh.AddH(MK_NRC, imc.tc)
 	imc.obdh.AddH(MK_NIM, imc)
 	imc.NConRunner = netw.NewNConRunnerN(p, srv, impl.NewChanH2(imc.obdh, 5), IM_NewCon)
 	imc.NConRunner.TickData = []byte{}
 	imc.ConH = imc
 	imc.C = impl.NewRC_Con(nil, imc.tc) //initial con after connected.
-	imc.C.Start()
 	log_d("creating IMC by %v", srv)
 	return imc
 }
@@ -76,6 +76,11 @@ func NewIMC4(sl, token string) (*IMC, error) {
 	}
 	return NewIMC3(ssl, token), nil
 }
+func (i *IMC) Start() {
+	i.LC.Add(1)
+	i.C.Start()
+	i.NConRunner.StartRunner()
+}
 func (i *IMC) OnCmd(c netw.Cmd) int {
 	var msg pb.ImMsg
 	_, err := c.V(&msg)
@@ -83,8 +88,13 @@ func (i *IMC) OnCmd(c netw.Cmd) int {
 		log.E("convert values(%v) to IM msg error:%v", c.Data(), err.Error())
 		return -1
 	}
-	log.D("receive message->%v", msg)
+	// log.D("receive message->%v", msg)
 	atomic.AddUint64(&i.RC, 1)
+	// go func() {
+	// 	if err := i.MR(msg.GetI()); err != nil {
+	// 		log.E("mark msg(%v) recv err:%v", msg, err.Error())
+	// 	}
+	// }()
 	return i.OnM(i, c, &msg)
 }
 func (i *IMC) OnConn(c netw.Con) bool {
@@ -95,6 +105,7 @@ func (i *IMC) login(c netw.Con) {
 	defer i.LC.Done()
 	log.D("doing login by token(%v)", i.Token)
 	i.C.Con = impl.NewOBDH_Con(MK_NRC, c)
+	i.MRC = impl.NewOBDH_Con(MK_NMR, c)
 	//
 	var res util.Map
 	_, err := i.C.Execm(MK_NRC_LI, map[string]interface{}{
@@ -117,6 +128,7 @@ func (i *IMC) login(c netw.Con) {
 	c.SetWait(true)
 	log.D("IMC login succes by token(%v)->%v", i.Token, i.IC)
 	i.logined = true
+	// i.UR()
 }
 func (i *IMC) HB(data string) (string, error) {
 	var res util.Map
@@ -124,6 +136,27 @@ func (i *IMC) HB(data string) (string, error) {
 		"D": data,
 	}, &res)
 	return res.StrVal("D"), err
+}
+func (i *IMC) UR() error {
+	var res util.Map
+	_, err := i.C.Execm(MK_NRC_UR, map[string]interface{}{}, &res)
+	if err != nil {
+		return err
+	}
+	if res.IntVal("code") == 0 {
+		return nil
+	} else {
+		return util.Err("%v", res.StrVal("err"))
+	}
+}
+func (i *IMC) MR(mid string) error {
+	if i.MRC == nil {
+		panic("not start connect")
+	}
+	_, err := i.MRC.Writev(map[string]interface{}{
+		"i": mid,
+	})
+	return err
 }
 func (i *IMC) rhb(delay time.Duration) {
 	var times_ time.Duration = 0
@@ -137,7 +170,7 @@ func (i *IMC) rhb(delay time.Duration) {
 			time.Sleep(times_ * delay)
 		} else {
 			times_ = 0
-			log.W("HB(%v) error->%v", d, err)
+			log.W("HB(D->) error->%v", err)
 		}
 	}
 	log.D("HB is stopped...")
@@ -151,7 +184,7 @@ func (i *IMC) SMS(s string, t int, c string) (int, error) {
 }
 func (i *IMC) SMS_V(rs []string, t int, c []byte) (int, error) {
 	if i.MCon == nil {
-		panic("the connect is nil")
+		panic("not start connect")
 	}
 	var tt uint32 = uint32(t)
 	mm := &pb.ImMsg{
@@ -169,11 +202,11 @@ func (i *IMC) Logined() bool {
 	return i.logined
 }
 func (i *IMC) Close() {
-	log.D("IMC closing...")
 	if i.C != nil {
 		i.C.Stop()
 	}
 	if i.NConRunner != nil {
 		i.StopRunner()
 	}
+	log.D("IMC closing...")
 }

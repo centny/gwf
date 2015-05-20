@@ -9,15 +9,20 @@ import (
 
 const (
 	MS_DONE    = "D"
-	MS_PENDING = "P:" //message not send
+	MS_PENDING = "P" //message not send
 	// MS_ERR     = "E->:" //message send error.
 )
 
+//message send status.
+type MSS struct {
+	R string `bson:"r"`
+	S string `bson:"s"`
+}
 type Msg struct {
 	netw.Cmd `bson:"-" json:"-"`
 	pb.ImMsg `bson:",inline"`
 	//
-	Ms map[string]string `json:"-"` //send status for user R.
+	Ms map[string][]*MSS `json:"-"` //send status for user R.
 }
 
 // type DsMsg struct {

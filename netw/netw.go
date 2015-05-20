@@ -288,12 +288,12 @@ func (c *Con_) Write(b []byte) (n int, err error) {
 func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
-	switch c.Conn.(type) {
-	case *net.TCPConn:
-		log_d("setting tcp connection for %v", c.RemoteAddr())
-		c.Conn.(*net.TCPConn).SetWriteBuffer(0)
-		c.Conn.(*net.TCPConn).SetWriteDeadline(time.Now().Add(5 * time.Second))
-	}
+	// switch c.Conn.(type) {
+	// case *net.TCPConn:
+	// 	log_d("setting tcp connection for %v", c.RemoteAddr())
+	// 	c.Conn.(*net.TCPConn).SetWriteBuffer(0)
+	// 	c.Conn.(*net.TCPConn).SetWriteDeadline(time.Now().Add(5 * time.Second))
+	// }
 	var err error
 	var total int
 	switch c.Mod_ {
