@@ -416,7 +416,7 @@ func (n *NIM_Rh) DoPush_(mid string) (int, int, error) {
 			if mss.S == MS_DONE {
 				continue
 			}
-			msg.A = &mss.S
+			msg.A = &mss.R
 			err = n.SS.Send(con.Cid, &msg.ImMsg)
 			if err != nil {
 				log.W("sending push message(%v) err:%v", msg, err.Error())
