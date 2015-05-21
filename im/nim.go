@@ -51,9 +51,10 @@ func (n *NMR_Rh) OnCmd(r netw.Cmd) int {
 	}
 	err = n.Db.MarkRecv(tr, a, i)
 	if err == nil {
+		log_d("MarkRecv by (i:%v,a:%v) success", i, a)
 		return 0
 	} else {
-		log.W("MarkRecv by i(%v) fail:%v", args.StrVal("i"), err.Error())
+		log.W("MarkRecv by i(%v),a(%v) fail:%v", i, a, err.Error())
 		return -1
 	}
 }
