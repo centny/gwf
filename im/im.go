@@ -231,15 +231,18 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 	nim.H(nim_ob)
 	obdh.AddH(MK_NIM, nim)
 	obdh.AddH(MK_NRC, impl.NewRC_S(nim_ob))
+	log.D("setting NIM H...")
 	//
 	dim := &DIM_Rh{Db: db, DS: map[string]netw.Con{}}
 	dim_m := impl.NewRCM_S(nd, vna)
 	dim_m.AddHH("LI", dim)
 	obdh.AddH(MK_DIM, dim)
 	obdh.AddH(MK_DRC, impl.NewRC_S(dim_m))
+	log.D("setting DIM H...")
 	//
 	nmr := &NMR_Rh{Db: db}
 	obdh.AddH(MK_NMR, nmr)
+	log.D("setting NMR H...")
 	//
 	// ndh := impl.NewOBDH()
 	// // ndh.ShowCall = true
@@ -263,6 +266,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), sid, cch, ncf)
 	l.T = timeout
 	l.Name = "NIM"
+	log.D("setting DIM Pool H...")
 	// l.LConPool.SetId(sid)
 	// l.SetId(sid)
 	wim := &WIM_Rh{}
@@ -280,6 +284,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 	wim_l.Runner_ = netw.NewNLineRunner()
 	wim_l.T = timeout
 	wim_l.Name = "WIM"
+	log.D("setting WIM Pool H...")
 	nim.SS = NewMultiSender(sid, NewMarkConPoolSender([]byte("m"+WIM_SEQ), wim_l, sid), NewMarkConPoolSender([]byte{MK_NIM}, l, sid))
 	// nim.SS = NewMarkConPoolSender([]byte{MK_NIM}, l, sid)
 	dim.SS = nim.SS
