@@ -7,6 +7,7 @@ var IM = (function() {
         this.tdata = "";
         this.closed = true;
         this.showlog = true;
+        this.mrs = {};
         this.conn();
     }
     IM.WIN_SEQ = "^-^";
@@ -83,7 +84,18 @@ var IM = (function() {
         }
         var args = JSON.parse(cmds[1]);
         if (cmds[0] == "m") {
+            var tim = this;
+            setTimeout(function() {
+                tim.emit("mr", {
+                    i: args.i,
+                    a: args.a,
+                });
+            }, 1000);
+            if (this[args.i]) {
+                return;
+            }
             args.c = $.base64.atob(args.c, true);
+            this[args.i] = true;
         }
         this.on_(cmds[0], args);
     };

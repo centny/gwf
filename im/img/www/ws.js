@@ -14,14 +14,11 @@ im_ws.on("error", function(ev) {
 
 im_ws.on("connect", function(ev) {
   im_ws.emit("li", {
-    "token": "b66dc44cd9882859d84670604ae276e6-ec6e5337-8852-41ee-9953-135158a7a1ac",
+    "token": "69657ec87da52096e4f8e354ec940404-b0fe5f7c-dff6-4e53-8a9b-0b78083fa799",
   });
 });
 im_ws.on("m", function(m) {
   console.log(m);
-  im_ws.emit("mr", {
-    i: m.i,
-  });
 });
 im_ws.on("close", function() {
   clearInterval(im_ws.timer);
@@ -33,6 +30,7 @@ im_ws.on("li", function(arg) {
     console.log("login success->", arg);
     im_ws.timer = setInterval(msg, 3000);
   }
+  im_ws.emit("ur", {});
 });
 
 function msg() {

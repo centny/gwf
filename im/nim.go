@@ -99,6 +99,7 @@ func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
 	mc.S = &sid
 	mc.Cmd = c
 	mc.Ms = map[string][]*MSS{}
+	mc.added = map[string]bool{}
 	mc.Time = &tn
 	return n.OnMsg(&mc)
 }
@@ -204,9 +205,9 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 				// mc.Ms[con.R] = MS_DONE //mark done
 				// mc.Ms[con.R] = MS_PENDING + MS_SEQ + r //mark done
 			}
-			mc.Ms[con.R] = append(mc.Ms[con.R], &MSS{R: r, S: MS_PENDING})
+			mc.ams(con.R, &MSS{R: r, S: MS_PENDING})
 		} else { //in other distribution server
-			mc.Ms[con.R] = append(mc.Ms[con.R], &MSS{R: r, S: MS_PENDING})
+			mc.ams(con.R, &MSS{R: r, S: MS_PENDING})
 			tr, tc := con.R, con.Cid
 			if _, ok := dr_rc[con.Sid]; ok {
 				dr_rc[con.Sid] = append(dr_rc[con.Sid],
@@ -234,7 +235,7 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 		if tr == sender {
 			continue
 		}
-		mc.Ms[tr] = append(mc.Ms[tr], &MSS{R: r, S: MS_PENDING})
+		mc.ams(tr, &MSS{R: r, S: MS_PENDING})
 	}
 	return 0
 }

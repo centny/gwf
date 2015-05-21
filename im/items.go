@@ -22,7 +22,18 @@ type Msg struct {
 	netw.Cmd `bson:"-" json:"-"`
 	pb.ImMsg `bson:",inline"`
 	//
-	Ms map[string][]*MSS `json:"-"` //send status for user R.
+	Ms    map[string][]*MSS `json:"-"` //send status for user R.
+	added map[string]bool   `json:"-" bson:"-"`
+}
+
+func (m *Msg) ams(r string, mss *MSS) {
+	key := fmt.Sprintf("%v-%v", r, mss.R)
+	if _, ok := m.added[key]; ok {
+		return
+	} else {
+		m.Ms[r] = append(m.Ms[r], mss)
+		m.added[key] = true
+	}
 }
 
 // type DsMsg struct {

@@ -42,6 +42,7 @@ func (p *PushSrv) PushV(s string, r []string, c []byte, t uint32) (*Msg, error) 
 	msg.Time = &time
 	msg.S = &s
 	msg.Ms = map[string][]*MSS{}
+	msg.added = map[string]bool{}
 	gr, ur, err := p.Db.Sift(msg.R)
 	if err != nil {
 		return nil, err
