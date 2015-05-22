@@ -45,6 +45,10 @@ const (
 	MK_NODE_C = 30 //node server command channel.
 	MK_NODE_M = 31 //node server Message channel.
 )
+const (
+	MK_PUSH_N  = 40
+	MK_PUSH_HB = 41
+)
 
 type DbH interface {
 	netw.ConHandler
@@ -216,9 +220,12 @@ type Listener struct {
 	PubPort int
 	Err_    netw.CmdErrF
 	//
-	PushSrvAddr   string
-	PushSrvTick   time.Duration
-	PushConRunner *netw.NConRunner
+	PushSrvAddr    string
+	PushSrvTick    time.Duration
+	PushConRunner  *netw.NConRunner
+	PushSrvTickLog bool
+	//
+
 }
 
 func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, v2b netw.V2Byte, b2v netw.Byte2V, nd impl.ND_F, nav impl.NAV_F, vna impl.VNA_F) *Listener {
@@ -306,7 +313,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		Sid:         sid,
 		PubHost:     "127.0.0.1",
 		PubPort:     port,
-		PushSrvTick: 30000,
+		PushSrvTick: 5000,
 	}
 	rl = tl
 	return tl
@@ -373,11 +380,15 @@ func (l *Listener) Close() {
 }
 
 func (l *Listener) ConPushSrv(addr string) {
-	l.PushConRunner = netw.NewNConRunnerN(l.P, addr, l, impl.Json_NewCon)
+	obdh := impl.NewOBDH()
+	obdh.AddH(MK_PUSH_N, l)
+	l.PushConRunner = netw.NewNConRunnerN(l.P, addr, impl.NewChanH2(obdh, runtime.NumCPU()-1), impl.Json_NewCon)
 	l.PushConRunner.ShowLog = false //not show the netw write data log.
 	l.PushConRunner.Tick = l.PushSrvTick
+	l.PushConRunner.TickData = []byte{MK_PUSH_HB, 'H', 'B', '-', '>'}
+	l.PushConRunner.TickLog = l.PushSrvTickLog
 	l.PushConRunner.StartRunner()
-	// l.PushConRunner.StartTick()
+	l.PushConRunner.StartTick()
 }
 
 func (l *Listener) OnCmd(c netw.Cmd) int {

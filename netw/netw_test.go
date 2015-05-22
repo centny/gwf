@@ -2,9 +2,12 @@ package netw
 
 import (
 	"code.google.com/p/go.net/websocket"
+	"encoding/binary"
 	"fmt"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing/httptest"
+	"github.com/Centny/gwf/util"
+	"math"
 	"net"
 	"net/http"
 	"runtime"
@@ -322,4 +325,12 @@ func TestSome(t *testing.T) {
 	dn.ShowLog = true
 	dn.log_d("abccc->%v", 1)
 	NewListenerN2(nil, "", nil, nil)
+}
+
+func TestBesss(t *testing.T) {
+	fmt.Println(math.Pow(2, 16))
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, 41828)
+	fmt.Println(buf)
+	util.FWrite2("/tmp/tt.data", buf)
 }

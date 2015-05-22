@@ -1,6 +1,7 @@
 package im
 
 import (
+	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
@@ -10,11 +11,12 @@ import (
 
 type PushSrv struct {
 	*netw.Listener
-	Db DbH
+	Db      DbH
+	TickLog bool
 }
 
 func (p *PushSrv) Notify(mid string) int {
-	return p.Writev(&util.Map{
+	return p.Writev2([]byte{MK_PUSH_N}, &util.Map{
 		"MID": mid,
 	})
 }
@@ -68,13 +70,22 @@ func (p *PushSrv) PushV(s string, r []string, c []byte, t uint32) (*Msg, error) 
 	return msg, nil
 
 }
+func (p *PushSrv) OnCmd(c netw.Cmd) int {
+	if p.TickLog {
+		log.D("receive tick message(%v) from %v", string(c.Data()), c.RemoteAddr())
+	}
+	return 0
+}
 func NewPushSrv(p *pool.BytePool, port string, n string, h netw.CCHandler, db DbH) *PushSrv {
 	return NewPushSrvN(p, port, n, h, impl.Json_NewCon, db)
 }
 
 func NewPushSrvN(p *pool.BytePool, port string, n string, h netw.CCHandler, ncf netw.NewConF, db DbH) *PushSrv {
-	return &PushSrv{
-		Listener: netw.NewListenerN(p, port, n, h, ncf),
+	obdh := impl.NewOBDH()
+	psrv := &PushSrv{
+		Listener: netw.NewListenerN(p, port, n, netw.NewCCH(h, obdh), ncf),
 		Db:       db,
 	}
+	obdh.AddH(MK_PUSH_HB, psrv)
+	return psrv
 }

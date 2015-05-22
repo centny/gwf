@@ -62,6 +62,7 @@ type NConRunner struct {
 	BP      *pool.BytePool
 	CmdH    CmdHandler
 	ShowLog bool //setting the ShowLog to Con_
+	TickLog bool //if show the tick log.
 	WC      chan int
 }
 
@@ -98,22 +99,32 @@ func (n *NConRunner) StartTick() {
 	}
 	go n.RunTick_()
 }
+func (n *NConRunner) write_tick() {
+	c := n.C
+	if c == nil {
+		log.D("sending tick message err: the connection is nil")
+		return
+	}
+	_, err := c.Writeb(n.TickData)
+	if err != nil {
+		log.W("send tck message err:", err)
+		return
+	}
+	if n.TickLog {
+		log.D("sending tick message to Push Server")
+	}
+}
 func (n *NConRunner) RunTick_() {
 	tk := time.Tick(n.Tick * time.Millisecond)
-	c := n.C
 	n.Running = true
-	log_d("starting tick(%vms) to server(%v)", int(n.Tick), n.Addr)
+	log.I("starting tick(%vms) to server(%v)", int(n.Tick), n.Addr)
 	for n.Running {
 		select {
 		case <-tk:
-			c = n.C
-			if c != nil {
-				c.Writeb(n.TickData)
-				// log_d("sending tick message to Push Server")
-			}
+			n.write_tick()
 		}
 	}
-	log_d("tick to server(%v) will stop", n.Addr)
+	log.I("tick to server(%v) will stop", n.Addr)
 }
 func (n *NConRunner) Try() {
 	n.Running = true

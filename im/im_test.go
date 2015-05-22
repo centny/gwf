@@ -476,6 +476,7 @@ func run_c(db *MemDbH, p *pool.BytePool) {
 }
 func run_s(db *MemDbH, p *pool.BytePool) {
 	psrv := NewPushSrv(p, ":5598", "Push", netw.NewDoNotH(), db)
+	psrv.TickLog = true
 	err := psrv.Run()
 	if err != nil {
 		panic(err.Error())
@@ -505,6 +506,7 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 		l := NewListner3(db, fmt.Sprintf("S-vv-%v", i), p, 9890+i, 1000000)
 		l.WsAddr = fmt.Sprintf(":%v", 9870+i)
 		l.PushSrvAddr = "127.0.0.1:5598"
+		l.PushSrvTickLog = true
 		rc := make(chan int)
 		go func() {
 			rc <- 1

@@ -13,6 +13,14 @@ func Writev(c Con, val interface{}) (int, error) {
 		return 0, err
 	}
 }
+func Writev2(c Con, bys []byte, val interface{}) (int, error) {
+	bys2, err := c.V2B()(val)
+	if err == nil {
+		return c.Writeb(bys, bys2)
+	} else {
+		return 0, err
+	}
+}
 func Writeh(w io.Writer, bys ...[]byte) (int, error) {
 	total, err := w.Write([]byte(H_MOD))
 	if err != nil {

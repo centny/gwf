@@ -139,6 +139,7 @@ type Con interface {
 	//write one struct val to connection.
 	//it will call connection V2B func to convert the value to []byte.
 	Writev(val interface{}) (int, error)
+	Writev2(bys []byte, val interface{}) (int, error)
 	//exec on remote command by args,
 	//the return value will be converted to dest,and return dest
 	Exec(args interface{}, dest interface{}) (interface{}, error)
@@ -316,6 +317,9 @@ func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 }
 func (c *Con_) Writev(val interface{}) (int, error) {
 	return Writev(c, val)
+}
+func (c *Con_) Writev2(bys []byte, val interface{}) (int, error) {
+	return Writev2(c, bys, val)
 }
 func (c *Con_) Exec(args interface{}, dest interface{}) (interface{}, error) {
 	return nil, util.Err("connection not implement Exec")
@@ -569,6 +573,12 @@ func (l *LConPool) Writeb(bys ...[]byte) int {
 func (l *LConPool) Writev(val interface{}) int {
 	for _, con := range l.cons {
 		con.Writev(val)
+	}
+	return len(l.cons)
+}
+func (l *LConPool) Writev2(bys []byte, val interface{}) int {
+	for _, con := range l.cons {
+		con.Writev2(bys, val)
 	}
 	return len(l.cons)
 }
