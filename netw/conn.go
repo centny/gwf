@@ -107,7 +107,7 @@ func (n *NConRunner) write_tick() {
 	}
 	_, err := c.Writeb(n.TickData)
 	if err != nil {
-		log.W("send tck message err:", err)
+		log.W("send tck message err:%v", err)
 		return
 	}
 	if n.TickLog {
