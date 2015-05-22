@@ -388,7 +388,7 @@ func (l *Listener) ConPushSrv(addr string) {
 	l.PushConRunner.TickData = []byte{MK_PUSH_HB, 'H', 'B', '-', '>'}
 	l.PushConRunner.TickLog = l.PushSrvTickLog
 	l.PushConRunner.StartRunner()
-	l.PushConRunner.StartTick()
+	// l.PushConRunner.StartTick()
 }
 
 func (l *Listener) OnCmd(c netw.Cmd) int {
