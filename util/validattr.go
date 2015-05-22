@@ -191,16 +191,16 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 		case "S":
 			return validStr(ds)
 		case "I":
-			ids, err := strconv.ParseInt(ds, 10, 64)
+			ids, err := strconv.ParseFloat(ds, 64)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("invalid value(%s) for type(%s)", ds, lts[1]))
+				return nil, errors.New(fmt.Sprintf("invalid value(%s) for type(%s):%v", ds, lts[1], err))
 			} else {
-				return validInt(ids)
+				return validInt(int64(ids))
 			}
 		case "F":
 			fds, err := strconv.ParseFloat(ds, 64)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("invalid value(%s) for type(%s)", ds, lts[1]))
+				return nil, errors.New(fmt.Sprintf("invalid value(%s) for type(%s):%v", ds, lts[1], err))
 			} else {
 				return validNum(fds)
 			}

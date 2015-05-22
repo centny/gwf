@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"runtime"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -346,4 +348,24 @@ func TestChkVer(t *testing.T) {
 	fmt.Println(ChkVer("0.0.0", "o"))
 	fmt.Println(ChkVer("ss", "0.0.0"))
 	fmt.Println(ChkVer("", "0.0.0"))
+}
+
+func TestASecM(t *testing.T) {
+	m := map[string]interface{}{
+		"v": 123456789999,
+	}
+	fmt.Println(S2Json(m))
+	mv, _ := Json2Map(S2Json(m))
+	var vv int64
+	fmt.Println(reflect.TypeOf(mv["v"]))
+	fmt.Println(mv.IntVal("v"))
+	fmt.Println(strconv.ParseFloat(fmt.Sprintf("%v", mv["v"]), 64))
+	err := mv.ValidF(`
+		v,R|I,R:0
+		`, &vv)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(vv)
 }
