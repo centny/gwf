@@ -142,6 +142,7 @@ func (f *Fcfg) Exist(key string) bool {
 
 //initial the configure by .properties file.
 func (f *Fcfg) InitWithFilePath(fp string) error {
+	f.slog("loading local configure->%v", fp)
 	turl, _ := nurl.Parse(fp)
 	qs := turl.Query()
 	for k, _ := range qs {
