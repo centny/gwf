@@ -259,7 +259,7 @@ func run_im_w(p *pool.BytePool, db *MemDbH) {
 		panic("lr is empty")
 	}
 	time.Sleep(200 * time.Millisecond)
-	for i := 0; i < 800; i++ {
+	for i := 0; i < 500; i++ {
 		rs := []string{}
 		uc := 0
 		if i%2 == 0 {
@@ -379,7 +379,7 @@ func run_im_c(p *pool.BytePool, db *MemDbH) {
 	// nodec_m := impl.NewOBDH_Con(MK_NODE_M, con)
 	// nodec := impl.NewOBDH_Con(MK_NODE, con)
 	time.Sleep(200 * time.Millisecond)
-	for i := 0; i < 800; i++ {
+	for i := 0; i < 500; i++ {
 		rs := []string{}
 		uc := 0
 		if i%2 == 0 {
@@ -468,7 +468,7 @@ func wait_rec(db *MemDbH) {
 }
 func run_c(db *MemDbH, p *pool.BytePool) {
 	crun = true
-	xl, yl := 5, 6
+	xl, yl := 10, 10
 	client_c = uint64(xl * yl * 2)
 	cc_ws.Add(xl * yl * 2)
 	cc_ws2.Add(1)
