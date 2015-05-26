@@ -334,3 +334,30 @@ func TestBesss(t *testing.T) {
 	fmt.Println(buf)
 	util.FWrite2("/tmp/tt.data", buf)
 }
+
+// func TestOnlyWrite(t *testing.T) {
+// 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+// 	l, err := net.Listen("tcp", ":8435")
+// 	if err != nil {
+// 		t.Error(err.Error())
+// 		return
+// 	}
+// 	defer l.Close()s
+// 	go func() {
+// 		for {
+// 			l.Accept()
+// 		}
+// 	}()
+// 	con, err := net.Dial("tcp", ":8435")
+// 	if err != nil {
+// 		t.Error(err.Error())
+// 		return
+// 	}
+// 	for {
+// 		_, err = con.Write([]byte("123456789012345678901234567890123456789012345678901234567890"))
+// 		fmt.Println(err)
+// 		if err != nil {
+// 			break
+// 		}
+// 	}
+// }

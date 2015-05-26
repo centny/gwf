@@ -289,12 +289,10 @@ func (c *Con_) Write(b []byte) (n int, err error) {
 func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
-	// switch c.Conn.(type) {
-	// case *net.TCPConn:
-	// 	log_d("setting tcp connection for %v", c.RemoteAddr())
-	// 	c.Conn.(*net.TCPConn).SetWriteBuffer(0)
-	// 	c.Conn.(*net.TCPConn).SetWriteDeadline(time.Now().Add(5 * time.Second))
-	// }
+	switch c.Conn.(type) {
+	case *net.TCPConn:
+		c.Conn.(*net.TCPConn).SetWriteDeadline(time.Now().Add(c.CP().Delay()))
+	}
 	var err error
 	var total int
 	switch c.Mod_ {
@@ -398,6 +396,7 @@ type ConPool interface {
 	SetId(id string)
 	Handler() CCHandler
 	Runner() ConRunner
+	Delay() time.Duration
 }
 
 //the connection pool
@@ -415,6 +414,7 @@ type LConPool struct {
 	cons_l  sync.RWMutex
 	Err_    CmdErrF
 	Id_     string
+	Delay_  time.Duration //the write delay.
 }
 
 //new connection pool.
@@ -442,7 +442,8 @@ func NewLConPoolV(p *pool.BytePool, h CCHandler, n string, ncf NewConF) *LConPoo
 		Err_: func(c Cmd, d int, code byte, f string, args ...interface{}) {
 			log.D_(d, f, args...)
 		},
-		Id_: fmt.Sprintf("%v%v", n, atomic.AddUint64(&pool_idc, 1)),
+		Id_:    fmt.Sprintf("%v%v", n, atomic.AddUint64(&pool_idc, 1)),
+		Delay_: 600 * time.Second,
 	}
 }
 
@@ -600,6 +601,9 @@ func (l *LConPool) WsH() websocket.Handler {
 }
 func (l *LConPool) WsS() *websocket.Server {
 	return &websocket.Server{Handler: l.WsH()}
+}
+func (l *LConPool) Delay() time.Duration {
+	return l.Delay_
 }
 
 type ModRunner struct {
