@@ -44,6 +44,7 @@ func (r *rec_msg) OnCmd(c netw.Cmd) int {
 	if err != nil {
 		panic(err)
 	}
+	add_k_cc()
 	return 0
 }
 
@@ -51,6 +52,9 @@ var crun bool = false
 var r_cc_c uint64 = 0
 var s_cc_c uint64 = 0 //user count ->s
 var m_cc_c uint64 = 0 //message count ->s
+var k_cc_c uint64 = 0
+var slef_c uint64 = 0
+
 // var hr_cc_c uint64 = 0 //command count ->r
 // var h_cc_c uint64 = 0
 var client_c uint64 = 0
@@ -59,6 +63,12 @@ var cc_ws2 sync.WaitGroup
 
 func add_r_cc() {
 	atomic.AddUint64(&r_cc_c, 1)
+}
+func add_k_cc() {
+	atomic.AddUint64(&k_cc_c, 1)
+}
+func add_self() {
+	atomic.AddUint64(&slef_c, 1)
 }
 
 // func run_im_nc(p *pool.BytePool, db *MemDbH, rm *rec_msg) {
@@ -208,6 +218,7 @@ func run_im_w(p *pool.BytePool, db *MemDbH) {
 					"a": mv.StrVal("a"),
 				}) + "\n"))
 				add_r_cc()
+				add_k_cc()
 				// fmt.Println("m-->", string(tbys[1]))
 			case "li":
 				mv, _ := util.Json2Map(string(tbys[1]))
@@ -248,7 +259,7 @@ func run_im_w(p *pool.BytePool, db *MemDbH) {
 		panic("lr is empty")
 	}
 	time.Sleep(200 * time.Millisecond)
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 800; i++ {
 		rs := []string{}
 		uc := 0
 		if i%2 == 0 {
@@ -260,6 +271,7 @@ func run_im_w(p *pool.BytePool, db *MemDbH) {
 			uc = 0
 			for _, ur := range urs {
 				if ur == lr {
+					add_self()
 					continue
 				}
 				uc++
@@ -367,7 +379,7 @@ func run_im_c(p *pool.BytePool, db *MemDbH) {
 	// nodec_m := impl.NewOBDH_Con(MK_NODE_M, con)
 	// nodec := impl.NewOBDH_Con(MK_NODE, con)
 	time.Sleep(200 * time.Millisecond)
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 800; i++ {
 		rs := []string{}
 		uc := 0
 		if i%2 == 0 {
@@ -379,6 +391,7 @@ func run_im_c(p *pool.BytePool, db *MemDbH) {
 			uc = 0
 			for _, ur := range urs {
 				if ur == lr {
+					add_self()
 					continue
 				}
 				uc++
@@ -443,8 +456,8 @@ func wait_rec(db *MemDbH) {
 			fmt.Printf("Waiting msg(r:%v),done(s:%v)\n", m, m_cc_c)
 			continue
 		}
-		if r_cc_c != (d + db.mr_n_cc) {
-			fmt.Printf("Waiting rec(%v),done(%v)\n", r_cc_c, d+db.mr_n_cc)
+		if r_cc_c != d || k_cc_c != d || s_cc_c != r_cc_c {
+			fmt.Printf("Waiting rec(%v),s(%v),mr(%v),done(%v)\n", r_cc_c, s_cc_c, k_cc_c, d)
 			continue
 		} else {
 			break
@@ -476,7 +489,7 @@ func run_c(db *MemDbH, p *pool.BytePool) {
 }
 func run_s(db *MemDbH, p *pool.BytePool) {
 	psrv := NewPushSrv(p, ":5598", "Push", netw.NewDoNotH(), db)
-	psrv.TickLog = true
+	psrv.TickLog = false
 	err := psrv.Run()
 	if err != nil {
 		panic(err.Error())
@@ -506,7 +519,7 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 		l := NewListner3(db, fmt.Sprintf("S-vv-%v", i), p, 9890+i, 1000000)
 		l.WsAddr = fmt.Sprintf(":%v", 9870+i)
 		l.PushSrvAddr = "127.0.0.1:5598"
-		l.PushSrvTickLog = true
+		l.PushSrvTickLog = false
 		rc := make(chan int)
 		go func() {
 			rc <- 1
@@ -554,9 +567,10 @@ func TestIm(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	p.GC()
 	fmt.Println("MS:", p.Size())
-	m, r, _, _, d := db.Show()
-	if m != m_cc_c || (d+db.mr_n_cc) != r_cc_c || s_cc_c < r_cc_c || r < s_cc_c {
-		t.Error(fmt.Sprintf("%v,%v,%v,%v", m != m_cc_c, (d+db.mr_n_cc) != r_cc_c, s_cc_c < r_cc_c, r < s_cc_c))
+	m, r, pl, _, d := db.Show()
+	if m != m_cc_c || d != r_cc_c || s_cc_c != r_cc_c || r < s_cc_c || pl != slef_c {
+		t.Error(fmt.Sprintf("%v,%v,%v,%v,%v",
+			m != m_cc_c, d != r_cc_c, s_cc_c != r_cc_c, r < s_cc_c, pl != slef_c))
 	}
 	time.Sleep(time.Second)
 }

@@ -15,10 +15,10 @@ import (
 
 //the memory implement DbH interface for testing
 type MemDbH struct {
-	u_cc    uint64
-	m_cc    uint64
-	g_cc    uint64
-	mr_n_cc uint64
+	u_cc uint64
+	m_cc uint64
+	g_cc uint64
+	// mr_n_cc uint64
 
 	Cons  map[string]*Con
 	con_l sync.RWMutex
@@ -235,11 +235,13 @@ func (m *MemDbH) MarkRecv(r, a, mid string) error {
 	defer m.ms_l.Unlock()
 	if msg, ok := m.Ms[mid]; ok {
 		for _, mss := range msg.Ms[r] {
-			mss.S = MS_DONE
+			if mss.R == a {
+				mss.S = MS_DONE
+			}
 		}
 		return nil
 	} else {
-		atomic.AddUint64(&m.mr_n_cc, 1)
+		// atomic.AddUint64(&m.mr_n_cc, 1)
 		return util.Err("the message not found by id(%v)", mid)
 	}
 }

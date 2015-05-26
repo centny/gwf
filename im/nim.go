@@ -142,8 +142,19 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	log_d("receive message(%v) to R(%v) in S(%v)", mc, gur, n.SS.Id())
 	mid := n.Db.NewMid()
 	mc.I = &mid
-	dr_rc := map[string][]*pb.RC{} //
+	for r, ur := range gur {
+		for _, tr := range ur {
+			mc.ams(tr, &MSS{R: r, S: MS_PENDING})
+		}
+	}
+	err = n.Db.Store(mc) //store mesage.
+	if err != nil {
+		log.E("store message(%v) err:%v", mc, err.Error())
+		return -1
+	}
+	//
 	var iv int
+	dr_rc := map[string][]*pb.RC{} //
 	for r, ur := range gur {
 		iv = n.send_ms(r, ur, mc, dr_rc)
 		if iv != 0 {
@@ -205,9 +216,9 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 				// mc.Ms[con.R] = MS_DONE //mark done
 				// mc.Ms[con.R] = MS_PENDING + MS_SEQ + r //mark done
 			}
-			mc.ams(con.R, &MSS{R: r, S: MS_PENDING})
+			// mc.ams(con.R, &MSS{R: r, S: MS_PENDING})
 		} else { //in other distribution server
-			mc.ams(con.R, &MSS{R: r, S: MS_PENDING})
+			// mc.ams(con.R, &MSS{R: r, S: MS_PENDING})
 			tr, tc := con.R, con.Cid
 			if _, ok := dr_rc[con.Sid]; ok {
 				dr_rc[con.Sid] = append(dr_rc[con.Sid],
@@ -235,16 +246,11 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 		if tr == sender {
 			continue
 		}
-		mc.ams(tr, &MSS{R: r, S: MS_PENDING})
+		// mc.ams(tr, &MSS{R: r, S: MS_PENDING})
 	}
 	return 0
 }
 func (n *NIM_Rh) do_dis(mc *Msg, dr_rc map[string][]*pb.RC) int {
-	err := n.Db.Store(mc) //store mesage.
-	if err != nil {
-		log.E("store message(%v) err:%v", mc, err.Error())
-		return -1
-	}
 	if n.DS == nil {
 		return 0
 	}
@@ -254,7 +260,7 @@ func (n *NIM_Rh) do_dis(mc *Msg, dr_rc map[string][]*pb.RC) int {
 			M:  &mc.ImMsg,
 			Rc: rc,
 		}
-		err = n.DS.Send(dr, dmc)
+		err := n.DS.Send(dr, dmc)
 		if err == nil { //if not err,the other distribution server will makr result.
 			continue
 		} else {
