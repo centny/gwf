@@ -356,7 +356,7 @@ func (l *Listener) Run() error {
 	}
 	if len(l.PushSrvAddr) > 0 {
 		l.ConPushSrv(l.PushSrvAddr)
-		l.NIM.StartPushTask()
+		l.NIM.StartPushTask(runtime.NumCPU() - 1)
 	}
 	if len(l.WsAddr) > 0 {
 		log.I("running websocket on %v", l.WsAddr)

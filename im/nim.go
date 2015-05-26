@@ -379,8 +379,10 @@ func (n *NIM_Rh) HB(r netw.Cmd) int {
 func (n *NIM_Rh) Push(mid string) {
 	n.PushChan <- mid
 }
-func (n *NIM_Rh) StartPushTask() {
-	go n.LoopPush()
+func (n *NIM_Rh) StartPushTask(gc int) {
+	for i := 0; i < gc; i++ {
+		go n.LoopPush()
+	}
 }
 func (n *NIM_Rh) LoopPush() {
 	n.Running = true
