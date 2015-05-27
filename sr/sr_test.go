@@ -71,7 +71,7 @@ func (sr *srh_q_h) ListPkg(s *SRH_Q, hs *routing.HTTPSession, aid, dev string) (
 	}
 }
 func TestAddSr(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	sr := NewSR("/tmp")
 	ts := httptest.NewServer2(sr)
 	ts.G("")
@@ -174,7 +174,7 @@ func TestAddSr(t *testing.T) {
 }
 
 // func TestListSr(t *testing.T) {
-// 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+// 	runtime.GOMAXPROCS(util.CPU())
 // 	sqh := &srh_q_h{}
 // 	sr, srh_q := NewSR3("/tmp", sqh)
 // 	srh_q.Run(5)

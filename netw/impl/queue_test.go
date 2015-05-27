@@ -21,7 +21,7 @@ func (t *th_s2) OnCmd(c netw.Cmd) int {
 }
 
 func TestQueue(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	p := pool.NewBytePool(8, 1024)
 	ts := NewQueueH()
 	ts.AddH(&th_s2{})

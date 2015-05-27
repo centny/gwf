@@ -3,6 +3,7 @@ package util
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -67,4 +68,13 @@ func ParseInt(s string) (int, error) {
 
 func ParseInt64(s string) (int64, error) {
 	return strconv.ParseInt(s, 10, 64)
+}
+
+func CPU() int {
+	i := runtime.NumCPU()
+	if i < 2 {
+		return i
+	} else {
+		return i - 1
+	}
 }

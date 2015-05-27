@@ -47,7 +47,7 @@ func (t *exec_s) OnCmd(c netw.Cmd) int {
 }
 
 func TestExec(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	p := pool.NewBytePool(8, 1024)
 	l := NewExecListener(p, ":7686", netw.NewCCH(&exec_s_c{}, &exec_s{}))
 	l.T = 500

@@ -62,7 +62,7 @@ func (t *obdh_s) OnCmd(c netw.Cmd) int {
 }
 
 func TestOBDM(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	p := pool.NewBytePool(8, 1024)
 	obdh := NewOBDH()
 	obdh.AddH(1, &obdh_s{})

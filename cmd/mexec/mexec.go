@@ -25,7 +25,7 @@ func usage() {
 `)
 }
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	var err error
 	var id bool = false
 	var log bool = false

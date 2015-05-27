@@ -55,7 +55,7 @@ func (t *th_s) Show() {
 	}
 }
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	netw.ShowLog = false
 	p := pool.NewBytePool(8, 1024)
 	ts := &th_s{

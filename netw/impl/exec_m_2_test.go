@@ -13,7 +13,7 @@ import (
 )
 
 func TestExecPer(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	vv := make(chan int)
 	go execPer_run_s(vv)
 	execPer_run_c("127.0.0.1:7686", "run")

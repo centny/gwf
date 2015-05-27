@@ -7,6 +7,7 @@ import (
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/util"
 	"os"
 	"runtime"
 	"strings"
@@ -70,7 +71,7 @@ func usage() {
  `)
 }
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	var err error
 	var addr string = ":12345"
 	var data []byte = []byte("S->")

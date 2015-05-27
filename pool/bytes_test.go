@@ -39,7 +39,7 @@ func run_bp(bp *BytePool) {
 	bp_wg.Done()
 }
 func tbp() {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	bp := NewBytePool(8, 102400)
 	bp.T = 1000
 	go func() {

@@ -58,7 +58,7 @@ func (t *th_s) OnCmd(c netw.Cmd) int {
 }
 
 func TestChan(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	p := pool.NewBytePool(8, 1024)
 	ts := NewChanH(&th_s{})
 	ts.Run(5)

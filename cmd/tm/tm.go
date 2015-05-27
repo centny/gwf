@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/util"
 	"io"
 	"log"
 	"net"
@@ -11,7 +12,7 @@ import (
 )
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	l, err := net.Listen("tcp", ":12345")
 	if err != nil {
 		log.Fatal(err)

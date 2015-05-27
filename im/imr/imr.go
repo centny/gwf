@@ -73,7 +73,7 @@ func run() int {
 		usage()
 		return 1
 	}
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	switch L {
 	case "N":
 		log.SetLevel(log.NONE)

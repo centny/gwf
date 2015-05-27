@@ -166,7 +166,7 @@ func run_c2() {
 	time.Sleep(time.Second)
 }
 func TestExecM(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	ShowLog = true
 	go run_s()
 	time.Sleep(100 * time.Millisecond)

@@ -2,6 +2,7 @@ package tools
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/util"
 	"os"
 	"os/exec"
 	"runtime"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestExec(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	os.Remove("res.json")
 	exc := NewExec("/bin/bash", "-c", "echo abc")
 	exc.ShowLog = true

@@ -102,7 +102,7 @@ func (t *th_c2) OnClose(c Con) {
 
 //
 func TestNetw(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	ShowLog = true
 	p := pool.NewBytePool(8, 1024)
 	ts := &th_s{C: NewDoNotH()}
@@ -226,7 +226,7 @@ func TestPp(t *testing.T) {
 }
 
 func TestWs(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	ShowLog = true
 	p := pool.NewBytePool(8, 1024)
 	ts_h := &th_s{C: NewDoNotH()}
@@ -259,7 +259,7 @@ func TestWs(t *testing.T) {
 }
 
 func TestTick(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	ShowLog = true
 	p := pool.NewBytePool(8, 1024)
 	l := NewListener(p, ":6679", "N", NewDoNotH())
@@ -279,7 +279,7 @@ func TestTick(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 }
 func TestLoopTimeout(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	ShowLog = true
 	p := pool.NewBytePool(8, 1024)
 	dn := NewDoNotH()
@@ -305,7 +305,7 @@ func (p *PanicCmd) OnCmd(c Cmd) int {
 	return 0
 }
 func TestConRecover(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	ShowLog = true
 	p := pool.NewBytePool(8, 1024)
 	l := NewListener(p, ":6679", "N", NewCCH(NewDoNotH(), &PanicCmd{}))
@@ -336,7 +336,7 @@ func TestBesss(t *testing.T) {
 }
 
 // func TestOnlyWrite(t *testing.T) {
-// 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+// 	runtime.GOMAXPROCS(util.CPU())
 // 	l, err := net.Listen("tcp", ":8435")
 // 	if err != nil {
 // 		t.Error(err.Error())

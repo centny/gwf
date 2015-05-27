@@ -552,7 +552,7 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 	}
 }
 func TestIm(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	// ShowLog = true
 	// impl.ShowLog = true
 	// netw.ShowLog = true

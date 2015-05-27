@@ -14,7 +14,7 @@ import (
 )
 
 func TestImr(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	os.Remove("t.txt")
 	os.Remove("t.log")
 	// ShowLog = true

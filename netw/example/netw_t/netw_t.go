@@ -69,7 +69,7 @@ func run_s() {
 	netw.ShowLog = false
 	ts := &th_s{}
 	ts_h := handler.NewChanH(ts)
-	ts_h.Run(runtime.NumCPU() - 1)
+	ts_h.Run(util.CPU())
 	p := pool.NewBytePool(8, 1024)
 	l := netw.NewListener(p, ":7686", ts_h)
 	err := l.Run()
@@ -82,7 +82,7 @@ func run_s() {
 
 //////
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	if len(os.Args) < 2 {
 		fmt.Println("less 2")
 		return

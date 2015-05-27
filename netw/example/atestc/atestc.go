@@ -51,7 +51,7 @@ var mc_l sync.RWMutex
 var mc map[*th_c]*netw.NConPool = map[*th_c]*netw.NConPool{}
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	if len(os.Args) > 1 {
 		Addr = os.Args[1]
 	}

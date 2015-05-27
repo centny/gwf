@@ -2,6 +2,7 @@ package im
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/util"
 	// "github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/routing/httptest"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestIMC(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	runtime.GOMAXPROCS(util.CPU())
 	ShowLog = true
 	// impl.ShowLog = true
 	// netw.ShowLog = true

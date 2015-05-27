@@ -24,7 +24,6 @@ import (
 	"github.com/Centny/gwf/util"
 	"github.com/golang/protobuf/proto"
 	"net"
-	"runtime"
 	"time"
 )
 
@@ -269,7 +268,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		return cc
 	}
 	dip := NewDimPool(db, sid, p, v2b, b2v, nav, ncf, dim)
-	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), impl.NewChanH2(obdh, runtime.NumCPU()-1))
+	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), impl.NewChanH2(obdh, util.CPU()))
 	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), sid, cch, ncf)
 	l.T = timeout
 	l.Name = "NIM"
@@ -286,7 +285,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		cc.B2V_ = impl.Json_B2V
 		return cc
 	}
-	wim_cch := netw.NewCCH(netw.NewQueueConH(dim, wim), impl.NewChanH2(wim, runtime.NumCPU()-1))
+	wim_cch := netw.NewCCH(netw.NewQueueConH(dim, wim), impl.NewChanH2(wim, util.CPU()))
 	wim_l := netw.NewLConPoolV(p, wim_cch, sid, wim_ncf)
 	wim_l.Runner_ = netw.NewNLineRunner()
 	wim_l.T = timeout
@@ -356,7 +355,7 @@ func (l *Listener) Run() error {
 	}
 	if len(l.PushSrvAddr) > 0 {
 		l.ConPushSrv(l.PushSrvAddr)
-		l.NIM.StartPushTask(runtime.NumCPU() - 1)
+		l.NIM.StartPushTask(util.CPU())
 	}
 	if len(l.WsAddr) > 0 {
 		log.I("running websocket on %v", l.WsAddr)
@@ -382,7 +381,7 @@ func (l *Listener) Close() {
 func (l *Listener) ConPushSrv(addr string) {
 	obdh := impl.NewOBDH()
 	obdh.AddH(MK_PUSH_N, l)
-	l.PushConRunner = netw.NewNConRunnerN(l.P, addr, impl.NewChanH2(obdh, runtime.NumCPU()-1), impl.Json_NewCon)
+	l.PushConRunner = netw.NewNConRunnerN(l.P, addr, impl.NewChanH2(obdh, util.CPU()), impl.Json_NewCon)
 	l.PushConRunner.ShowLog = false //not show the netw write data log.
 	l.PushConRunner.Tick = l.PushSrvTick
 	l.PushConRunner.TickData = []byte{MK_PUSH_HB, 'H', 'B', '-', '>'}

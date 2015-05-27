@@ -35,8 +35,8 @@ func RunSrv() {
 	p := pool.NewBytePool(8, 1024) //memory pool.
 	l, cc, cms := impl.NewChanExecListener_m_j(p, ":8797", netw.NewCWH(true))
 	cms.AddHFunc("list", List)
-	cc.Run(runtime.NumCPU() - 1) //start the chan distribution, if not start, sub handler will not receive message
-	err := l.Run()               //run the listen server
+	cc.Run(util.CPU()) //start the chan distribution, if not start, sub handler will not receive message
+	err := l.Run()     //run the listen server
 	if err != nil {
 		panic(err.Error())
 	}
