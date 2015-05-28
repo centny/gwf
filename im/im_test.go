@@ -567,7 +567,7 @@ func TestIm(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	p.GC()
 	fmt.Println("MS:", p.Size())
-	m, r, pl, _, d := db.Show()
+	m, r, _, _, d := db.Show()
 	if m != m_cc_c || d != r_cc_c || s_cc_c != r_cc_c || r < s_cc_c {
 		t.Error(fmt.Sprintf("%v,%v,%v,%v",
 			m != m_cc_c, d != r_cc_c, s_cc_c != r_cc_c, r < s_cc_c))
