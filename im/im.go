@@ -193,6 +193,7 @@ func (m *MarkConPoolSender) SendC(con netw.Con, v interface{}) error {
 	// fmt.Println(fmt.Sprintf("%v", mm), string(bys))
 	// m.lck.Lock()
 	// defer m.lck.Unlock()
+	log_d("begin send message(%v) to %v, res:%v", v, con.RemoteAddr(), err)
 	_, err = con.Writeb(m.Mark, bys, m.End)
 	log_d("sending message(%v) to %v, res:%v", v, con.RemoteAddr(), err)
 	// if err == nil || vv < len(bys) {
