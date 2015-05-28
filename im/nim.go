@@ -132,8 +132,9 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 			return -1
 		}
 	}
+	sender := mc.GetS()
 	if len(ur) > 0 {
-		gur[mc.GetS()] = ur
+		gur[sender] = ur
 	}
 	if len(gur) < 1 {
 		log.E("receive empty R message(%v)", mc)
@@ -144,6 +145,10 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	mc.I = &mid
 	for r, ur := range gur {
 		for _, tr := range ur {
+			if sender == tr {
+				//exclude self.
+				continue
+			}
 			mc.ams(tr, &MSS{R: r, S: MS_PENDING})
 		}
 	}
