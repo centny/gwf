@@ -42,7 +42,7 @@ echo "Running Test"
 #  github.com/Centny/gwf/im\
 # "
 pkgs="\
-  github.com/Centny/gwf/im\
+  github.com/Centny/gwf/im/imr\
 "
 echo "mode: set" > a.out
 for p in $pkgs;
@@ -61,4 +61,4 @@ cat coverage.json | gocov-html coverage.json > coverage.html
 
 ######
 go install github.com/Centny/gwf
-go install github.com/Centny/gwf/ini/inic
+go install github.com/Centny/gwf/im/imc

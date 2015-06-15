@@ -76,6 +76,34 @@ func (p *PushSrv) OnCmd(c netw.Cmd) int {
 	}
 	return 0
 }
+
+// func (p *PushSrv) DoPcm(hs *routing.HTTPSession) routing.HResult {
+// 	var r, c, s string
+// 	var t int64
+// 	err := hs.ValidCheckVal(`
+// 		s,O|S,L:0;
+// 		r,R|S,L:0;
+// 		c,R|S,L:0;
+// 		t,R|I,O:0~1~101;
+// 		`, &s, &r, &c, &t)
+// 	if err != nil {
+// 		return hs.MsgResErr2(1, "arg-err", err)
+// 	}
+// 	if len(s) > 0 {
+// 		_, err = p.PushN(s, r, c, uint32(t))
+// 	} else {
+// 		uid := hs.IntVal("uid")
+// 		if s, err = p.Db.FindUsrR(uid); err == nil {
+// 			_, err = p.PushN(s, r, c, uint32(t))
+// 		}
+// 	}
+// 	if err == nil {
+// 		return hs.MsgRes("OK")
+// 	} else {
+// 		return hs.MsgResErr2(1, "srv-err", err)
+// 	}
+// }
+
 func NewPushSrv(p *pool.BytePool, port string, n string, h netw.CCHandler, db DbH) *PushSrv {
 	return NewPushSrvN(p, port, n, h, impl.Json_NewCon, db)
 }

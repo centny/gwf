@@ -134,7 +134,7 @@ func (n *NConRunner) Try() {
 		if err == nil {
 			break
 		}
-		log.D("try connect to server(%v) err:%v,will retry after %v ms", n.Addr, err.Error(), n.Retry)
+		log.D("try connect to server(%v) err:%v,will retry after %v ms", n.Addr, err.Error(), int64(n.Retry))
 		time.Sleep(n.Retry * time.Millisecond)
 	}
 	// log.D("connect try stopped")

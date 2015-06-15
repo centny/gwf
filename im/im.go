@@ -64,6 +64,8 @@ type DbH interface {
 	//
 	//find current con user R.
 	FUsrR(c netw.Cmd) string
+	//
+	// FindUsrR(uid int64) (string, error)
 	//list all user R by group R,if gr is nil return all online user R.
 	ListUsrR(gr []string) (map[string][]string, error)
 	//sift the R to group R and user R.

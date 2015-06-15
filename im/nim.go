@@ -16,6 +16,7 @@ const (
 	MK_NRC_LI = 10
 	MK_NRC_LO = 20
 	MK_NRC_UR = 30
+	MK_NRC_GR = 40 // list the group user R.
 )
 const (
 	MS_SEQ = "^->"
@@ -279,6 +280,7 @@ func (n *NIM_Rh) H(obdh *impl.OBDH) {
 	obdh.AddF(MK_NRC_LI, n.LI)
 	obdh.AddF(MK_NRC_LO, n.LO)
 	obdh.AddF(MK_NRC_UR, n.UR)
+	obdh.AddF(MK_NRC_GR, n.GR)
 }
 
 // func (n *NIM_Rh) Exec(r *impl.RCM_Cmd) (interface{}, error) {
@@ -386,6 +388,22 @@ func (n *NIM_Rh) HB(r netw.Cmd) int {
 	defer r.Done()
 	r.Writeb(r.Data())
 	return 0
+}
+func (n *NIM_Rh) GR(r netw.Cmd) int {
+	defer r.Done()
+	var args LGR_Arg
+	_, err := r.V(&args)
+	if err != nil {
+		log.W("LGR V fail:%v", err.Error())
+		return n.writev_ce(r, err.Error())
+	}
+	ur, err := n.Db.ListUsrR(args.GR)
+	if err == nil {
+		log_d("list user R by(%v)", args)
+		return n.writev_c(r, ur)
+	} else {
+		return n.writev_ce(r, err.Error())
+	}
 }
 func (n *NIM_Rh) Push(mid string) {
 	n.PushChan <- mid

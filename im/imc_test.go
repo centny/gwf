@@ -84,6 +84,18 @@ func TestIMC(t *testing.T) {
 	for imc.RC < 20 || imc2.RC < 20 {
 		time.Sleep(300 * time.Millisecond)
 	}
+	db.Grp["G-abc"] = []string{"U-a", "U-b"}
+	ur, err := imc.GR([]string{"G-abc"})
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	urs := ur["G-abc"]
+	if len(urs) < 2 || urs[0] != "U-a" || urs[1] != "U-b" {
+		t.Error("error")
+		return
+	}
+	fmt.Println(ur)
 	fmt.Println("\n\n\n")
 	fmt.Println(db.Show())
 	go imc.Close()

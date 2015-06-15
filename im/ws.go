@@ -60,6 +60,8 @@ func (n *WIM_Rh) OnCmd(c netw.Cmd) int {
 		return n.UR(tcmd)
 	case "mr":
 		return n.NMR_Rh.OnCmd(tcmd)
+	case "gr":
+		return n.GR(tcmd)
 	default:
 		log.E("unknow command(%v) from (%v)", tcmd.C, c.RemoteAddr().String())
 		return -1

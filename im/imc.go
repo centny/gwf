@@ -30,6 +30,7 @@ type IMC struct {
 	logined bool
 	HBT     time.Duration
 	RC      uint64 //receive message count.
+	HbLog   bool
 }
 
 func NewIMC(srv, token string) *IMC {
@@ -75,6 +76,18 @@ func NewIMC4(sl, token string) (*IMC, error) {
 		return nil, util.Err("im server not found on listSrv(%v) by %v", sl, ssm)
 	}
 	return NewIMC3(ssl, token), nil
+}
+func NewIMC5(srv string, ls bool, token string) (*IMC, error) {
+	if ls {
+		return NewIMC4(srv, token)
+	} else {
+		return NewIMC(srv, token), nil
+	}
+}
+func (i *IMC) hblog(f string, args ...interface{}) {
+	if i.HbLog {
+		log.D_(1, f, args...)
+	}
 }
 func (i *IMC) Start() {
 	i.LC.Add(1)
@@ -159,6 +172,25 @@ func (i *IMC) MR(a, mid string) error {
 	})
 	return err
 }
+func (i *IMC) GR(gr []string) (map[string][]string, error) {
+	if i.MRC == nil {
+		panic("not start connect")
+	}
+	log_d("sending GR by (%v)", gr)
+	var res util.Map
+	_, err := i.C.Execm(MK_NRC_GR, map[string]interface{}{
+		"gr": gr,
+	}, &res)
+	if err != nil {
+		return nil, err
+	}
+	if res.IntVal("code") != 0 {
+		return nil, util.Err("%v", res.StrVal("err"))
+	}
+	var ur map[string][]string
+	err = util.Json2S(util.S2Json(res.Val("res")), &ur)
+	return ur, err
+}
 func (i *IMC) rhb(delay time.Duration) {
 	var times_ time.Duration = 0
 	i.hbing = true
@@ -167,7 +199,7 @@ func (i *IMC) rhb(delay time.Duration) {
 		d, err := i.HB("D->")
 		if err == nil && d == "D->" {
 			times_++
-			log.D("HB(%v) success, will retry after %v", d, times_*delay)
+			i.hblog("HB(%v) success, will retry after %v", d, times_*delay)
 			time.Sleep(times_ * delay)
 		} else {
 			times_ = 0

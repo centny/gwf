@@ -1,0 +1,40 @@
+2015/06/10 20:16:49 exec_h.go:256: [D] clearing all waiting exec(0),err(<nil>)
+2015/06/10 20:16:49 imc.go:54: [D] creating IMC by :9790
+2015/06/10 20:16:49 imr.go:225: [I] imr running on mode C
+2015/06/10 20:16:49 conn.go:86: [D] starting runner...
+2015/06/10 20:16:49 listener.go:76: [D] accepting tcp connect(127.0.0.1:1691) in pool(S-vx-02)
+2015/06/10 20:16:49 netw.go:500: [D] add connect(C13) to pool(C-10)
+2015/06/10 20:16:49 conn.go:133: [D] connect to server(:9790) success
+2015/06/10 20:16:49 netw.go:500: [D] add connect(C14) to pool(S-vx-02)
+2015/06/10 20:16:49 netw.go:543: [D] :running connection(127.0.0.1:9790,C13) in pool(C-10)
+2015/06/10 20:16:49 imc.go:113: [D] doing login by token(xxx)
+2015/06/10 20:16:49 netw.go:543: [D] NIM:running connection(127.0.0.1:1691,C14) in pool(S-vx-02)
+2015/06/10 20:16:49 mdb.go:182: [D] user login by R(U-6)
+2015/06/10 20:16:49 mdb.go:61: [D] adding connection &{ S-vx-0 C14 U-6 N 0 1 U-6}
+2015/06/10 20:16:49 netw.go:266: [D] set waiting(true) for C14:127.0.0.1:1691
+2015/06/10 20:16:49 nim.go:345: [D] LI success by R(U-6),CT(1) for:127.0.0.1:1691
+2015/06/10 20:16:49 netw.go:266: [D] set waiting(true) for C13:127.0.0.1:9790
+2015/06/10 20:16:49 imc.go:136: [D] IMC login succes by token(xxx)->{   U-6 N 0 1 U-6}
+2015/06/10 20:16:49 imc.go:206: [D] IMC starting HB by delay(1s)
+2015/06/10 20:16:49 imc.go:191: [D] running HB by delay(1s)...
+2015/06/10 20:16:49 nim.go:144: [D] receive message(s:"U-6" r:"U-1" t:0 c:"abcc" time:1433938609146 ) to R(map[U-6:[U-1]]) in S(S-vx-0)
+2015/06/10 20:16:49 nim.go:205: [D] found 1 online user for RS([U-1]) in S(S-vx-0)
+2015/06/10 20:16:49 nim.go:144: [D] receive message(s:"U-6" r:"U-1" t:0 c:"abkkk" time:1433938609146 ) to R(map[U-6:[U-1]]) in S(S-vx-0)
+2015/06/10 20:16:49 nim.go:215: [D] sending message({0xc20dd2df00 0xc20dd2ddb0 [U-1] 0xc213947620 <nil> [97 98 99 99] <nil> 0xc20dd2ddc0 <nil> <nil> <nil> []}) to con({ S-vx-0 C4 U-1 N 0 1 U-1})
+2015/06/10 20:16:49 nim.go:205: [D] found 1 online user for RS([U-1]) in S(S-vx-0)
+2015/06/10 20:16:49 imc.go:196: [D] HB(D->) success, will retry after 1s
+2015/06/10 20:16:49 nim.go:215: [D] sending message({0xc20e135b00 0xc20e1359b0 [U-1] 0xc20de2f080 <nil> [97 98 107 107 107] <nil> 0xc20e1359c0 <nil> <nil> <nil> []}) to con({ S-vx-0 C4 U-1 N 0 1 U-1})
+2015/06/10 20:16:49 im.go:198: [D] begin send message(i:"M-84" s:"U-6" r:"U-1" t:0 d:"U-1" c:"abcc" a:"U-6" time:1433938609146 ) to 127.0.0.1:1684, res:<nil>
+2015/06/10 20:16:49 im.go:198: [D] begin send message(i:"M-85" s:"U-6" r:"U-1" t:0 d:"U-1" c:"abkkk" a:"U-6" time:1433938609146 ) to 127.0.0.1:1684, res:<nil>
+2015/06/10 20:16:49 im.go:200: [D] sending message(i:"M-84" s:"U-6" r:"U-1" t:0 d:"U-1" c:"abcc" a:"U-6" time:1433938609146 ) to 127.0.0.1:1684, res:<nil>
+2015/06/10 20:16:49 im.go:200: [D] sending message(i:"M-85" s:"U-6" r:"U-1" t:0 d:"U-1" c:"abkkk" a:"U-6" time:1433938609146 ) to 127.0.0.1:1684, res:<nil>
+2015/06/10 20:16:49 nim.go:55: [D] MarkRecv by (i:M-84,a:U-6) success
+2015/06/10 20:16:49 nim.go:55: [D] MarkRecv by (i:M-85,a:U-6) success
+2015/06/10 20:16:50 nim.go:144: [D] receive message(s:"U-1" r:"U-6" t:0 c:"abcc" time:1433938610058 ) to R(map[U-1:[U-6]]) in S(S-vx-0)
+2015/06/10 20:16:50 nim.go:205: [D] found 1 online user for RS([U-6]) in S(S-vx-0)
+2015/06/10 20:16:50 nim.go:215: [D] sending message({0xc21613e580 0xc21613e440 [U-6] 0xc213947a00 <nil> [97 98 99 99] <nil> 0xc21613e438 <nil> <nil> <nil> []}) to con({ S-vx-0 C14 U-6 N 0 1 U-6})
+2015/06/10 20:16:50 im.go:198: [D] begin send message(i:"M-86" s:"U-1" r:"U-6" t:0 d:"U-6" c:"abcc" a:"U-1" time:1433938610058 ) to 127.0.0.1:1691, res:<nil>
+2015/06/10 20:16:50 im.go:200: [D] sending message(i:"M-86" s:"U-1" r:"U-6" t:0 d:"U-6" c:"abcc" a:"U-1" time:1433938610058 ) to 127.0.0.1:1691, res:<nil>
+2015/06/10 20:16:50 imc.go:196: [D] HB(D->) success, will retry after 2s
+2015/06/10 20:16:51 conn.go:93: [D] stopping runner...
+2015/06/10 20:16:51 imc.go:238: [D] IMC closing...

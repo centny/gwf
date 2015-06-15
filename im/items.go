@@ -97,3 +97,7 @@ func (s *Srv) Addr() string {
 // 	}
 // 	return sc
 // }
+
+type LGR_Arg struct {
+	GR []string `json:"gr"`
+}

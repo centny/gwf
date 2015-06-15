@@ -551,7 +551,7 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 		l.Close()
 	}
 }
-func TestIm(t *testing.T) {
+func testIm(t *testing.T) {
 	runtime.GOMAXPROCS(util.CPU())
 	// ShowLog = true
 	// impl.ShowLog = true

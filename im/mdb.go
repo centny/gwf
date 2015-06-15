@@ -95,6 +95,10 @@ func (m *MemDbH) FUsrR(c netw.Cmd) string {
 	return c.Kvs().StrVal("R")
 }
 
+// func (m *MemDbH) FindUsrR(uid int64) (string, error) {
+// 	return fmt.Sprintf("U-%v", uid), nil
+// }
+
 //list all user R by group R
 func (m *MemDbH) ListUsrR(gr []string) (map[string][]string, error) {
 	trs := map[string][]string{}
