@@ -220,7 +220,7 @@ func Json2Map(data string) (Map, error) {
 	d := json.NewDecoder(strings.NewReader(data))
 	err := d.Decode(&md)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("invalid json data(%s)", err.Error()))
+		return nil, errors.New(fmt.Sprintf("decode to json error(%v) by data(%v)", err.Error(), data))
 	}
 	return md, nil
 }
@@ -230,7 +230,7 @@ func Json2Ary(data string) ([]interface{}, error) {
 	d := json.NewDecoder(strings.NewReader(data))
 	err := d.Decode(&ary)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("invalid json data(%s)", err.Error()))
+		return nil, errors.New(fmt.Sprintf("decode to json error(%v) by data(%v)", err.Error(), data))
 	}
 	return ary, nil
 }

@@ -129,6 +129,7 @@ func (d *DoImc) push(aurs []string) error {
 	if len(d.PushUrl) < 1 {
 		return nil
 	}
+	log.D("doing push by url(%v),usr(%v)", d.PushUrl, d.PushUsr)
 	for i := 0; i < d.Mc; i++ {
 		res, err := util.HGet2(d.PushUrl, d.PushUsr, strings.Join(aurs, ","), "Push->", 0)
 		if err != nil {
