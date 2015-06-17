@@ -9,11 +9,13 @@ import (
 
 type Lsd struct {
 	root string
+	P    string
 	Ms   map[string]bool
 }
 
-func NewLsd() *Lsd {
+func NewLsd(p string) *Lsd {
 	return &Lsd{
+		P:  p,
 		Ms: map[string]bool{},
 	}
 }
@@ -31,6 +33,9 @@ func (l *Lsd) WalkFunc(path string, info os.FileInfo, err error) error {
 		path = strings.TrimPrefix(path, l.root)
 	} else {
 		path = strings.TrimPrefix(path, l.root+"/")
+	}
+	if len(l.P) > 0 && !strings.HasPrefix(path, l.P) {
+		return nil
 	}
 	dir, _ := filepath.Split(path)
 	dir = strings.TrimSuffix(dir, "/")
