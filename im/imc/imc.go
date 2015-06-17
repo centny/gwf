@@ -16,7 +16,7 @@ import (
 
 func usage() {
 	fmt.Println(`
-Usage: imr -t <login token> [-s <server address> | -l <server list url>] [-m R|C|T] [-L D|I|W|E|N] [-g groups] [-c message count] [-P push url] [-p push user] [-T timeout]
+Usage: imc -t <login token> [-s <server address> | -l <server list url>] [-m R|C|T] [-L D|I|W|E|N] [-g groups] [-c message count] [-P push url] [-p push user] [-T timeout]
    -t <login token> target login token.
    -s <server address> special target im server address.
    -l <server list url> the im server list URL,it will rand one server to logn.
