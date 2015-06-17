@@ -139,6 +139,7 @@ func (d *DoImc) push(aurs []string) error {
 			return util.Err("do push to %v err:%v", d.PushUrl, res)
 		}
 	}
+	log.D("push %v message to %v user", d.Mc, len(aurs))
 	for _, ur := range aurs {
 		d.Res[ur][fmt.Sprintf("A->%v", d.PushUsr)] = d.Mc
 	}
