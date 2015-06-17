@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 var ef func(c int) = os.Exit
@@ -38,7 +39,10 @@ func main() {
 		return
 	}
 	lsd := NewLsd(p)
-	lsd.Walk(path)
+	paths := strings.Split(path, ",")
+	for _, pt := range paths {
+		lsd.Walk(pt)
+	}
 	if len(j) > 0 {
 		lsd.JoinPrint(j)
 	} else {

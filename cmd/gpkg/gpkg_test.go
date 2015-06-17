@@ -13,7 +13,7 @@ func TestLsd(t *testing.T) {
 	os.Args = []string{"gpkg"}
 	main()
 	fmt.Println("3")
-	os.Args = []string{"gpkg", ".."}
+	os.Args = []string{"gpkg", "..,."}
 	main()
 	fmt.Println("4")
 	os.Args = []string{"gpkg", "./"}
