@@ -46,5 +46,5 @@ func main() {
 	}
 }
 func usage() {
-	fmt.Println(`Usage:	gpkg -j <seq> <base path>`)
+	fmt.Println(`Usage:	gpkg [-j <seq>] [-p <prefix>] <base path>`)
 }
