@@ -12,6 +12,14 @@ func TestLsd(t *testing.T) {
 	main()
 	os.Args = []string{"gpkg", ".."}
 	main()
+	os.Args = []string{"gpkg", "./"}
+	main()
 	os.Args = []string{"gpkg", "-j", ",", ".."}
+	main()
+	os.Args = []string{"gpkg", "-j", ",", "/sds/"}
+	main()
+	os.Args = []string{"gpkg", "-j", ","}
+	main()
+	os.Args = []string{"gpkg", "/sds/"}
 	main()
 }
