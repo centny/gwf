@@ -6,6 +6,9 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/util"
 	"net"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -161,4 +164,20 @@ func NewTSk_C(con string) (*TSK_C, error) {
 		W:   bufio.NewWriter(cc),
 		R:   bufio.NewReader(cc),
 	}, nil
+}
+
+func IgMain(f func()) {
+	nargs := []string{}
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "-test") {
+			continue
+		} else {
+			nargs = append(nargs, arg)
+		}
+	}
+	os.Args = nargs
+	go f()
+	for !util.Fexists(filepath.Join(os.TempDir(), "/.gwf.ig.exit")) {
+		time.Sleep(time.Second)
+	}
 }

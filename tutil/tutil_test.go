@@ -3,6 +3,9 @@ package tutil
 import (
 	"fmt"
 	"github.com/Centny/gwf/util"
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -34,4 +37,19 @@ func TestRun3(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	tsk_.Stop()
 	time.Sleep(time.Second)
+}
+func TestIgMain(t *testing.T) {
+	runtime.GOMAXPROCS(util.CPU())
+	fmt.Println(os.TempDir())
+	oargs := os.Args
+	os.Args = []string{"abcc", "-test.sss"}
+	go IgMain(func() {
+		fmt.Println("running-->")
+		time.Sleep(100 * time.Second)
+	})
+	time.Sleep(2 * time.Second)
+	util.FTouch(filepath.Join(os.TempDir(), ".gwf.ig.exit"))
+	time.Sleep(2 * time.Second)
+	os.Args = oargs
+	os.Remove(filepath.Join(os.TempDir(), ".gwf.ig.exit"))
 }
