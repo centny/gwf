@@ -11,7 +11,7 @@ var ef func(c int) = os.Exit
 func main() {
 	var j string
 	var p string
-	var m string
+	var ign, m string
 	var a string
 	var path string
 	olen := len(os.Args)
@@ -25,6 +25,11 @@ func main() {
 		case "-p":
 			if i < olen-1 {
 				p = os.Args[i+1]
+				i++
+			}
+		case "-i":
+			if i < olen-1 {
+				ign = os.Args[i+1]
 				i++
 			}
 		case "-m":
@@ -50,7 +55,7 @@ func main() {
 		ef(1)
 		return
 	}
-	lsd := NewLsd(m, p)
+	lsd := NewLsd(m, ign, p)
 	paths := strings.Split(path, ",")
 	for _, pt := range paths {
 		lsd.Walk(pt)
@@ -62,5 +67,5 @@ func main() {
 	}
 }
 func usage() {
-	fmt.Println(`Usage:	gpkg [-j <seq>] [-p <prefix>] -[a append prefix] <base path>`)
+	fmt.Println(`Usage:	gpkg [-j <seq>] [-p <prefix>] [-a append prefix] [-i ingore regex] [-m match regex] <base path>`)
 }

@@ -37,3 +37,14 @@ func TestLsd(t *testing.T) {
 	os.Args = []string{"gpkg", "-h"}
 	main()
 }
+
+// func TestLsd2(t *testing.T) {
+// 	info, err := os.Lstat("/Users/cny/.go/src/com.dy.ims")
+// 	if err != nil {
+// 		t.Error(err.Error())
+// 		return
+// 	}
+// 	fmt.Println(info.IsDir())
+// 	os.Args = []string{"gpkg", "~/.go/src/com.dy.ims"}
+// 	main()
+// }
