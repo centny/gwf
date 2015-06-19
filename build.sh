@@ -62,3 +62,6 @@ cat coverage.json | gocov-html coverage.json > coverage.html
 ######
 go install github.com/Centny/gwf
 go install github.com/Centny/gwf/im/imc
+go install github.com/Centny/gwf/cmd/gpkg
+go install github.com/Centny/gwf/cmd/hj
+go install github.com/Centny/gwf/cmd/fcfg
