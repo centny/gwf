@@ -46,7 +46,7 @@ func TestIgMain(t *testing.T) {
 	go IgMain(func() {
 		fmt.Println("running-->")
 		time.Sleep(100 * time.Second)
-	})
+	}, "t.pf")
 	time.Sleep(2 * time.Second)
 	util.FTouch(filepath.Join(os.TempDir(), ".gwf.ig.exit"))
 	time.Sleep(2 * time.Second)

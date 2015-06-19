@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"strings"
 	"sync"
 	"time"
@@ -166,7 +167,16 @@ func NewTSk_C(con string) (*TSK_C, error) {
 	}, nil
 }
 
-func IgMain(f func()) {
+func IgMain(f func(), pf string) {
+	if len(pf) > 0 {
+		f, err := os.Create(pf)
+		if err != nil {
+			panic(err.Error())
+		}
+		defer f.Close()
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 	log.I("IgMain start...")
 	nargs := []string{}
 	for _, arg := range os.Args {
@@ -182,7 +192,8 @@ func IgMain(f func()) {
 		f()
 		log.I("IgMain main done...")
 	}()
-	for !util.Fexists(filepath.Join(os.TempDir(), "/.gwf.ig.exit")) {
+	fp := filepath.Join(os.TempDir(), "/.gwf.ig.exit")
+	for !util.Fexists(fp) {
 		time.Sleep(time.Second)
 	}
 	log.I("IgMain done...")
