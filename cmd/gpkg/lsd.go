@@ -55,15 +55,15 @@ func (l *Lsd) Walk(root string) error {
 	l.root = root
 	return filepath.Walk(root, l.WalkFunc)
 }
-func (l *Lsd) Print() {
+func (l *Lsd) Print(a string) {
 	for m, _ := range l.Ms {
-		fmt.Println(m)
+		fmt.Println(a + m)
 	}
 }
-func (l *Lsd) JoinPrint(sep string) {
+func (l *Lsd) JoinPrint(sep, a string) {
 	var tms []string
 	for k, _ := range l.Ms {
-		tms = append(tms, k)
+		tms = append(tms, a+k)
 	}
 	fmt.Println(strings.Join(tms, sep))
 }

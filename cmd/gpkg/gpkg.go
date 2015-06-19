@@ -12,6 +12,7 @@ func main() {
 	var j string
 	var p string
 	var m string
+	var a string
 	var path string
 	olen := len(os.Args)
 	for i := 1; i < olen; i++ {
@@ -29,6 +30,11 @@ func main() {
 		case "-m":
 			if i < olen-1 {
 				m = os.Args[i+1]
+				i++
+			}
+		case "-a":
+			if i < olen-1 {
+				a = os.Args[i+1]
 				i++
 			}
 		case "-h":
@@ -50,11 +56,11 @@ func main() {
 		lsd.Walk(pt)
 	}
 	if len(j) > 0 {
-		lsd.JoinPrint(j)
+		lsd.JoinPrint(j, a)
 	} else {
-		lsd.Print()
+		lsd.Print(a)
 	}
 }
 func usage() {
-	fmt.Println(`Usage:	gpkg [-j <seq>] [-p <prefix>] <base path>`)
+	fmt.Println(`Usage:	gpkg [-j <seq>] [-p <prefix>] -[a append prefix] <base path>`)
 }
