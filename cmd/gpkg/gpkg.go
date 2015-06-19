@@ -11,6 +11,7 @@ var ef func(c int) = os.Exit
 func main() {
 	var j string
 	var p string
+	var m string
 	var path string
 	olen := len(os.Args)
 	for i := 1; i < olen; i++ {
@@ -23,6 +24,11 @@ func main() {
 		case "-p":
 			if i < olen-1 {
 				p = os.Args[i+1]
+				i++
+			}
+		case "-m":
+			if i < olen-1 {
+				m = os.Args[i+1]
 				i++
 			}
 		case "-h":
@@ -38,7 +44,7 @@ func main() {
 		ef(1)
 		return
 	}
-	lsd := NewLsd(p)
+	lsd := NewLsd(m, p)
 	paths := strings.Split(path, ",")
 	for _, pt := range paths {
 		lsd.Walk(pt)
