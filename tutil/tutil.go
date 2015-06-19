@@ -167,7 +167,19 @@ func NewTSk_C(con string) (*TSK_C, error) {
 	}, nil
 }
 
-func IgMain(f func(), pf string) {
+func IgMain(f func()) {
+	log.I("IgMain start...")
+	nargs := []string{}
+	pf := ""
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "-test") {
+			continue
+		} else if strings.HasPrefix(arg, "-test.pprof=") {
+			pf = strings.TrimPrefix(arg, "-test.pprof=")
+		} else {
+			nargs = append(nargs, arg)
+		}
+	}
 	if len(pf) > 0 {
 		f, err := os.Create(pf)
 		if err != nil {
@@ -176,15 +188,6 @@ func IgMain(f func(), pf string) {
 		defer f.Close()
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
-	}
-	log.I("IgMain start...")
-	nargs := []string{}
-	for _, arg := range os.Args {
-		if strings.HasPrefix(arg, "-test") {
-			continue
-		} else {
-			nargs = append(nargs, arg)
-		}
 	}
 	os.Args = nargs
 	go func() {
