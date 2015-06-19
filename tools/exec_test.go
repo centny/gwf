@@ -13,6 +13,7 @@ import (
 func TestExec(t *testing.T) {
 	runtime.GOMAXPROCS(util.CPU())
 	os.Remove("res.json")
+	os.Remove("emma.xml")
 	exc := NewExec("/bin/bash", "-c", "echo abc")
 	exc.ShowLog = true
 	exc.Run(1)
@@ -46,7 +47,7 @@ func TestExec(t *testing.T) {
 		t.Error("not right")
 		return
 	}
-	exk.SaveP("res.json")
+	exk.SaveP("res.json", "emma.xml")
 	exk.Save(os.Stdout)
 	exk = NewExeK(1, 10, 25, "/bin/bash", "-c")
 	exk.Start()

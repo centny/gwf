@@ -34,3 +34,5 @@ mexec.json
 cmd/mexec/sp.json
 
 tutil/t.pf
+
+tools/emma.xml

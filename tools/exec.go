@@ -98,8 +98,39 @@ func (e *Exec) Run(tc int) {
 func (e *Exec) Wait() {
 	e.exe_w.Wait()
 }
-func (e *Exec) SaveP(f string) error {
-	return util.FWrite(f, util.S2Json(e.Res))
+func (e *Exec) Data() (string, int, int) {
+	var total, suc int = 0, 0
+	for _, kv := range e.Res {
+		total++
+		if !kv.Exist("err") {
+			suc++
+		}
+	}
+	return util.S2Json(e.Res), suc, total
+}
+func (e *Exec) emma(suc, total int) string {
+	return fmt.Sprintf(`
+<?xml version="1.0" encoding="UTF-8"?>
+<report>
+  <data>
+    <all name="all classes">
+      <coverage type="class, %%" value="100%%  (1/1)"/>
+      <coverage type="method, %%" value="100%%  (1/1)"/>
+      <coverage type="block, %%" value="100%%  (1/1)"/>
+      <coverage type="line, %%" value="%v%%  (%v/%v)"/>
+    </all>
+  </data>
+</report>`, float64(suc)/float64(total)*100, suc, total)
+}
+func (e *Exec) SaveP(fp, emma string) error {
+	data, suc, total := e.Data()
+	if len(emma) > 0 {
+		err := util.FWrite(emma, e.emma(suc, total))
+		if err != nil {
+			return err
+		}
+	}
+	return util.FWrite(fp, data)
 }
 func (e *Exec) Save(w io.Writer) (int, error) {
 	return w.Write([]byte(util.S2Json(e.Res)))

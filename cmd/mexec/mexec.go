@@ -14,11 +14,12 @@ import (
 var exit = os.Exit
 
 func usage() {
-	fmt.Print(`Usage: mexec [-min=0] [-max=8] [-total=8] [-file=save path] [-id] [-log] [-MT=10000] bin args
+	fmt.Print(`Usage: mexec [-min=0] [-max=8] [-total=8] [-file=save path] [-emma=save path] [-id] [-log] [-MT=10000] bin args
    -min minimum executer.
    -max maximum executer.
    -total total executer.
-   -file save execute reslut to file, default is mexec.json.
+   -file save execute reslut to file, default is stdout.
+   -emma save execute reslut to emma xml format.
    -id append executer id to the end of arguments.
    -log show log.
    -MT keep max time, default is 10000 ms.
@@ -30,6 +31,7 @@ func main() {
 	var id bool = false
 	var log bool = false
 	var file string
+	var emma string
 	var min, max, total int = 0, 8, 8
 	var args []string = []string{}
 	var MT int64 = 10000
@@ -69,6 +71,8 @@ func main() {
 			}
 		case strings.HasPrefix(arg, "-file="):
 			file = strings.TrimPrefix(arg, "-file=")
+		case strings.HasPrefix(arg, "-emma="):
+			emma = strings.TrimPrefix(arg, "-emma=")
 		case strings.HasPrefix(arg, "-log"):
 			log = true
 		case strings.HasPrefix(arg, "-id"):
@@ -110,7 +114,7 @@ func main() {
 		os.Stdout.WriteString("\n")
 		return
 	}
-	err = exk.SaveP(file)
+	err = exk.SaveP(file, emma)
 	if err != nil {
 		fmt.Println(err.Error())
 		exit(1)
