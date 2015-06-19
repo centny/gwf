@@ -167,6 +167,7 @@ func NewTSk_C(con string) (*TSK_C, error) {
 }
 
 func IgMain(f func()) {
+	log.I("IgMain start...")
 	nargs := []string{}
 	for _, arg := range os.Args {
 		if strings.HasPrefix(arg, "-test") {
@@ -176,8 +177,13 @@ func IgMain(f func()) {
 		}
 	}
 	os.Args = nargs
-	go f()
+	go func() {
+		log.I("IgMain main start...")
+		f()
+		log.I("IgMain main done...")
+	}()
 	for !util.Fexists(filepath.Join(os.TempDir(), "/.gwf.ig.exit")) {
 		time.Sleep(time.Second)
 	}
+	log.I("IgMain done...")
 }
