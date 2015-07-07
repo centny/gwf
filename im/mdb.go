@@ -70,6 +70,9 @@ func (m *MemDbH) DelCon(sid, cid, r string, t byte, ct int) (*Con, error) {
 	log.D("delete connection %v", c)
 	return c, nil
 }
+func (m *MemDbH) DelConT(sid, cid, token string, t byte) (*Con, error) {
+	panic("not impl")
+}
 
 //list all connection by target R
 func (m *MemDbH) ListCon(rs []string) ([]Con, error) {
@@ -187,17 +190,17 @@ func (m *MemDbH) OnLogin(r netw.Cmd, args *util.Map) (string, string, int, error
 		return "", "", 0, util.Err("login fail:token not found")
 	}
 }
-func (m *MemDbH) OnLogout(r netw.Cmd, args *util.Map) (string, int, bool, error) {
+func (m *MemDbH) OnLogout(r netw.Cmd, args *util.Map) (string, string, int, bool, error) {
 	m.u_lck.Lock()
 	defer m.u_lck.Unlock()
 	rv := r.Kvs().StrVal("R")
 	if _, ok := m.Usr[rv]; ok {
 		delete(m.Usr, rv)
 		log.D("user logout by R(%v)", r)
-		return rv, 1, true, nil
+		return rv, "", 1, true, nil
 	} else {
 		log.D("user logout fail:R not found")
-		return "", 0, false, util.Err("login fail:R not found")
+		return "", "", 0, false, util.Err("login fail:R not found")
 	}
 }
 

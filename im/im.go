@@ -55,6 +55,7 @@ type DbH interface {
 	//
 	AddCon(c *Con) error
 	DelCon(sid, cid, r string, t byte, ct int) (*Con, error)
+	DelConT(sid, cid, token string, t byte) (*Con, error)
 	OnCloseCon(c netw.Con, sid, cid string, t byte) error
 	//list all connection by target R
 	ListCon(rs []string) ([]Con, error)
@@ -82,7 +83,7 @@ type DbH interface {
 	//
 	//user login,return user R.
 	OnLogin(c netw.Cmd, args *util.Map) (string, string, int, error)
-	OnLogout(c netw.Cmd, args *util.Map) (string, int, bool, error)
+	OnLogout(c netw.Cmd, args *util.Map) (string, string, int, bool, error)
 	//
 	//
 	NewMid() string

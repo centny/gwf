@@ -357,15 +357,20 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 		log.W("LO V fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
-	rv, ct, w, err := n.Db.OnLogout(r, &args)
-	if err != nil {
+	rv, token, ct, w, err := n.Db.OnLogout(r, &args)
+	if err == nil {
 		log.W("LO OnLogout fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
 	if !w {
 		r.SetWait(false)
 	}
-	con, err := n.Db.DelCon(n.SS.Id(), r.Id(), rv, CT_TCP, ct)
+	var con *Con
+	if len(rv) > 0 {
+		con, err = n.Db.DelCon(n.SS.Id(), r.Id(), rv, CT_TCP, ct)
+	} else {
+		con, err = n.Db.DelConT(n.SS.Id(), r.Id(), token, CT_TCP)
+	}
 	if err != nil {
 		log.W("LO DelCon fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
