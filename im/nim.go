@@ -331,6 +331,7 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 		T:     CT_TCP,
 		C:     ct,
 		Token: token,
+		Time:  util.Now(),
 	}
 	err = n.Db.AddCon(con)
 	if err != nil {

@@ -56,6 +56,7 @@ type Con struct {
 	T     byte   `json:"t"`            //the connection type in TCP/WS.
 	C     int    `json:"c"`            //the connect category
 	Token string `json:"token"`        //the login token
+	Time  int64  `json:"time"`         //the login time.
 }
 
 //online server
