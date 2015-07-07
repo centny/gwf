@@ -358,7 +358,7 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 		return n.writev_ce(r, err.Error())
 	}
 	rv, token, ct, w, err := n.Db.OnLogout(r, &args)
-	if err == nil {
+	if err != nil {
 		log.W("LO OnLogout fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
