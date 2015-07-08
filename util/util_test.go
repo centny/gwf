@@ -369,3 +369,26 @@ func TestASecM(t *testing.T) {
 	}
 	fmt.Println(vv)
 }
+
+func TestBuffer(t *testing.T) {
+	pr, pw := io.Pipe()
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			bl, err := pr.Read(buf)
+			if err != nil {
+				fmt.Println("Err->", err.Error())
+				break
+			}
+			fmt.Println("R->", string(buf[0:bl]))
+		}
+		fmt.Println("R->done...")
+	}()
+	go func() {
+		for i := 0; i < 5; i++ {
+			pw.Write([]byte(fmt.Sprintf("d-%v", i)))
+		}
+		fmt.Println("W->done...")
+	}()
+	time.Sleep(1 * time.Second)
+}

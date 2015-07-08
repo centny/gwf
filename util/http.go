@@ -62,9 +62,12 @@ func (h *HClient) HPostF(url string, fields map[string]string, fkey string, fp s
 	return str, err
 }
 func (h *HClient) HPostF_H(url string, fields map[string]string, header map[string]string, fkey string, fp string) (int, string, error) {
-	ctype, bodyBuf, err := CreateFormBody(fields, fkey, fp)
-	if err != nil {
-		return 0, "", err
+	var ctype string
+	var bodyBuf io.Reader
+	if len(fkey) > 0 {
+		bodyBuf, ctype = NewFBodyTask().Run(fields, fkey, fp)
+	} else {
+		ctype, bodyBuf = CreateFormBody(fields)
 	}
 	req, err := http.NewRequest("POST", url, bodyBuf)
 	if err != nil {
@@ -250,21 +253,48 @@ func CreateFileForm(bodyWriter *multipart.Writer, fkey, fp string) error {
 	}
 	return nil
 }
-func CreateFormBody(fields map[string]string, fkey string, fp string) (string, *bytes.Buffer, error) {
+func CreateFormBody(fields map[string]string) (string, *bytes.Buffer) {
 	bodyBuf := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuf)
+	for k, v := range fields {
+		bodyWriter.WriteField(k, v)
+	}
+	ctype := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
+	return ctype, bodyBuf
+}
+
+type FBodyTask struct {
+}
+
+func NewFBodyTask() *FBodyTask {
+	return &FBodyTask{}
+}
+func (f *FBodyTask) Run(fields map[string]string, fkey string, fp string) (io.Reader, string) {
+	pr, pw := io.Pipe()
+	bodyWriter := multipart.NewWriter(pw)
+	go func() {
+		err := f.run(bodyWriter, fields, fkey, fp)
+		bodyWriter.Close()
+		if err == nil {
+			pw.Close()
+		} else {
+			pw.CloseWithError(err)
+		}
+	}()
+	return pr, bodyWriter.FormDataContentType()
+}
+func (f *FBodyTask) run(bodyWriter *multipart.Writer, fields map[string]string, fkey string, fp string) error {
 	for k, v := range fields {
 		bodyWriter.WriteField(k, v)
 	}
 	if len(fkey) > 0 {
 		err := CreateFileForm(bodyWriter, fkey, fp)
 		if err != nil {
-			return "", nil, err
+			return err
 		}
 	}
-	ctype := bodyWriter.FormDataContentType()
-	bodyWriter.Close()
-	return ctype, bodyBuf, nil
+	return nil
 }
 
 type fs_size interface {
