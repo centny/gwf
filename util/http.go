@@ -81,6 +81,7 @@ func (h *HClient) HPostF_H(url string, fields map[string]string, header map[stri
 	if err != nil {
 		return 0, "", err
 	}
+	defer res.Body.Close()
 	str, err := readAllStr(res.Body)
 	return res.StatusCode, str, err
 }
