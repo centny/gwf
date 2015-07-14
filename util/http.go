@@ -44,6 +44,7 @@ func (h *HClient) HGet_H(header map[string]string, ufmt string, args ...interfac
 	if err != nil {
 		return 0, "", err
 	}
+	defer res.Body.Close()
 	str, err := readAllStr(res.Body)
 	return res.StatusCode, str, err
 }
@@ -96,6 +97,7 @@ func (h *HClient) HPostN(url string, ctype string, buf io.Reader) (int, string, 
 	if err != nil {
 		return 0, "", err
 	}
+	defer res.Body.Close()
 	str, err := readAllStr(res.Body)
 	return res.StatusCode, str, err
 }
@@ -154,6 +156,7 @@ func (h *HClient) DLoad(spath string, header map[string]string, ufmt string, arg
 		return err
 	}
 	defer f.Close()
+	defer res.Body.Close()
 	buf := bufio.NewWriter(f)
 	_, err = io.Copy(buf, res.Body)
 	buf.Flush()

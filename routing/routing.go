@@ -287,11 +287,19 @@ func (h *HTTPSession) FormFInfo(name string) (int64, string, error) {
 }
 
 func (h *HTTPSession) RecF(name, tfile string) (int64, error) {
-	src, fi, err := h.R.FormFile(name)
+	mr, err := h.R.MultipartReader()
 	if err != nil {
 		return 0, err
 	}
-	_, fn := filepath.Split(fi.Filename)
+	part, err := mr.NextPart()
+	if err != nil {
+		return 0, err
+	}
+	defer part.Close()
+	if len(part.FileName()) < 1 {
+		return 0, util.Err("not file found in multipart")
+	}
+	_, fn := filepath.Split(part.FileName())
 	if strings.HasSuffix(tfile, "/") {
 		tfile = tfile + fn
 	}
@@ -301,7 +309,7 @@ func (h *HTTPSession) RecF(name, tfile string) (int64, error) {
 	}
 	dst, _ := os.OpenFile(tfile, os.O_WRONLY|os.O_TRUNC, 0644)
 	defer dst.Close()
-	return io.Copy(dst, src)
+	return io.Copy(dst, part)
 }
 func (h *HTTPSession) RecBys(name string, max int) ([]byte, error) {
 	if max < 100 {
@@ -311,6 +319,7 @@ func (h *HTTPSession) RecBys(name string, max int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer src.Close()
 	dst_b := bytes.NewBuffer(nil)
 	dst := bufio.NewWriterSize(dst_b, max)
 	_, err = io.Copy(dst, src)
@@ -333,11 +342,19 @@ func (h *HTTPSession) RecFv2(name, tfile string) (fn string, w int64, sha_ strin
 	return fn, w, fmt.Sprintf("%x", sh), fmt.Sprintf("%x", md), err
 }
 func (h *HTTPSession) RecFvN(name, tfile string) (fn string, w int64, sha_ []byte, md5_ []byte, err error) {
-	src, fi, err := h.R.FormFile(name)
+	mr, err := h.R.MultipartReader()
 	if err != nil {
 		return "", 0, nil, nil, err
 	}
-	_, fn = filepath.Split(fi.Filename)
+	part, err := mr.NextPart()
+	if err != nil {
+		return "", 0, nil, nil, err
+	}
+	defer part.Close()
+	if len(part.FileName()) < 1 {
+		return "", 0, nil, nil, util.Err("not file found in multipart")
+	}
+	_, fn = filepath.Split(part.FileName())
 	if strings.HasSuffix(tfile, "/") {
 		tfile = tfile + fn
 	}
@@ -347,7 +364,7 @@ func (h *HTTPSession) RecFvN(name, tfile string) (fn string, w int64, sha_ []byt
 	}
 	dst, _ := os.OpenFile(tfile, os.O_WRONLY|os.O_TRUNC, 0644)
 	defer dst.Close()
-	w, sha_, md5_, err = util.Copy(dst, src)
+	w, sha_, md5_, err = util.Copy(dst, part)
 	return
 }
 func (h *HTTPSession) SendF(fname, tfile, ctype string, attach bool) {
