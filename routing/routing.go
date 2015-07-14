@@ -10,7 +10,9 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/util"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -342,18 +344,24 @@ func (h *HTTPSession) RecFv2(name, tfile string) (fn string, w int64, sha_ strin
 	return fn, w, fmt.Sprintf("%x", sh), fmt.Sprintf("%x", md), err
 }
 func (h *HTTPSession) RecFvN(name, tfile string) (fn string, w int64, sha_ []byte, md5_ []byte, err error) {
+	return h.RecFvV(name, func(*multipart.Part) string {
+		return tfile
+	})
+}
+func (h *HTTPSession) RecFvV(name string, tfile_f func(*multipart.Part) string) (fn string, w int64, sha_ []byte, md5_ []byte, err error) {
 	mr, err := h.R.MultipartReader()
 	if err != nil {
-		return "", 0, nil, nil, err
+		return "", 0, nil, nil, util.Err("MultipartReader err(%v)", err.Error())
 	}
 	part, err := mr.NextPart()
 	if err != nil {
-		return "", 0, nil, nil, err
+		return "", 0, nil, nil, util.Err("NextPart err(%v)", err.Error())
 	}
 	defer part.Close()
 	if len(part.FileName()) < 1 {
 		return "", 0, nil, nil, util.Err("not file found in multipart")
 	}
+	tfile := tfile_f(part)
 	_, fn = filepath.Split(part.FileName())
 	if strings.HasSuffix(tfile, "/") {
 		tfile = tfile + fn
@@ -366,6 +374,10 @@ func (h *HTTPSession) RecFvN(name, tfile string) (fn string, w int64, sha_ []byt
 	defer dst.Close()
 	w, sha_, md5_, err = util.Copy(dst, part)
 	return
+}
+func (h *HTTPSession) RecFvV2(name string, tfile_f func(*multipart.Part) string) (fn string, w int64, sha_ string, md5_ string, err error) {
+	fn, w, sh, md, err := h.RecFvV(name, tfile_f)
+	return fn, w, fmt.Sprintf("%x", sh), fmt.Sprintf("%x", md), err
 }
 func (h *HTTPSession) SendF(fname, tfile, ctype string, attach bool) {
 	SendF(h.W, h.R, fname, tfile, ctype, attach)
@@ -428,6 +440,14 @@ func (h *HTTPSession) AllRVal() util.Map {
 		kvs[k] = v
 	}
 	return kvs
+}
+func (h *HTTPSession) ParseQuery() error {
+	vals, err := url.ParseQuery(h.R.URL.RawQuery)
+	if err == nil {
+		h.R.Form = vals
+		h.R.PostForm = vals
+	}
+	return err
 }
 func http_res(code int, data interface{}, msg string, dmsg string) util.Map {
 	res := make(util.Map)
