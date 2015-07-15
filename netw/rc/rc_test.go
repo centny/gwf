@@ -202,7 +202,7 @@ func TestRc(t *testing.T) {
 	//
 	//initial server.
 	sh := &rc_s_h{}
-	lm := NewRC_Listener_m_j(bp, ":9801", sh)
+	lm := NewRC_Listener_m_j(bp, ":10801", sh)
 	sh.Handle(lm)
 	err := lm.Run()
 	if err != nil {
@@ -216,7 +216,7 @@ func TestRc(t *testing.T) {
 	//login by message command.
 	for i := 0; i < 5; i++ {
 		ch := &rc_c_h{}
-		cr := NewRC_Runner_m_j(bp, "127.0.0.1:9801", ch)
+		cr := NewRC_Runner_m_j(bp, "127.0.0.1:10801", ch)
 		ch.Handle(cr)
 		cr.Start()
 		_, err := cr.Writev(util.Map{
@@ -240,7 +240,7 @@ func TestRc(t *testing.T) {
 	//login by remote command.
 	for i := 5; i < 10; i++ {
 		ch := &rc_c_h{}
-		cr := NewRC_Runner_m_j(bp, "127.0.0.1:9801", ch)
+		cr := NewRC_Runner_m_j(bp, "127.0.0.1:10801", ch)
 		ch.Handle(cr)
 		cr.Start()
 		name := fmt.Sprintf("RC-%v", i)
