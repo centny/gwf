@@ -1,7 +1,6 @@
 package rc
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
