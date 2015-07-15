@@ -13,9 +13,11 @@ echo "Installing Dependence"
 ##############################
 #########Running Clear#########
 if [ "$1" = "-u" ];then
+ twd=`pwd`
  echo "Running Clear"
- rm -rf $GOPATH/src/github.com/Centny/gwf
- go get -u github.com/Centny/gwf
+ cd  $GOPATH/src/github.com/Centny/gwf
+ git pull
+ cd $twd
 fi
 #########Running Test#########
 echo "Running Test"
