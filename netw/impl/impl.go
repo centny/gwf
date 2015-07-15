@@ -131,8 +131,10 @@ func NewChanExecListener_m_j(p *pool.BytePool, port string, h netw.ConHandler) (
 	return l, cc, rc
 }
 
+type F_DAIL func(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *RCM_Con, error)
+
 //
-type RC_Runner_m_j struct {
+type RC_Runner_m struct {
 	*RCM_Con
 	Addr      string
 	BP        *pool.BytePool
@@ -142,35 +144,37 @@ type RC_Runner_m_j struct {
 	Connected int32
 	wc        int32
 	wait_     chan byte
+	DailF     F_DAIL
 }
 
-func NewRC_Runner_m_j(addr string, bp *pool.BytePool) *RC_Runner_m_j {
-	return &RC_Runner_m_j{
+func NewRC_Runner_m(addr string, bp *pool.BytePool, f F_DAIL) *RC_Runner_m {
+	return &RC_Runner_m{
 		Addr:      addr,
 		BP:        bp,
 		Delay:     3000,
 		Connected: 0,
 		wait_:     make(chan byte, 1000),
+		DailF:     f,
 	}
 }
-func (r *RC_Runner_m_j) Start() {
+func (r *RC_Runner_m) Start() {
 	r.R = true
 	go r.Try()
 }
-func (r *RC_Runner_m_j) Start_() error {
+func (r *RC_Runner_m) Start_() error {
 	r.R = true
 	return r.Run()
 }
-func (r *RC_Runner_m_j) Stop() {
+func (r *RC_Runner_m) Stop() {
 	r.R = false
 	if r.L != nil {
 		r.L.Close()
 	}
 }
-func (r *RC_Runner_m_j) Run() error {
+func (r *RC_Runner_m) Run() error {
 	atomic.StoreInt32(&r.Connected, 0)
 	var err error
-	r.L, r.RCM_Con, err = ExecDail_m_j(r.BP, r.Addr, r)
+	r.L, r.RCM_Con, err = r.DailF(r.BP, r.Addr, r)
 	if err != nil {
 		return err
 	}
@@ -184,12 +188,12 @@ func (r *RC_Runner_m_j) Run() error {
 	atomic.AddInt32(&r.wc, -tlen)
 	return nil
 }
-func (r *RC_Runner_m_j) OnConn(c netw.Con) bool {
+func (r *RC_Runner_m) OnConn(c netw.Con) bool {
 	c.SetWait(true)
 	log.D("RC Runner connect to %v success", r.Addr)
 	return true
 }
-func (r *RC_Runner_m_j) Try() {
+func (r *RC_Runner_m) Try() {
 	atomic.StoreInt32(&r.Connected, 0)
 	var last, now int64 = util.Now(), 0
 	var t int = 0
@@ -207,7 +211,7 @@ func (r *RC_Runner_m_j) Try() {
 		last = now
 	}
 }
-func (r *RC_Runner_m_j) OnClose(c netw.Con) {
+func (r *RC_Runner_m) OnClose(c netw.Con) {
 	atomic.StoreInt32(&r.Connected, 0)
 	r.RCM_Con.Stop()
 	if r.R {
@@ -216,7 +220,7 @@ func (r *RC_Runner_m_j) OnClose(c netw.Con) {
 	}
 }
 
-func (r *RC_Runner_m_j) Valid() error {
+func (r *RC_Runner_m) Valid() error {
 	if atomic.LoadInt32(&r.Connected) > 0 {
 		return nil
 	}
@@ -227,11 +231,46 @@ func (r *RC_Runner_m_j) Valid() error {
 		return nil
 	}
 }
-func (r *RC_Runner_m_j) VExec(name string, args interface{}, dest interface{}) (interface{}, error) {
+func (r *RC_Runner_m) VExec(name string, args interface{}, dest interface{}) (interface{}, error) {
 	err := r.Valid()
 	if err == nil {
 		return r.Exec(name, args, dest)
 	} else {
 		return nil, err
+	}
+}
+func (r *RC_Runner_m) VExecRes(name string, args interface{}) (*RCM_CRes, error) {
+	err := r.Valid()
+	if err == nil {
+		return r.ExecRes(name, args)
+	} else {
+		return nil, err
+	}
+}
+func (r *RC_Runner_m) VExec_m(name string, args interface{}) (util.Map, error) {
+	var res util.Map
+	_, err := r.VExec(name, args, &res)
+	return res, err
+}
+func (r *RC_Runner_m) Timeout() {
+	var i int32
+	tlen := r.wc
+	log.D("sending timeout to %v waiting", tlen)
+	for i = 0; i < tlen; i++ {
+		r.wait_ <- byte(1)
+	}
+	atomic.AddInt32(&r.wc, -tlen)
+}
+func (r *RC_Runner_m) Waitingc() int {
+	return int(r.wc)
+}
+
+type RC_Runner_m_j struct {
+	*RC_Runner_m
+}
+
+func NewRC_Runner_m_j(addr string, bp *pool.BytePool) *RC_Runner_m_j {
+	return &RC_Runner_m_j{
+		RC_Runner_m: NewRC_Runner_m(addr, bp, ExecDail_m_j),
 	}
 }

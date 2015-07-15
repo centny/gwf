@@ -51,6 +51,9 @@ func (ch *ChanH) OnCmd(c netw.Cmd) int {
 
 //run target number of gorutine to process command.
 func (ch *ChanH) Run(gc int) {
+	if ch.running {
+		return
+	}
 	for i := 0; i < gc; i++ {
 		go ch.run_c()
 	}
