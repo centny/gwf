@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -70,6 +71,20 @@ func ParseInt64(s string) (int64, error) {
 	return strconv.ParseInt(s, 10, 64)
 }
 
+func ParseInts(ss []string) ([]int, error) {
+	is := []int{}
+	for _, s := range ss {
+		i, err := ParseInt(s)
+		if err != nil {
+			return nil, err
+		}
+		is = append(is, i)
+	}
+	return is, nil
+}
+func ParseInts2(s, sep string) ([]int, error) {
+	return ParseInts(strings.Split(s, sep))
+}
 func CPU() int {
 	i := runtime.NumCPU()
 	if i < 2 {
