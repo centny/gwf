@@ -54,7 +54,7 @@ func FTouch2(path string, fm os.FileMode) error {
 	return nil
 }
 func FWrite(path, data string) error {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func FWrite(path, data string) error {
 	return err
 }
 func FWrite2(path string, data []byte) error {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func FWrite2(path string, data []byte) error {
 	return err
 }
 func FAppend(path, data string) error {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, os.ModePerm)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, 0644)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func FCopy(src string, dst string) error {
 		return err
 	}
 	defer sf.Close()
-	df, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	df, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return err
 	}

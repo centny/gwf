@@ -115,7 +115,7 @@ type CoverageE struct {
 	Value string `xml:"value"`
 }
 
-func Append(f, pn, class, method, block, line string) error {
+func Emma(f, pn, class, method, block, line string) error {
 	var rep ReportE
 	rep.Data.All.Name = "all class"
 	if util.Fexists(f) {

@@ -3,6 +3,7 @@ package util
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"reflect"
@@ -213,4 +214,19 @@ func J2Ss(data string, dest interface{}) error {
 	}
 	Ms2Ss(ms, dest)
 	return nil
+}
+func J2S_f(f string, dest interface{}) error {
+	bys, err := ioutil.ReadFile(f)
+	if err != nil {
+		return err
+	}
+	return J2S(string(bys), dest)
+}
+
+func J2Ss_f(f string, dest interface{}) error {
+	bys, err := ioutil.ReadFile(f)
+	if err != nil {
+		return err
+	}
+	return J2Ss(string(bys), dest)
 }
