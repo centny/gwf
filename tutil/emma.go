@@ -59,6 +59,7 @@ func (a *AllE) CreateCov() {
 			mv[cs.Type] = os
 		}
 	}
+	a.CS = []CoverageE{}
 	for k, v := range mv {
 		a.CS = append(a.CS, create_cov_E(k, v))
 	}
