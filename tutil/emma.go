@@ -111,8 +111,8 @@ func cov_val_E(val string) []int {
 }
 
 type CoverageE struct {
-	Type  string `xml:"type"`
-	Value string `xml:"value"`
+	Type  string `xml:"type,attr"`
+	Value string `xml:"value,attr"`
 }
 
 func Emma(f, pn, class, method, block, line string) error {
