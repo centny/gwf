@@ -129,10 +129,11 @@ func (e *Exec) SaveP(fp, emma string) error {
 		if err != nil {
 			return err
 		}
-		return nil
-	} else {
+	}
+	if len(fp) > 0 {
 		return util.FWrite(fp, data)
 	}
+	return nil
 }
 func (e *Exec) Save(w io.Writer) (int, error) {
 	return w.Write([]byte(util.S2Json(e.Res)))
