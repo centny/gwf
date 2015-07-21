@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
+	"html/template"
 	"io"
 	"os/exec"
+	"sort"
 	"sync"
 	"sync/atomic"
 )
@@ -140,6 +143,46 @@ func (e *Exec) Save(w io.Writer) (int, error) {
 }
 func (e *Exec) Execing() int {
 	return e.exe_w.Size()
+}
+func (e *Exec) List(hs *routing.HTTPSession) routing.HResult {
+	t, _ := template.New("Exec").Parse(`
+		<html>
+		<body>
+		<ul>
+		{{range $idx,$val:=.Items}}
+			<li><span style="width:30px;display:inline-block;">{{$val}}</span><a href="logs?id={{$val}}&key=o_out">out.log</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="logs?id={{$val}}&key=o_err">err.log</a></li>
+		{{end}}
+		</ul>
+		</body>
+		</html>
+		`)
+	keys := []int{}
+	for key, _ := range e.Res {
+		iv, _ := util.ParseInt(key)
+		keys = append(keys, iv)
+	}
+	sort.Sort(sort.IntSlice(keys))
+	t.Execute(hs.W, map[string]interface{}{
+		"Items": keys,
+	})
+	return routing.HRES_RETURN
+}
+func (e *Exec) Logs(hs *routing.HTTPSession) routing.HResult {
+	var id string
+	var key string = "o_out"
+	err := hs.ValidRVal(`
+		id,R|S,L:0;
+		key,O|S,L:0;
+		`, &id, &key)
+	if err != nil {
+		hs.SendT("id must not empty", routing.CT_TEXT)
+	}
+	if res, ok := e.Res[id]; ok {
+		hs.SendT(res.StrVal(key), routing.CT_TEXT)
+	} else {
+		hs.SendT("id not found", routing.CT_TEXT)
+	}
+	return routing.HRES_RETURN
 }
 
 type ExeK struct {

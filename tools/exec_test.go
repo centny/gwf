@@ -2,6 +2,7 @@ package tools
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/routing/httptest"
 	"github.com/Centny/gwf/util"
 	"os"
 	"os/exec"
@@ -49,6 +50,16 @@ func TestExec(t *testing.T) {
 	}
 	exk.SaveP("res.json", "emma.xml")
 	exk.Save(os.Stdout)
+	//
+	//
+	ts := httptest.NewMuxServer()
+	ts.Mux.HFunc("^/list", exk.List)
+	ts.Mux.HFunc("^/logs", exk.Logs)
+	fmt.Println(ts.G("/list"))
+	fmt.Println(ts.G("/logs?id=0&key=o_out"))
+	fmt.Println(ts.G("/logs"))
+	fmt.Println(ts.G("/logs?id=xx&key=o_out"))
+	//
 	exk = NewExeK(1, 10, 25, "/bin/bash", "-c")
 	exk.Start()
 	exk.Wait()

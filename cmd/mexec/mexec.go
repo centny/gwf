@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	tlog "github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/tools"
 	"github.com/Centny/gwf/util"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -39,6 +41,7 @@ func main() {
 	var MT int64 = 10000
 	var for_brk = false
 	var fail float64 = 0
+	var http string = ""
 	for idx, arg := range os.Args {
 		if idx == 0 {
 			continue
@@ -76,6 +79,8 @@ func main() {
 			file = strings.TrimPrefix(arg, "-file=")
 		case strings.HasPrefix(arg, "-emma="):
 			emma = strings.TrimPrefix(arg, "-emma=")
+		case strings.HasPrefix(arg, "-http="):
+			http = strings.TrimPrefix(arg, "-http=")
 		case strings.HasPrefix(arg, "-log"):
 			log = true
 		case strings.HasPrefix(arg, "-id"):
@@ -118,6 +123,9 @@ func main() {
 	exk.MT = MT
 	exk.ShowLog = log
 	exk.Start()
+	if len(http) > 0 {
+		go RunHttp(exk, http)
+	}
 	exk.Wait()
 	if len(file) < 1 && len(emma) < 1 {
 		exk.Save(os.Stdout)
@@ -134,4 +142,12 @@ func main() {
 		fmt.Println(fmt.Sprintf("---->mexec is failed(%v) by error(%v)/total(%v)", fail, total-suc, total))
 		exit(1)
 	}
+}
+
+func RunHttp(exk *tools.ExeK, addr string) {
+	mux := routing.NewSessionMux2("")
+	mux.HFunc("^/list(\\?.*)?$", exk.List)
+	mux.HFunc("^/logs(\\?.*)?$", exk.Logs)
+	http.Handle("/", mux)
+	fmt.Println(http.ListenAndServe(addr, nil))
 }
