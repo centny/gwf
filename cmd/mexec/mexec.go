@@ -109,7 +109,7 @@ func main() {
 	exk.ShowLog = log
 	exk.Start()
 	exk.Wait()
-	if len(file) < 1 {
+	if len(file) < 1 && len(emma) < 1 {
 		exk.Save(os.Stdout)
 		os.Stdout.WriteString("\n")
 		return
