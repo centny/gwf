@@ -8,13 +8,14 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
 var exit = os.Exit
 
 func usage() {
-	fmt.Print(`Usage: mexec [-min=0] [-max=8] [-total=8] [-file=save path] [-emma=save path] [-id] [-log] [-MT=10000] bin args
+	fmt.Print(`Usage: mexec [-min=0] [-max=8] [-total=8] [-file=save path] [-emma=save path] [-id] [-log] [-MT=10000] [-fail=0] bin args
    -min minimum executer.
    -max maximum executer.
    -total total executer.
@@ -22,6 +23,7 @@ func usage() {
    -emma save execute reslut to emma xml format.
    -id append executer id to the end of arguments.
    -log show log.
+   -fail failed when errro rate is greater target value.
    -MT keep max time, default is 10000 ms.
 `)
 }
@@ -36,6 +38,7 @@ func main() {
 	var args []string = []string{}
 	var MT int64 = 10000
 	var for_brk = false
+	var fail float64 = 0
 	for idx, arg := range os.Args {
 		if idx == 0 {
 			continue
@@ -77,6 +80,13 @@ func main() {
 			log = true
 		case strings.HasPrefix(arg, "-id"):
 			id = true
+		case strings.HasPrefix(arg, "-fail="):
+			fail, err = strconv.ParseFloat(strings.TrimPrefix(arg, "-fail="), 64)
+			if err != nil {
+				fmt.Println(err.Error())
+				usage()
+				exit(1)
+			}
 		default:
 			if len(os.Args)-1 >= idx {
 				args = os.Args[idx:]
@@ -112,11 +122,16 @@ func main() {
 	if len(file) < 1 && len(emma) < 1 {
 		exk.Save(os.Stdout)
 		os.Stdout.WriteString("\n")
-		return
+	} else {
+		err = exk.SaveP(file, emma)
+		if err != nil {
+			fmt.Println(err.Error())
+			exit(1)
+		}
 	}
-	err = exk.SaveP(file, emma)
-	if err != nil {
-		fmt.Println(err.Error())
+	_, suc, total := exk.Data()
+	if float64(total-suc)/float64(total) > fail {
+		fmt.Println(fmt.Sprintf("---->mexec is failed(%v) by error(%v)/total(%v)", fail, total-suc, total))
 		exit(1)
 	}
 }
