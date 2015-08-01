@@ -20,6 +20,14 @@ import (
 	"time"
 )
 
+var ShowLog bool = false
+
+func slog(f string, args ...interface{}) {
+	if ShowLog {
+		fmt.Println(fmt.Sprintf(f, args...))
+	}
+}
+
 // var DEFAULT_MODE os.FileMode = os.ModePerm
 
 func Fexists(path string) bool {

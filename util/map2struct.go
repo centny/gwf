@@ -86,7 +86,7 @@ func M2S(m Map, dest interface{}) {
 				}
 				t, err := time.Parse(df, v.(string))
 				if err != nil {
-					fmt.Fprintln(os.Stderr, err.Error())
+					slog("%v", err.Error())
 					continue
 				}
 				ts := Timestamp(t)
