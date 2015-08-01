@@ -58,7 +58,7 @@ func M2S(m Map, dest interface{}) {
 					if err == nil {
 						pval.Field(i).Set(reflect.ValueOf(t))
 					} else {
-						fmt.Fprintln(os.Stderr, err.Error())
+						slog("%v", err.Error())
 					}
 				default:
 					iv := m.IntVal(key)
