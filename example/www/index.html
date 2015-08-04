@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Testing</title>
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script type="text/javascript">
+        function clk1(){
+            $.getJSON("/cache1",function(d){
+                console.log("cache1->",d);
+            })
+        }
+        function clk2(){
+            $.getJSON("/cache2",function(d){
+                console.log("cache2->",d);
+            })
+        }
+    </script>
+</head>
+<body>
+    <input type="button" onclick="clk1()" value="cache1" />
+    <br/>
+    <br/>
+    <input type="button" onclick="clk2()" value="cache2" />
+    <br/>
+    <br/>
+</body>
+
+</html>
