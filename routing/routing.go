@@ -251,6 +251,35 @@ func (h *HTTPSession) StrVal(key string) string {
 		return fmt.Sprintf("%v", v)
 	}
 }
+func (h *HTTPSession) JsonVal(key string) (util.Map, error) {
+	json := h.CheckVal(key)
+	if len(json) < 1 {
+		return nil, util.NewNotFound("json valus not found by key(%v)", key)
+	}
+	json = strings.Trim(json, " \t")
+	return util.Json2Map(json)
+}
+
+//converting json string to struct by util.J2S
+//struct tags is m2s,not json
+func (h *HTTPSession) JsonObjVal(key string, v interface{}) error {
+	jdata := h.CheckVal(key)
+	if len(jdata) < 1 {
+		return util.NewNotFound("json valus not found by key(%v)", key)
+	}
+	return util.J2S(jdata, v)
+}
+
+//converting json string to struct by json.
+func (h *HTTPSession) JsonObjVal2(key string, v interface{}) error {
+	jdata := h.CheckVal(key)
+	if len(jdata) < 1 {
+		return util.NewNotFound("json valus not found by key(%v)", key)
+	}
+	return json.Unmarshal([]byte(jdata), v)
+}
+
+//
 func (h *HTTPSession) CheckVal(key string) string {
 	v := h.RVal(key)
 	if len(v) > 0 {

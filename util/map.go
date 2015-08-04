@@ -311,7 +311,7 @@ func (m Map) SetValP(path string, val interface{}) error {
 }
 
 func (m Map) ValidF(f string, args ...interface{}) error {
-	return ValidAttrF(f, m.StrVal, true, args...)
+	return ValidAttrF(f, m.StrValP, true, args...)
 }
 func (m Map) ToS(dest interface{}) {
 	M2S(m, dest)

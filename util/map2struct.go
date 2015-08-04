@@ -199,6 +199,9 @@ func S2Json(v interface{}) string {
 }
 
 func J2S(data string, dest interface{}) error {
+	if reflect.TypeOf(dest).Kind() == reflect.Slice {
+		return J2Ss(data, dest)
+	}
 	m, err := Json2Map(data)
 	if err != nil {
 		return err
