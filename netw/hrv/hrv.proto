@@ -1,0 +1,5 @@
+option go_package = "hrv";
+message Res {
+	required int32 code = 1;//
+	required bytes data = 2;//the content.
+}

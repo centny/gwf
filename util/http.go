@@ -33,20 +33,24 @@ func (h *HClient) HGet(ufmt string, args ...interface{}) (string, error) {
 	return str, err
 }
 func (h *HClient) HGet_H(header map[string]string, ufmt string, args ...interface{}) (int, string, error) {
+	code, bys, err := h.HGet_Hv(header, ufmt, args...)
+	return code, string(bys), err
+}
+func (h *HClient) HGet_Hv(header map[string]string, ufmt string, args ...interface{}) (int, []byte, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf(ufmt, args...), nil)
 	if err != nil {
-		return 0, "", err
+		return 0, []byte{}, err
 	}
 	for k, v := range header {
 		req.Header.Set(k, v)
 	}
 	res, err := h.Do(req)
 	if err != nil {
-		return 0, "", err
+		return 0, []byte{}, err
 	}
 	defer res.Body.Close()
-	str, err := readAllStr(res.Body)
-	return res.StatusCode, str, err
+	bys, err := ioutil.ReadAll(res.Body)
+	return res.StatusCode, bys, err
 }
 func (h *HClient) HGet2(ufmt string, args ...interface{}) (Map, error) {
 	data, err := h.HGet(ufmt, args...)
@@ -63,6 +67,10 @@ func (h *HClient) HPostF(url string, fields map[string]string, fkey string, fp s
 	return str, err
 }
 func (h *HClient) HPostF_H(url string, fields map[string]string, header map[string]string, fkey string, fp string) (int, string, error) {
+	code, bys, err := h.HPostF_Hv(url, fields, header, fkey, fp)
+	return code, string(bys), err
+}
+func (h *HClient) HPostF_Hv(url string, fields map[string]string, header map[string]string, fkey string, fp string) (int, []byte, error) {
 	var ctype string
 	var bodyBuf io.Reader
 	if len(fkey) > 0 {
@@ -72,19 +80,19 @@ func (h *HClient) HPostF_H(url string, fields map[string]string, header map[stri
 	}
 	req, err := http.NewRequest("POST", url, bodyBuf)
 	if err != nil {
-		return 0, "", err
+		return 0, []byte{}, err
 	}
-	req.Header.Set("Content-Type", ctype)
 	for k, v := range header {
 		req.Header.Set(k, v)
 	}
+	req.Header.Set("Content-Type", ctype)
 	res, err := h.Do(req)
 	if err != nil {
-		return 0, "", err
+		return 0, []byte{}, err
 	}
 	defer res.Body.Close()
-	str, err := readAllStr(res.Body)
-	return res.StatusCode, str, err
+	bys, err := ioutil.ReadAll(res.Body)
+	return res.StatusCode, bys, err
 }
 
 func (h *HClient) HPostN(url string, ctype string, buf io.Reader) (int, string, error) {
@@ -174,6 +182,17 @@ func HPost(url string, fields map[string]string) (string, error) {
 }
 func HPostF(url string, fields map[string]string, fkey string, fp string) (string, error) {
 	return HTTPClient.HPostF(url, fields, fkey, fp)
+}
+func HPostFv(url string, fields map[string]string, header map[string]string, fkey string, fp string) (string, error) {
+	_, bys, err := HTTPClient.HPostF_Hv(url, fields, header, fkey, fp)
+	return string(bys), err
+}
+func HPostFv2(url string, fields map[string]string, header map[string]string, fkey string, fp string) (Map, error) {
+	bys, err := HPostFv(url, fields, header, fkey, fp)
+	if err != nil {
+		return nil, err
+	}
+	return Json2Map(bys)
 }
 func HPostN(url string, ctype string, buf io.Reader) (int, string, error) {
 	return HTTPClient.HPostN(url, ctype, buf)
@@ -334,4 +353,12 @@ func FormFSzie(src interface{}) int64 {
 
 func DoWeb(addr, dir string) error {
 	return http.ListenAndServe(addr, http.FileServer(http.Dir(dir)))
+}
+
+func QueryString(m map[string]string) string {
+	args := []string{}
+	for k, v := range m {
+		args = append(args, k+"="+v)
+	}
+	return strings.Join(args, "&")
 }

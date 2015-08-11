@@ -193,7 +193,8 @@ func TestAHttpPost(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			r.ParseMultipartForm(10000000)
 			// r.PostFormValue(key)
-			fmt.Println(r.PostFormValue("kkk"))
+			fmt.Println(r.FormValue("ab"))
+			fmt.Println(r.PostFormValue("ab"))
 		}))
 	HPostF2s(ts.URL, map[string]string{
 		"ab": "233",

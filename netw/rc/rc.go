@@ -81,6 +81,10 @@ func (r *RC_Cmd_h) AddC(cid string, con netw.Con) {
 	r.CCS[cid] = rcm
 	r.MID[con.Id()] = cid
 }
+func (r *RC_Cmd_h) Exist(cid string) bool {
+	_, ok := r.CRC[cid]
+	return ok
+}
 func (r *RC_Cmd_h) delc(c netw.Con) {
 	r.rc_l.Lock()
 	defer r.rc_l.Unlock()
@@ -160,9 +164,16 @@ func NewRC_Listener_m_j(p *pool.BytePool, port string, h netw.CCHandler) *RC_Lis
 	rcm := impl.NewRCM_S_j()
 	return NewRC_Listener_m(p, port, h, rcm, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
 }
+
+//start listener
 func (r *RC_Listener_m) Run() error {
 	r.CH.Run(util.CPU())
 	return r.Listener.Run()
+}
+
+//check if exit by client id
+func (r *RC_Listener_m) Exist(cid string) bool {
+	return r.RCH.Exist(cid)
 }
 
 //add connection to connection list by message command.
@@ -195,15 +206,15 @@ func (r *RC_Listener_m) CmdCs() map[string]*impl.RCM_Con {
 type RC_Runner_m struct {
 	*impl.RC_Runner_m
 	*impl.RCM_S
-	CC  netw.CCHandler //command message and connection event handler.
-	TC  *impl.RC_C     //remote callback handler.
-	CH  *impl.ChanH    //process chan
-	OH  *impl.OBDH     //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
-	V2b netw.V2Byte    //common convert function
-	B2v netw.Byte2V    //common convert function
-	Na  impl.NAV_F     //remote command function name.
-	MC  netw.Con       //message connection.
-	RC  *impl.RCM_Con  //remote command connection.
+	CC  netw.ConHandler //command message and connection event handler.
+	TC  *impl.RC_C      //remote callback handler.
+	CH  *impl.ChanH     //process chan
+	OH  *impl.OBDH      //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
+	V2b netw.V2Byte     //common convert function
+	B2v netw.Byte2V     //common convert function
+	Na  impl.NAV_F      //remote command function name.
+	MC  netw.Con        //message connection.
+	RC  *impl.RCM_Con   //remote command connection.
 	BC  *netw.Con_
 }
 
@@ -215,12 +226,13 @@ func NewRC_Runner_m(p *pool.BytePool, addr string, h netw.CCHandler, rc *impl.RC
 	obdh.AddH(MSG_C, h)
 	obdh.AddH(CMD_C, impl.NewRC_S(rc))
 	ch := impl.NewChanH(obdh)
-	cc := netw.NewCCH(h, ch)
+	ch.Run(util.CPU())
+	// cc := netw.NewCCH(h, ch)
 	run := &RC_Runner_m{
 		TC:    tc,
 		CH:    ch,
 		OH:    obdh,
-		CC:    cc,
+		CC:    h,
 		V2b:   v2b,
 		B2v:   b2v,
 		Na:    na,
@@ -238,7 +250,7 @@ func NewRC_Runner_m_j(p *pool.BytePool, addr string, h netw.CCHandler) *RC_Runne
 
 //dail to server and create remote command connection.
 func (r *RC_Runner_m) Dail(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *impl.RCM_Con, error) {
-	np := netw.NewNConPool2(p, netw.NewCCH(h, r.OH))
+	np := netw.NewNConPool2(p, netw.NewCCH(r.CC, r.CH))
 	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		r.BC = netw.NewCon_(cp, p, con)
 		r.BC.V2B_, r.BC.B2V_ = r.V2b, r.B2v

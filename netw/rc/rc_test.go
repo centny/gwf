@@ -280,6 +280,10 @@ func TestRc(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+	if !lm.Exist("RC-5") {
+		t.Error("not exist")
+		return
+	}
 	//
 	//test other
 	lm.MsgC("not found")

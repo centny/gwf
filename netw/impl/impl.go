@@ -145,6 +145,8 @@ type RC_Runner_m struct {
 	wc        int32
 	wait_     chan byte
 	DailF     F_DAIL
+	//
+	w_lck chan int
 }
 
 func NewRC_Runner_m(addr string, bp *pool.BytePool, f F_DAIL) *RC_Runner_m {
@@ -155,6 +157,7 @@ func NewRC_Runner_m(addr string, bp *pool.BytePool, f F_DAIL) *RC_Runner_m {
 		Connected: 0,
 		wait_:     make(chan byte, 1000),
 		DailF:     f,
+		w_lck:     make(chan int),
 	}
 }
 func (r *RC_Runner_m) Start() {
@@ -170,6 +173,9 @@ func (r *RC_Runner_m) Stop() {
 	if r.L != nil {
 		r.L.Close()
 	}
+}
+func (r *RC_Runner_m) Wait() {
+	<-r.w_lck
 }
 func (r *RC_Runner_m) Run() error {
 	atomic.StoreInt32(&r.Connected, 0)
@@ -217,6 +223,9 @@ func (r *RC_Runner_m) OnClose(c netw.Con) {
 	if r.R {
 		log.W("RC connection  is closed, Runner will retry connect to %v", r.Addr)
 		go r.Try()
+	} else {
+		log.W("RC connection  is closed, Runner will stop")
+		r.w_lck <- 0
 	}
 }
 
