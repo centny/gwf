@@ -151,6 +151,7 @@ type SRH_Q_I struct {
 	Aid  string      `json:"aid"`
 	Ver  string      `json:"ver"`
 	Dev  string      `json:"dev"`
+	Rel  string      `json:"rel"`
 	Kvs  util.Map    `json:"-" bson:"-"`
 	Evs  []*pb.Evn   `json:"evs"`
 	Time int64       `json:"time"`
