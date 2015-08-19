@@ -168,11 +168,13 @@ func (h *HrvS) slog(f string, args ...interface{}) {
 
 //inital the default file server.
 func (h *HrvS) SetWww(www string) {
+	h.slog("setting www to %v", www)
 	h.F = http.FileServer(http.Dir(www))
 }
 
 //add pattern to match list.
 func (h *HrvS) AddPattern(reg string) {
+	h.slog("adding pattern %v", reg)
 	h.Pattern = append(h.Pattern, regexp.MustCompile(reg))
 }
 
@@ -321,12 +323,13 @@ func (h *HrvS) Doh(hs *routing.HTTPSession) routing.HResult {
 		log.E("HrvS doh error->client not found by name(%v)", qs[0])
 		return hs.MsgResE3(1, "arg-err", "client not found by name("+qs[0]+")")
 	}
-	h.slog("HrvS doh to remote by url(%v)", rurl)
 	for _, reg := range h.Pattern {
 		if reg.MatchString(rurl) {
+			h.slog("HrvS doh to remote(%v) by url(%v)", qs[0], rurl)
 			return h.doh(hs, cmd, args)
 		}
 	}
+	h.slog("HrvS doh to local by url(%v)", rurl)
 	if h.F == nil {
 		hs.W.WriteHeader(404)
 		hs.W.Write([]byte("404"))
