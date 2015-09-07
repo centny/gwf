@@ -264,13 +264,21 @@ func TestSessionMux2(t *testing.T) {
 	fmt.Println(util.HGet("%s/t/d", ts.URL))
 }
 func RecF(hs *HTTPSession) HResult {
-	hs.FormFInfo("file")
-	hs.RecF("file", "/tmp/test2.txt")
-	return HRES_RETURN
+	// hs.FormFInfo("file")
+	_, err := hs.RecF("file", "/tmp/test2.txt")
+	if err == nil {
+		return hs.MsgRes("OK")
+	} else {
+		return hs.MsgResErr2(1, "srv-err", err)
+	}
 }
 func RecF2(hs *HTTPSession) HResult {
-	hs.RecF("file", "/t/mp/test2.txt")
-	return HRES_RETURN
+	_, err := hs.RecF("file", "/t/mp/test2.txt")
+	if err == nil {
+		return hs.MsgRes("OK")
+	} else {
+		return hs.MsgResErr2(1, "srv-err", err)
+	}
 }
 
 func TestRecf(t *testing.T) {
@@ -283,7 +291,18 @@ func TestRecf(t *testing.T) {
 	}))
 	defer ts.Close()
 	util.FWrite("/tmp/test.txt", "testing")
-	fmt.Println(util.HPostF(fmt.Sprintf("%v/t1", ts.URL), nil, "file", "/tmp/test.txt"))
+	res, err := util.HPostF2(fmt.Sprintf("%v/t1", ts.URL), map[string]string{
+		"a": "11",
+		"b": "22",
+	}, "file", "/tmp/test.txt")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if res.IntVal("code") != 0 {
+		t.Error(fmt.Sprintf("%v", res))
+		return
+	}
 	fmt.Println(util.HPostF(fmt.Sprintf("%v/t1", ts.URL), nil, "file2", "/tmp/test.txt"))
 	fmt.Println(util.HPostF(fmt.Sprintf("%v/t2", ts.URL), nil, "file", "/tmp/test.txt"))
 	fmt.Println(util.HPostF(fmt.Sprintf("%v/t1", ts.URL), nil, "file", "/tmp/test.txt2"))
