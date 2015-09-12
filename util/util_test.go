@@ -392,3 +392,16 @@ func TestBuffer(t *testing.T) {
 	}()
 	time.Sleep(1 * time.Second)
 }
+
+func TestCopyp(t *testing.T) {
+	FWrite("/tmp/kskds.txt", "data")
+	f, _ := os.Open("/tmp/kskds.txt")
+	Copyp("/tmp/xxkj.txt", f)
+	f.Close()
+	f, _ = os.Open("/tmp/kskds.txt")
+	Copyp2("/tmp/xxkj2.txt", f)
+	f.Close()
+	f, _ = os.Open("/tmp/kskds.txt")
+	Copyp2("/tmp/x/xkj2.txt", f)
+	f.Close()
+}

@@ -299,6 +299,10 @@ func Copy2(dst io.Writer, src io.Reader) (written int64, sha_ string, md5_ strin
 	return w, fmt.Sprintf("%x", sh), fmt.Sprintf("%x", md), err
 }
 func Copyp(dst string, src io.Reader) (written int64, err error) {
+	fp, _ := filepath.Split(dst)
+	if !Fexists(fp) {
+		os.MkdirAll(fp, os.ModePerm)
+	}
 	dst_, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return 0, err
@@ -307,6 +311,10 @@ func Copyp(dst string, src io.Reader) (written int64, err error) {
 	return io.Copy(dst_, src)
 }
 func Copyp2(dst string, src io.Reader) (written int64, sha_ []byte, md5_ []byte, err error) {
+	fp, _ := filepath.Split(dst)
+	if !Fexists(fp) {
+		os.MkdirAll(fp, os.ModePerm)
+	}
 	dst_, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return 0, nil, nil, err
