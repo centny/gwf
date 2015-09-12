@@ -272,7 +272,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		return cc
 	}
 	dip := NewDimPool(db, sid, p, v2b, b2v, nav, ncf, dim)
-	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), impl.NewChanH2(obdh, util.CPU()))
+	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), impl.NewChanH2(obdh, util.CPU()*5))
 	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), sid, cch, ncf)
 	l.T = timeout
 	l.Name = "NIM"
