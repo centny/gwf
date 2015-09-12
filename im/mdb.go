@@ -234,23 +234,25 @@ func (m *MemDbH) Store(ms *Msg) error {
 	// }
 	return nil
 }
-func (m *MemDbH) MarkRecv(r, a, mid string) error {
-	if len(mid) < 1 {
+func (m *MemDbH) MarkRecv(r, a string, mids []string) error {
+	if len(mids) < 1 {
 		return util.Err("the message is empty")
 	}
 	m.ms_l.Lock()
 	defer m.ms_l.Unlock()
-	if msg, ok := m.Ms[mid]; ok {
-		for _, mss := range msg.Ms[r] {
-			if mss.R == a {
-				mss.S = MS_DONE
+	for _, mid := range mids {
+		if msg, ok := m.Ms[mid]; ok {
+			for _, mss := range msg.Ms[r] {
+				if mss.R == a {
+					mss.S = MS_DONE
+				}
 			}
+		} else {
+			// atomic.AddUint64(&m.mr_n_cc, 1)
+			return util.Err("the message not found by id(%v)", mid)
 		}
-		return nil
-	} else {
-		// atomic.AddUint64(&m.mr_n_cc, 1)
-		return util.Err("the message not found by id(%v)", mid)
 	}
+	return nil
 }
 
 func (m *MemDbH) RandGrp() (string, int, []string) {
