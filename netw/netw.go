@@ -443,7 +443,7 @@ func NewLConPoolV(p *pool.BytePool, h CCHandler, n string, ncf NewConF) *LConPoo
 			log.D_(d, f, args...)
 		},
 		Id_:    fmt.Sprintf("%v%v", n, atomic.AddUint64(&pool_idc, 1)),
-		Delay_: 600 * time.Second,
+		Delay_: 5 * time.Second,
 	}
 }
 
