@@ -12,16 +12,21 @@ func main() {
 		usage()
 		os.Exit(1)
 	}
-	switch os.Args[1] {
-	case "-p":
-		if alen > 3 {
-			cfg_p(os.Args[2], os.Args[3])
+	var cfg_p_ = func(log bool) {
+		if alen == 4 {
+			cfg_p(os.Args[2], os.Args[3], log)
 		} else if alen == 3 {
-			cfg_p(os.Args[2], "")
+			cfg_p(os.Args[2], "", log)
 		} else {
 			usage()
 			os.Exit(1)
 		}
+	}
+	switch os.Args[1] {
+	case "-p":
+		cfg_p_(false)
+	case "-c":
+		cfg_p_(true)
 	case "-s":
 		if alen > 5 {
 			sec_s(os.Args[2], os.Args[3], os.Args[4], os.Args[5])
@@ -48,15 +53,16 @@ func main() {
 func usage() {
 	fmt.Println(`
 Usage:
-	fcfg -p <configure file> [section name]
-	fcfg [-f] <configure file> <format string>
-	fcfg -s <configure file> <selected section> <store file> <store section>
+	fcfg -p <configure file> [section name] [true:show log]   ->print configure
+	fcfg -c <configure file> [section name]	                  ->check configure to print and show log
+	fcfg [-f] <configure file> <format string>                ->format configure to string
+	fcfg -s <configure file> <selected section> <store file> <store section>  ->merge configure.
 			`)
 }
-func cfg_p(tf, sec string) {
+func cfg_p(tf, sec string, log bool) {
 	cfg := util.NewFcfg3()
-	cfg.ShowLog = false
-	err := cfg.InitWithFilePath(tf)
+	cfg.ShowLog = log
+	err := cfg.InitWithUri(tf)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)

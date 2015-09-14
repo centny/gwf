@@ -35,13 +35,7 @@ func NewFcfg(uri string) (*Fcfg, error) {
 		ShowLog: true,
 		SecLn:   map[string]int{},
 	}
-	if strings.HasPrefix(uri, "http://") {
-		return cfg, cfg.InitWithURL(uri)
-	} else if strings.HasPrefix(uri, "https://") {
-		return cfg, cfg.InitWithURL(uri)
-	} else {
-		return cfg, cfg.InitWithFilePath(uri)
-	}
+	return cfg, cfg.InitWithUri(uri)
 }
 func NewFcfg2(data string) (*Fcfg, error) {
 	cfg := &Fcfg{
@@ -143,6 +137,15 @@ func (f *Fcfg) Exist(key string) bool {
 		return false
 	}
 }
+func (f *Fcfg) InitWithUri(uri string) error {
+	if strings.HasPrefix(uri, "http://") {
+		return f.InitWithURL(uri)
+	} else if strings.HasPrefix(uri, "https://") {
+		return f.InitWithURL(uri)
+	} else {
+		return f.InitWithFilePath(uri)
+	}
+}
 
 //initial the configure by .properties file.
 func (f *Fcfg) InitWithFilePath(fp string) error {
@@ -233,9 +236,6 @@ func (f *Fcfg) exec(base, line string) error {
 	ps[0] = f.EnvReplace(ps[0])
 	if ps[0] == "l" {
 		ps[1] = strings.Trim(ps[1], " \t")
-		if len(ps[1]) < 1 {
-
-		}
 		return f.load(base, ps[1])
 	}
 	if cs := strings.SplitN(ps[0], "==", 2); len(cs) == 2 {
@@ -262,7 +262,7 @@ func (f *Fcfg) load(base, line string) error {
 	if len(line) < 1 {
 		return nil
 	}
-	if !(strings.HasPrefix(line, "http://") || filepath.IsAbs(line)) {
+	if !(strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") || filepath.IsAbs(line)) {
 		line = base + line
 	}
 	cfg, err := NewFcfg(line)
