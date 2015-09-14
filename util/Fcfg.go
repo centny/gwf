@@ -95,11 +95,7 @@ func (f *Fcfg) FloatVal(key string) float64 {
 
 //
 func (f *Fcfg) Show() string {
-	sdata := ""
-	for k, v := range f.Map {
-		sdata = fmt.Sprintf("%v %v=%v\n", sdata, k, v)
-	}
-	return sdata
+	return f.String()
 }
 
 func (f *Fcfg) Print() {
