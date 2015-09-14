@@ -15,6 +15,7 @@ import (
 )
 
 func init() {
+	ShowLog = true
 	go DoWeb(":65432", "./")
 }
 func TestDoWeb(t *testing.T) {

@@ -9,8 +9,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //Author:Centny
@@ -142,6 +144,9 @@ func (f *Fcfg) Exist(key string) bool {
 
 //initial the configure by .properties file.
 func (f *Fcfg) InitWithFilePath(fp string) error {
+	return f.InitWithFilePath2(fp, true)
+}
+func (f *Fcfg) InitWithFilePath2(fp string, wait bool) error {
 	f.slog("loading local configure->%v", fp)
 	turl, _ := nurl.Parse(fp)
 	qs := turl.Query()
@@ -149,8 +154,14 @@ func (f *Fcfg) InitWithFilePath(fp string) error {
 		f.SetVal(k, qs.Get(k))
 	}
 	fp = turl.Path
-	if !Fexists(fp) {
-		return Err("file(%v) not found", fp)
+	for !Fexists(fp) {
+		if wait {
+			f.slog("file(%v) not found", fp)
+			time.Sleep(3 * time.Second)
+			continue
+		} else {
+			return Err("file(%v) not found", fp)
+		}
 	}
 	fh, err := os.Open(fp)
 	if err != nil {
@@ -268,8 +279,26 @@ func (f *Fcfg) InitWithFile(tfile *os.File) error {
 
 //initial the configure by network .properties URL.
 func (f *Fcfg) InitWithURL(url string) error {
+	return f.InitWithURL2(url, true)
+}
+func (f *Fcfg) InitWithURL2(url string, wait bool) error {
 	f.slog("loading remote configure->%v", url)
-	sres, err := HGet(url)
+	var sres string
+	var err error
+	for {
+		sres, err = HGet(url)
+		if err == nil {
+			f.slog("loading remote configure(%v) success", url)
+			break
+		}
+		f.slog("loading remote configure(%v):%v", url, err.Error())
+		if wait {
+			time.Sleep(3 * time.Second)
+			continue
+		} else {
+			break
+		}
+	}
 	if err == nil {
 		turl, _ := nurl.Parse(url)
 		turl.Path, _ = filepath.Split(turl.Path)
@@ -312,26 +341,6 @@ func (f *Fcfg) EnvReplaceV(val string, empty bool) string {
 			return m
 		}
 	})
-	// var rval string = ""
-	// mhs := reg.FindAll([]byte(val), -1)
-	// for i := 0; i < len(mhs); i++ {
-	// 	bys := mhs[i]
-	// 	ptn := string(bys)
-	// 	bys = bys[2 : len(bys)-1]
-	// 	if len(bys) < 1 {
-	// 		continue
-	// 	}
-	// 	key := string(bys)
-	// 	if f.Exist(key) {
-	// 		rval = f.Val(key)
-	// 	} else {
-	// 		rval = os.Getenv(key)
-	// 		if len(rval) < 1 {
-	// 			continue
-	// 		}
-	// 	}
-	// 	val = strings.Replace(val, ptn, rval, 1)
-	// }
 	return val
 }
 
@@ -347,8 +356,13 @@ func (f *Fcfg) Merge(t *Fcfg) {
 
 func (f *Fcfg) String() string {
 	buf := bytes.NewBuffer(nil)
-	for k, v := range f.Map {
-		buf.WriteString(fmt.Sprintf("%v=%v\n", k, v))
+	keys := []string{}
+	for k, _ := range f.Map {
+		keys = append(keys, k)
+	}
+	sort.Sort(sort.StringSlice(keys))
+	for _, k := range keys {
+		buf.WriteString(fmt.Sprintf("%v=%v\n", k, f.Map[k]))
 	}
 	return buf.String()
 }

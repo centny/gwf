@@ -2,9 +2,11 @@ package util
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"testing"
+	"time"
 )
 
 func TestEnvReplace(t *testing.T) {
@@ -15,7 +17,7 @@ func TestEnvReplace(t *testing.T) {
 
 func TestInit(t *testing.T) {
 	f := NewFcfg3()
-	err := f.InitWithFilePath("not_found.properties")
+	err := f.InitWithFilePath2("not_found.properties", false)
 	if err == nil {
 		panic("init error")
 	}
@@ -64,19 +66,38 @@ func TestValType(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
+	os.Remove("ssd.sss")
 	cfg, err := NewFcfg2("@l:http://127.0.0.1:65432/fcfg_data.properties")
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
 	cfg.Print()
+	go func() {
+		time.Sleep(time.Second)
+		FWrite("ssd.sss", "a=1")
+	}()
 	cfg, err = NewFcfg2("@l:ssd.sss")
-	if err == nil {
-		t.Error("not error")
+	if err != nil {
+		t.Error(err.Error())
 		return
 	}
-	NewFcfg2("@l:http://127.0.0.1:6x")
+	go func() {
+		time.Sleep(time.Second)
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("a=1"))
+		})
+		http.ListenAndServe(":8334", nil)
+	}()
+	cfg, err = NewFcfg2("@l:http://127.0.0.1:8334")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
 	cfg.Merge(nil)
+	cfg = NewFcfg3()
+	cfg.InitWithFilePath2("sfdsfsd", false)
+	cfg.InitWithURL2("sdfsfs", false)
 }
 
 func TestSection(t *testing.T) {
