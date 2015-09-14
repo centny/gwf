@@ -98,7 +98,7 @@ func TestLoad(t *testing.T) {
 	cfg = NewFcfg3()
 	cfg.InitWithFilePath2("sfdsfsd", false)
 	cfg.InitWithURL2("sdfsfs", false)
-	NewFcfg2("@l:https://cfg:!DyCfg_321@192.168.1.14/WebDAV/cfg/www.properties")
+	// NewFcfg2("@l:https://cfg:!DyCfg_321@192.168.1.14/WebDAV/cfg/www.properties")
 }
 
 func TestSection(t *testing.T) {
