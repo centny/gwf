@@ -37,6 +37,8 @@ func NewFcfg(uri string) (*Fcfg, error) {
 	}
 	if strings.HasPrefix(uri, "http://") {
 		return cfg, cfg.InitWithURL(uri)
+	} else if strings.HasPrefix(uri, "https://") {
+		return cfg, cfg.InitWithURL(uri)
 	} else {
 		return cfg, cfg.InitWithFilePath(uri)
 	}
