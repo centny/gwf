@@ -5,6 +5,7 @@ import (
 	"github.com/Centny/gwf/log"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -34,7 +35,7 @@ func sendf(w http.ResponseWriter, file *os.File, fname, ctype string, attach boo
 		header.Set("Content-Type", ctype)
 	}
 	if attach {
-		header.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fname))
+		header.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", url.QueryEscape(fname)))
 	}
 	header.Set("Content-Length", fmt.Sprintf("%v", fsize))
 	header.Set("Content-Transfer-Encoding", "binary")

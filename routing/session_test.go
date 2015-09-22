@@ -331,6 +331,10 @@ func SendF5(hs *HTTPSession) HResult {
 	hs.SendF("test.txt", "/tmp", "", true)
 	return HRES_RETURN
 }
+func SendF6(hs *HTTPSession) HResult {
+	hs.SendF("2,桂林山水,视频,.mpeg.txt", "/tmp/test.txt", "application/text", true)
+	return HRES_RETURN
+}
 
 func TestSendF(t *testing.T) {
 	sb := NewSrvSessionBuilder("", "/", "rtest", 2000, 500)
@@ -340,16 +344,20 @@ func TestSendF(t *testing.T) {
 	mux.HFunc("^/t3.*$", SendF3)
 	mux.HFunc("^/t4.*$", SendF4)
 	mux.HFunc("^/t5.*$", SendF5)
+	mux.HFunc("^/t6.*$", SendF6)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mux.ServeHTTP(w, r)
 	}))
+	fmt.Println(ts.URL)
 	defer ts.Close()
+	// time.Sleep(400 * time.Second)
 	util.FWrite("/tmp/test.txt", "testing")
 	fmt.Println(util.HGet("%s/t1", ts.URL))
 	fmt.Println(util.HGet("%s/t2", ts.URL))
 	fmt.Println(util.HGet("%s/t3", ts.URL))
 	fmt.Println(util.HGet("%s/t4", ts.URL))
 	fmt.Println(util.HGet("%s/t5", ts.URL))
+	fmt.Println(util.HGet("%s/t6", ts.URL))
 }
 
 type rhtp struct {
