@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/Centny/gwf/util"
+	"github.com/Centny/gwf/routing"
+	"net/http"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -12,5 +14,18 @@ func main() {
 		addr = os.Args[1]
 	}
 	fmt.Println("running on", addr)
-	fmt.Println(util.DoWeb(addr, "."))
+	mux := routing.NewSessionMux2("")
+	mux.HFilterFunc("^.*$", MicroMessengerFilter)
+	mux.Handler("^/.*$", http.FileServer(http.Dir(".")))
+	fmt.Println(http.ListenAndServe(addr, mux))
+}
+
+func MicroMessengerFilter(h *routing.HTTPSession) routing.HResult {
+	uag := h.R.Header.Get("User-Agent")
+	if strings.Index(uag, "MicroMessenger") == -1 {
+		return routing.HRES_CONTINUE
+	} else {
+		h.W.WriteHeader(404)
+		return routing.HRES_RETURN
+	}
 }
