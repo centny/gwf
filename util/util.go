@@ -372,3 +372,19 @@ func ChkVer(n string, o string) (int, error) {
 	}
 	return len(ns) - len(os), nil
 }
+
+func Join(v interface{}, seq string) string {
+	vtype := reflect.TypeOf(v)
+	if vtype.Kind() != reflect.Slice {
+		return ""
+	}
+	vval := reflect.ValueOf(v)
+	if vval.Len() < 1 {
+		return ""
+	}
+	val := fmt.Sprintf("%v", vval.Index(0).Interface())
+	for i := 1; i < vval.Len(); i++ {
+		val += fmt.Sprintf("%v%v", seq, vval.Index(i).Interface())
+	}
+	return val
+}

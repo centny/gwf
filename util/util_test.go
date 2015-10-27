@@ -406,3 +406,10 @@ func TestCopyp(t *testing.T) {
 	Copyp2("/tmp/x/xkj2.txt", f)
 	f.Close()
 }
+
+func TestJoin(t *testing.T) {
+	fmt.Println("...")
+	fmt.Println(Join([]int{1, 2, 3}, ","))
+	fmt.Println(Join([]float64{1.1, 2.2, 3.3}, ","))
+	fmt.Println(Join([]string{"1", "2", "3"}, ","))
+}
