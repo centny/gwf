@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
+	"io"
 	"net/http"
 	"net/http/httptest"
 )
@@ -40,6 +41,15 @@ func (s *Server) PostF(url, fkey, fp string, fields map[string]string) (string, 
 
 func (s *Server) PostF2(url, fkey, fp string, fields map[string]string) (util.Map, error) {
 	return util.HPostF2(fmt.Sprintf("%v%v", s.URL, url), fields, fkey, fp)
+}
+
+func (s *Server) PostN(url, ctype string, buf io.Reader, args ...interface{}) (string, error) {
+	_, data, err := util.HPostN(fmt.Sprintf("%v%v", s.URL, fmt.Sprintf(url, args...)), ctype, buf)
+	return data, err
+}
+func (s *Server) PostN2(url, ctype string, buf io.Reader, args ...interface{}) (util.Map, error) {
+	_, data, err := util.HPostN2(fmt.Sprintf("%v%v", s.URL, fmt.Sprintf(url, args...)), ctype, buf)
+	return data, err
 }
 
 func NewServer(f routing.HandleFunc) *Server {

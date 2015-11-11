@@ -110,6 +110,15 @@ func (h *HClient) HPostN(url string, ctype string, buf io.Reader) (int, string, 
 	return res.StatusCode, str, err
 }
 
+func (h *HClient) HPostN2(url string, ctype string, buf io.Reader) (int, Map, error) {
+	code, data, err := h.HPostN(url, ctype, buf)
+	if len(data) < 1 || err != nil {
+		return -1, nil, err
+	}
+	v, err := Json2Map(data)
+	return code, v, err
+}
+
 func (h *HClient) HPost2(url string, fields map[string]string) (Map, error) {
 	data, err := h.HPost(url, fields)
 	if len(data) < 1 || err != nil {
@@ -196,6 +205,9 @@ func HPostFv2(url string, fields map[string]string, header map[string]string, fk
 }
 func HPostN(url string, ctype string, buf io.Reader) (int, string, error) {
 	return HTTPClient.HPostN(url, ctype, buf)
+}
+func HPostN2(url string, ctype string, buf io.Reader) (int, Map, error) {
+	return HTTPClient.HPostN2(url, ctype, buf)
 }
 func HPost2(url string, fields map[string]string) (Map, error) {
 	return HTTPClient.HPost2(url, fields)

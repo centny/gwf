@@ -1,8 +1,10 @@
 package httptest
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/Centny/gwf/routing"
+	"github.com/Centny/gwf/util"
 	"net/http"
 	"testing"
 )
@@ -78,4 +80,15 @@ func TestServer2(t *testing.T) {
 	Th(&T2{}, "?a=%v", "testing")
 	NewMuxServer()
 	Tnh(&T2{}, "?a=%v", "testing")
+}
+
+func TestPostN(t *testing.T) {
+	ts := NewMuxServer()
+	ts.Mux.HFunc("^.*$", func(hs *routing.HTTPSession) routing.HResult {
+		var res util.Map
+		err := hs.UnmarshalJ(&res)
+		fmt.Println(res, err)
+		return routing.HRES_RETURN
+	})
+	ts.PostN2("?a=1", "application/json", bytes.NewReader([]byte("{\"aa\":\"ssss\"}")))
 }

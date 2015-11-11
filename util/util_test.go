@@ -218,6 +218,22 @@ func TestStr2Int(t *testing.T) {
 	fmt.Println(Str2Int("11,22"))
 	fmt.Println(Str2Int("11,"))
 	fmt.Println(Str2Int("11,ssd"))
+	vals, err := Str2IntV("0/1/2/3", "/")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	for idx, val := range vals {
+		if idx != val {
+			t.Error("error")
+			return
+		}
+	}
+	_, err = Str2IntV("0/1x/2/3", "/")
+	if err == nil {
+		t.Error("not error")
+		return
+	}
 }
 
 func TestIs2Ss(t *testing.T) {

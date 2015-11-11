@@ -233,6 +233,24 @@ func Str2Int(s string) ([]int64, error) {
 	return vals, nil
 }
 
+func Str2IntV(s, seq string) ([]int, error) {
+	vals := []int{}
+	ss := strings.Split(s, seq)
+	for _, str := range ss {
+		str = strings.Trim(str, "\t ")
+		if len(str) < 1 {
+			continue
+		}
+		v, err := strconv.ParseInt(str, 10, 64)
+		if err == nil {
+			vals = append(vals, int(v))
+		} else {
+			return nil, err
+		}
+	}
+	return vals, nil
+}
+
 func Int2Str(vals []int64) string {
 	str := ""
 	for _, v := range vals {
@@ -387,4 +405,8 @@ func Join(v interface{}, seq string) string {
 		val += fmt.Sprintf("%v%v", seq, vval.Index(i).Interface())
 	}
 	return val
+}
+
+func Trim(s string) string {
+	return strings.Trim(s, " \t")
 }
