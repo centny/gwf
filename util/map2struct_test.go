@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -238,4 +239,37 @@ func TestS2Time(t *testing.T) {
 	st := St{}
 	M2S(m, &st)
 	fmt.Println(st)
+}
+
+type xx string
+type Xxk struct {
+	X  string
+	A  xx
+	X1 string `m2s:"-"`
+	X2 string `json:"-"`
+}
+
+func TestTypeString(t *testing.T) {
+	vk := Xxk{}
+	// ptype := reflect.TypeOf(reflect.Indirect(reflect.ValueOf(&vk)).Interface())
+	//get the reflect value.
+	var vx interface{} = "ssss"
+	// fmt.Println(vx.(xx))
+	pval := reflect.ValueOf(&vk)
+	pval = pval.Elem()
+	tv := reflect.ValueOf(vx)
+	fv := pval.Field(0)
+	fv2 := pval.Field(1)
+	fv.Set(tv)
+	fv2.Set(tv.Convert(fv2.Type()))
+	fmt.Println(vk.X, "->", vk.A)
+	//
+	mv := Map{
+		"X":  "sss",
+		"A":  "aaa",
+		"X1": "sss1",
+		"X2": "sss2",
+	}
+	M2S(mv, &vk)
+	fmt.Println(vk.X, "->", vk.A, "->", vk.X1, "->", vk.X2)
 }

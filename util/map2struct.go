@@ -36,6 +36,9 @@ func M2S(m Map, dest interface{}) {
 		if len(m2s) < 1 { //if not m2s tag,using field name.
 			m2s = f.Name
 		}
+		if m2s == "-" {
+			continue
+		}
 		keys := strings.Split(m2s, ",")
 		for _, key := range keys {
 			v, ok := m[key]
@@ -44,7 +47,8 @@ func M2S(m Map, dest interface{}) {
 			}
 			vty := reflect.TypeOf(v)
 			if f.Type.Kind() == vty.Kind() {
-				pval.Field(i).Set(reflect.ValueOf(v))
+				pval_f := pval.Field(i)
+				pval_f.Set(reflect.ValueOf(v).Convert(pval_f.Type()))
 				continue
 			}
 			if f.Type.Name() == "Time" {
