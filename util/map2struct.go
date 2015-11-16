@@ -29,10 +29,10 @@ func M2S(m Map, dest interface{}) {
 	for i := 0; i < ptype.NumField(); i++ {
 		f := ptype.Field(i)
 		var m2s string = f.Tag.Get("m2s") //get the m2s tag.
-		if len(m2s) < 1 {
-			//if not m2s tag, try using json tag
-			m2s = strings.Split(f.Tag.Get("json"), ",")[0]
-		}
+		// if len(m2s) < 1 {
+		// 	//if not m2s tag, try using json tag
+		// 	m2s = strings.Split(f.Tag.Get("json"), ",")[0]
+		// }
 		if len(m2s) < 1 { //if not m2s tag,using field name.
 			m2s = f.Name
 		}
