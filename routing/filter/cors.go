@@ -1,25 +1,33 @@
 package filter
 
 import (
+	"strings"
 	// "github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/routing"
 	"net/http"
 )
 
 type CORS struct {
-	Sites map[string]int //sites for access
+	Sites   map[string]int //sites for access
+	Headers []string
+	Methods []string
 }
 
 func (c *CORS) exec(w http.ResponseWriter, r *http.Request) routing.HResult {
 	origin := r.Header.Get("Origin")
 	found := func(origin string) routing.HResult {
 		// log.D("sending CORS to %s", origin)
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		if r.Method == "OPTIONS" {
-			return routing.HRES_RETURN
-		} else {
+		if r.Method != "OPTIONS" {
 			return routing.HRES_CONTINUE
 		}
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		if len(c.Headers) > 0 {
+			w.Header().Set("Access-Control-Allow-Headers", strings.Join(c.Headers, ", "))
+		}
+		if len(c.Methods) > 0 {
+			w.Header().Set("Access-Control-Allow-Methods", strings.Join(c.Methods, ", "))
+		}
+		return routing.HRES_RETURN
 	}
 	if len(origin) > 0 {
 		if v, ok := c.Sites["*"]; ok && v > 0 {
