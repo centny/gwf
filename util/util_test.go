@@ -3,6 +3,7 @@ package util
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -428,4 +429,25 @@ func TestJoin(t *testing.T) {
 	fmt.Println(Join([]int{1, 2, 3}, ","))
 	fmt.Println(Join([]float64{1.1, 2.2, 3.3}, ","))
 	fmt.Println(Join([]string{"1", "2", "3"}, ","))
+}
+
+type xxk struct {
+	Kk int64 `json:"kk"`
+}
+
+func TestJsonInt(t *testing.T) {
+	var xk xxk
+	xk.Kk = Now()
+	bys, err := json.Marshal(&xk)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(string(bys))
+	err = json.Unmarshal(bys, &xk)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(xk.Kk)
 }
