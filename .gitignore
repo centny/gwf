@@ -46,3 +46,5 @@ tutil/t.xml
 example/www/jquery.min.js
 
 util/ssd.sss
+
+tutil/t.log
