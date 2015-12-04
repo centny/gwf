@@ -6,7 +6,11 @@ import (
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/routing"
+	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
+	"net/http"
+	"os"
 	"runtime"
 	"testing"
 	"time"
@@ -326,4 +330,111 @@ func TestErr(t *testing.T) {
 	// cr.Timeout()
 	cr.Start()
 	time.Sleep(time.Second)
+}
+
+func pref_exec(rc *impl.RCM_Cmd) (interface{}, error) {
+	var dc int64
+	err := rc.ValidF(`
+		dc,R|I,R:0;
+		`, &dc)
+	if err != nil {
+		log.E("pref_exec valid args error:%v", err.Error())
+		return nil, err
+	}
+	return util.Map{
+		"code": 0,
+		"data": make([]byte, dc),
+	}, nil
+}
+
+func pref_rc() (int64, int64, error) {
+	os.Remove("rc_t.log")
+	bp := pool.NewBytePool(8, 102400)
+	lm := NewRC_Listener_m_j(bp, ":10802", netw.NewDoNotH())
+	lm.AddHFunc("exec", pref_exec)
+	err := lm.Run()
+	if err != nil {
+		return 0, 0, err
+	}
+	cr := NewRC_Runner_m_j(bp, "127.0.0.1:10802", netw.NewDoNotH())
+	cr.Start()
+	var fail int64 = 0
+	used, _ := tutil.DoPerf(10000, "rc_t.log", func(i int) {
+		res, err := cr.VExec_m("exec", util.Map{"dc": i + 1})
+		if err != nil {
+			fail++
+			fmt.Println(err.Error())
+			return
+		}
+		if res.IntVal("code") != 0 {
+			panic("not zero")
+		}
+	})
+	return used, fail, nil
+}
+
+func pref_exec2(hs *routing.HTTPSession) routing.HResult {
+	var dc int64
+	err := hs.ValidCheckVal(`
+		dc,R|I,R:0;
+		`, &dc)
+	if err != nil {
+		log.E("pref_exec2 valid args error:%v", err.Error())
+		return hs.MsgResErr2(1, "arg-err", err)
+	} else {
+		return hs.MsgRes(make([]byte, dc*100))
+	}
+}
+
+func pref_http() (int64, int64, error) {
+	os.Remove("http_t.log")
+	mux := routing.NewSessionMux2("/")
+	srv := http.Server{
+		Addr:    ":10803",
+		Handler: mux,
+	}
+	go srv.ListenAndServe()
+	time.Sleep(100 * time.Microsecond)
+	mux.HFunc("^.*$", pref_exec2)
+	var fail int64 = 0
+	used, _ := tutil.DoPerf(10000, "http_t.log", func(i int) {
+		res, err := util.HGet2("http://127.0.0.1:10803?dc=%v", i+1)
+		if err != nil {
+			fail++
+			fmt.Println(err.Error())
+			return
+		}
+		if res.IntVal("code") != 0 {
+			panic("not zero")
+		}
+	})
+	return used, fail, nil
+}
+
+func TestPerformance(t *testing.T) {
+	runtime.GOMAXPROCS(util.CPU())
+	// impl.ShowLog = true
+	used, fail, err := pref_http()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Printf(`
+------------------------------
+HTTP->Used:%vms,Fail:%v
+------------------------------
+
+			`, used, fail)
+	//
+	used, fail, err = pref_rc()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Printf(`
+------------------------------
+RC->Used:%vms,Fail:%v
+------------------------------
+
+		`, used, fail)
 }
