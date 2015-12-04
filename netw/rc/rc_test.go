@@ -350,13 +350,13 @@ func pref_exec(rc *impl.RCM_Cmd) (interface{}, error) {
 func pref_rc() (int64, int64, error) {
 	os.Remove("rc_t.log")
 	bp := pool.NewBytePool(8, 102400)
-	lm := NewRC_Listener_m_j(bp, ":10802", netw.NewDoNotH())
+	lm := NewRC_Listener_m_j(bp, ":10812", netw.NewDoNotH())
 	lm.AddHFunc("exec", pref_exec)
 	err := lm.Run()
 	if err != nil {
 		return 0, 0, err
 	}
-	cr := NewRC_Runner_m_j(bp, "127.0.0.1:10802", netw.NewDoNotH())
+	cr := NewRC_Runner_m_j(bp, "127.0.0.1:10812", netw.NewDoNotH())
 	cr.Start()
 	var fail int64 = 0
 	used, _ := tutil.DoPerf(10000, "rc_t.log", func(i int) {
