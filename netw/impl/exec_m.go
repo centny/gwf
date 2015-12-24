@@ -35,11 +35,16 @@ func (r *RCM_Con) ExecRes(name string, args interface{}) (*RCM_CRes, error) {
 	_, err := r.Exec(name, args, &crs)
 	return &crs, err
 }
+func (r *RCM_Con) Exec_m(name string, args interface{}) (util.Map, error) {
+	var res util.Map
+	_, err := r.Exec(name, args, &res)
+	return res, err
+}
 
 /*
 
 
-*/
+ */
 
 type ND_F func() interface{}
 type VNA_F func(rc *RCM_S, c netw.Cmd, v interface{}) (string, *util.Map, error)

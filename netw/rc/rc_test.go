@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -20,7 +21,8 @@ import (
 //////// server handler ////////////
 ////////////////////////////////////
 type rc_s_h struct {
-	L *RC_Listener_m
+	L   *RC_Listener_m
+	cid int64
 }
 
 func (r *rc_s_h) OnCmd(c netw.Cmd) int {
@@ -144,6 +146,13 @@ func (r *rc_s_h) Handle(l *RC_Listener_m) {
 	r.L = l
 	l.AddHFunc("login", r.Login)
 }
+func (r *rc_s_h) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
+	if token == "abc3" {
+		return "", util.Err("error")
+	}
+	cid := atomic.AddInt64(&r.cid, 1)
+	return fmt.Sprintf("NN-%v", cid), nil
+}
 
 ////////////////////////////////////
 //////// client handler ////////////
@@ -207,12 +216,14 @@ func TestRc(t *testing.T) {
 	//initial server.
 	sh := &rc_s_h{}
 	lm := NewRC_Listener_m_j(bp, ":10801", sh)
+	lm.LCH = sh
 	sh.Handle(lm)
 	err := lm.Run()
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
+	fmt.Println("xxxx->001")
 	//
 	//
 	//initial client
@@ -241,6 +252,7 @@ func TestRc(t *testing.T) {
 		}
 		crs = append(crs, cr)
 	}
+	fmt.Println("xxxx->002")
 	//login by remote command.
 	for i := 5; i < 10; i++ {
 		ch := &rc_c_h{}
@@ -258,21 +270,26 @@ func TestRc(t *testing.T) {
 		log.D("login by name(%v)->%v", name, res.IntVal("code"))
 		crs = append(crs, cr)
 	}
+	fmt.Println("xxxx->003")
 	//
 	//
 	//calling target.
 	for i := 0; i < 10; i++ {
+		fmt.Println("xxxx->004-0")
 		err = sh.CallM(fmt.Sprintf("RC-%v", i))
 		if err != nil {
 			t.Error(err.Error())
 			return
 		}
+		fmt.Println("xxxx->004-1")
 		err = sh.CallC(fmt.Sprintf("RC-%v", i))
 		if err != nil {
 			t.Error(err.Error())
 			return
 		}
+		fmt.Println("xxxx->004-2")
 	}
+	fmt.Println("xxxx->004")
 	//calling all
 	err = sh.CallM("")
 	if err != nil {
@@ -305,6 +322,66 @@ func TestRc(t *testing.T) {
 	time.Sleep(time.Second)
 	lm.Close()
 	time.Sleep(time.Second)
+}
+
+type rc_login_h struct {
+}
+
+func (r *rc_login_h) OnCmd(c netw.Cmd) int {
+	return 0
+}
+func (r *rc_login_h) OnConn(c netw.Con) bool {
+	c.SetWait(true)
+	return true
+}
+func (r *rc_login_h) OnClose(c netw.Con) {
+}
+func (r *rc_login_h) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
+	return "", util.Err("error")
+}
+
+func TestRcLogin(t *testing.T) {
+	runtime.GOMAXPROCS(util.CPU())
+	// impl.ShowLog = true
+	bp := pool.NewBytePool(8, 102400)
+	//
+	//
+	//initial server.
+	sh := &rc_login_h{}
+	lm := NewRC_Listener_m_j(bp, ":10801", sh)
+	lm.AddToken2([]string{"abc"})
+	lm.AddToken(map[string]int{
+		"abc1": 1,
+		"abc2": 2,
+	})
+	err := lm.Run()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	login := func(token string, tw, terr bool) {
+		cr := NewRC_Runner_m_j(bp, "127.0.0.1:10801", sh)
+		cr.Start()
+		err = cr.Login_(token)
+		if tw {
+			err = cr.Login_(token)
+		}
+		if terr && err != nil {
+			t.Error(err.Error())
+		}
+		if !terr && err == nil {
+			t.Error("error")
+		}
+		cr.Stop()
+		cr.Wait()
+	}
+	login("abc", false, true)
+	login("abc1", false, true)
+	login("abc1", true, false)
+	login("", false, false)
+	login("xxxxx", false, false)
+	lm.LCH = sh
+	login("abc", false, false)
 }
 
 func TestErr(t *testing.T) {

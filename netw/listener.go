@@ -67,7 +67,7 @@ func (l *Listener) LoopAccept() {
 	for l.Running {
 		con, err := l.L.Accept()
 		if err != nil {
-			log_d("accept %s error:%s", l.Port, err.Error())
+			log.I("accept %s error->%s", l.Port, err.Error())
 			break
 		}
 		con.(*net.TCPConn).SetNoDelay(true)
@@ -81,6 +81,7 @@ func (l *Listener) LoopAccept() {
 	}
 	l.Running = false
 	l.Wc <- 0
+	log.I("loop accept will exit...")
 }
 
 //close the listener.

@@ -44,7 +44,7 @@ echo "Running Test"
 #  github.com/Centny/gwf/im\
 # "
 pkgs="\
-  github.com/Centny/gwf/netw/rc/cmd\
+  github.com/Centny/gwf/netw/rc/plugin\
 "
 echo "mode: set" > a.out
 for p in $pkgs;

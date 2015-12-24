@@ -7,6 +7,7 @@
 package rc
 
 import (
+	"fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
@@ -14,6 +15,7 @@ import (
 	"github.com/Centny/gwf/util"
 	"net"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -22,6 +24,10 @@ const (
 	CMD_C = 20 //client command channel
 	MSG_C = 21 //client message channel
 )
+
+type RC_Login_h interface {
+	OnLogin(rc *impl.RCM_Cmd, token string) (string, error)
+}
 
 //remote command callback distributed handler
 type RC_Cmd_h struct {
@@ -32,15 +38,21 @@ type RC_Cmd_h struct {
 	MCS  map[string]netw.Con      //message connection for client by custom id.
 	CCS  map[string]*impl.RCM_Con //command connection for client by custom id.
 	rc_l sync.RWMutex
+	//
+	//
+	Token map[string]int
+	//
+	cid int64
 }
 
 //new remote command callback distributed handler.
 func NewRC_Cmd_h() *RC_Cmd_h {
 	return &RC_Cmd_h{
-		CRC: map[string]*impl.RC_C{},
-		MID: map[string]string{},
-		MCS: map[string]netw.Con{},
-		CCS: map[string]*impl.RCM_Con{},
+		CRC:   map[string]*impl.RC_C{},
+		MID:   map[string]string{},
+		MCS:   map[string]netw.Con{},
+		CCS:   map[string]*impl.RCM_Con{},
+		Token: map[string]int{},
 	}
 }
 
@@ -119,6 +131,25 @@ func (r *RC_Cmd_h) CmdC(cid string) *impl.RCM_Con {
 	}
 }
 
+//adding token
+func (r *RC_Cmd_h) AddToken(ts map[string]int) {
+	for k, v := range ts {
+		r.Token[k] = v
+	}
+}
+func (r *RC_Cmd_h) AddToken2(ts []string) {
+	for _, v := range ts {
+		r.Token[v] = 2
+	}
+}
+func (r *RC_Cmd_h) TokenVal(token string) int {
+	return r.Token[token]
+}
+func (r *RC_Cmd_h) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
+	cid := atomic.AddInt64(&r.cid, 1)
+	return fmt.Sprintf("N-%v", cid), nil
+}
+
 //remote command listener.
 type RC_Listener_m struct {
 	*netw.Listener //listener
@@ -128,6 +159,7 @@ type RC_Listener_m struct {
 	Na  impl.NAV_F  //remote command function name.
 	CH  *impl.ChanH //process chan.
 	RCH *RC_Cmd_h   //remote client command call back handler.
+	LCH RC_Login_h
 }
 
 //new remote command listener by common convert function
@@ -154,8 +186,10 @@ func NewRC_Listener_m(p *pool.BytePool, port string, h netw.CCHandler, rc *impl.
 		RCH:      rch,
 		Na:       na,
 		RCM_S:    rc,
+		LCH:      rch,
 	}
 	rch.L = rcl
+	rcl.AddHFunc("login_", rcl.Login_)
 	return rcl
 }
 
@@ -186,6 +220,13 @@ func (r *RC_Listener_m) AddC_rc(cid string, rc *impl.RCM_Cmd) {
 	r.RCH.AddC(cid, rc.BaseCon().(*netw.Con_))
 }
 
+func (r *RC_Listener_m) AddToken(ts map[string]int) {
+	r.RCH.AddToken(ts)
+}
+func (r *RC_Listener_m) AddToken2(ts []string) {
+	r.RCH.AddToken2(ts)
+}
+
 //find message connection by id.
 func (r *RC_Listener_m) MsgC(cid string) netw.Con {
 	return r.RCH.MsgC(cid)
@@ -200,6 +241,36 @@ func (r *RC_Listener_m) CmdC(cid string) *impl.RCM_Con {
 }
 func (r *RC_Listener_m) CmdCs() map[string]*impl.RCM_Con {
 	return r.RCH.CCS
+}
+
+func (r *RC_Listener_m) TokenVal(token string) int {
+	return r.RCH.TokenVal(token)
+}
+
+func (r *RC_Listener_m) Login_(rc *impl.RCM_Cmd) (interface{}, error) {
+	var token string
+	err := rc.ValidF(`
+		token,R|S,L:0;
+		`, &token)
+	if err != nil {
+		return nil, err
+	}
+	otk := rc.Kvs().StrVal("token")
+	log.D("RC_Listener_m login by token(%v),old(%v)", token, otk)
+	tval := r.TokenVal(token)
+	if tval < 1 {
+		return util.Map{"code": -2, "err": fmt.Sprintf("token(%v) is not found", token)}, nil
+	}
+	if tval == 1 && len(otk) > 0 {
+		return util.Map{"code": -3, "err": fmt.Sprintf("token(%v) is logined", token)}, nil
+	}
+	tcid, err := r.LCH.OnLogin(rc, token)
+	if err != nil {
+		return util.Map{"code": -4, "err": err.Error()}, nil
+	}
+	r.AddC_rc(tcid, rc)
+	rc.Kvs().SetVal("token", token)
+	return util.Map{"code": 0}, nil
 }
 
 //remote command client runner.
@@ -250,7 +321,8 @@ func NewRC_Runner_m_j(p *pool.BytePool, addr string, h netw.CCHandler) *RC_Runne
 
 //dail to server and create remote command connection.
 func (r *RC_Runner_m) Dail(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *impl.RCM_Con, error) {
-	np := netw.NewNConPool2(p, netw.NewCCH(r.CC, r.CH))
+	cch := netw.NewCCH(netw.NewQueueConH(h, r.CC), r.CH)
+	np := netw.NewNConPool2(p, cch)
 	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
 		r.BC = netw.NewCon_(cp, p, con)
 		r.BC.V2B_, r.BC.B2V_ = r.V2b, r.B2v
@@ -288,5 +360,19 @@ func (r *RC_Runner_m) Writev2(bys []byte, val interface{}) (int, error) {
 		return r.MC.Writev2(bys, val)
 	} else {
 		return 0, err
+	}
+}
+
+func (r *RC_Runner_m) Login_(token string) error {
+	res, err := r.VExec_m("login_", util.Map{
+		"token": token,
+	})
+	if err != nil {
+		return err
+	}
+	if res.IntVal("code") == 0 {
+		return nil
+	} else {
+		return util.Err("login error->%v", res.StrVal("err"))
 	}
 }

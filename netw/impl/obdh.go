@@ -4,6 +4,7 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/util"
+	"reflect"
 	"runtime"
 )
 
@@ -34,7 +35,7 @@ func (o *OBDH_Con) Writev(val interface{}) (int, error) {
 /*
 
 
-*/
+ */
 //
 type obdh_cmd struct {
 	netw.Cmd
@@ -90,6 +91,7 @@ func (o *OBDH) OnCmd(c netw.Cmd) int {
 	mark, data := util.SplitTwo(c.Data(), 1)
 	if hh, ok := o.HS[mark[0]]; ok {
 		c.SetErrd(3)
+		log_d("OBDH do next(%v,%v) by data:%v ", mark[0], reflect.TypeOf(hh).String(), data)
 		return hh.OnCmd(&obdh_cmd{
 			Cmd:   c,
 			data_: data,

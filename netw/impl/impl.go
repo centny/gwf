@@ -26,7 +26,7 @@ func log_d(f string, args ...interface{}) {
 /*
 
 
-*/
+ */
 func NewNConRunner_j(bp *pool.BytePool, addr string, h netw.CmdHandler) *netw.NConRunner {
 	return netw.NewNConRunnerN(bp, addr, h, Json_NewCon)
 }
@@ -72,7 +72,7 @@ func NewExecListenerN(p *pool.BytePool, port string, h netw.CCHandler, v2b netw.
 /*
 
 
-*/
+ */
 
 func ExecDail_m(p *pool.BytePool, addr string, h netw.ConHandler, v2b netw.V2Byte, b2v netw.Byte2V, na NAV_F) (*netw.NConPool, *RCM_Con, error) {
 	tc := NewRC_C()
@@ -112,7 +112,7 @@ func NewChanExecListenerN_m_r(p *pool.BytePool, port string, h netw.ConHandler, 
 /*
 
 
-*/
+ */
 func ExecDail_m_j(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *RCM_Con, error) {
 	tc := NewRC_C()
 	return ExecDailN_m(p, addr, netw.NewCCH(h, tc), tc, Json_V2B, Json_B2V, Json_NAV)
@@ -142,6 +142,7 @@ type RC_Runner_m struct {
 	R         bool
 	Delay     int64
 	Connected int32
+	TryCount  int64
 	wc        int32
 	wait_     chan byte
 	DailF     F_DAIL
@@ -173,8 +174,10 @@ func (r *RC_Runner_m) Stop() {
 	if r.L != nil {
 		r.L.Close()
 	}
+	log.D("RC Runner is stopping")
 }
 func (r *RC_Runner_m) Wait() {
+	log.D("RC Runner wait stop")
 	<-r.w_lck
 }
 func (r *RC_Runner_m) Run() error {
@@ -205,6 +208,7 @@ func (r *RC_Runner_m) Try() {
 	var t int = 0
 	for r.R {
 		t++
+		r.TryCount += 1
 		err := r.Run()
 		if err == nil {
 			break
