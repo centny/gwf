@@ -11,7 +11,7 @@ import (
 
 func TestPerf(t *testing.T) {
 	runtime.GOMAXPROCS(util.CPU())
-	DoPerf(10, "", func(v int) {
+	DoPerfV(20, 10, "", func(v int) {
 		time.Sleep(100 * time.Millisecond)
 		log.D("doing->%d", v)
 	})
@@ -25,5 +25,4 @@ func TestPerf(t *testing.T) {
 		return
 	}
 	fmt.Println("used->", used)
-
 }
