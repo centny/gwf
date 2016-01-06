@@ -18,6 +18,7 @@ func main() {
 	var count int = 1
 	var total, max int = 100, util.CPU()
 	var beg, end int = 0, 8
+	var clean bool = true
 
 	_, options, path := util.Args()
 	err := options.ValidF(`
@@ -41,12 +42,14 @@ func main() {
 		ef(0)
 		return
 	}
+	clean = !options.Exist("n")
 	if len(path) < 1 {
 		wd = "."
 	} else {
 		wd = path[0]
 	}
 	tp := tutil.NewFPerf(wd)
+	tp.Clear = clean
 	var used, bys int64
 	switch mode {
 	case "RW":
@@ -83,7 +86,7 @@ func main() {
 	if used < 1 {
 		used = 1
 	}
-	fmt.Printf("Used:%vms, Speed:%vKB/s\n", used, bys/used/1024)
+	fmt.Printf("Used:%vms, Speed:%v\n", used, util.BysSize(bys/used*1000))
 }
 func usage() {
 	fmt.Println(`Usage:fperf [options] <test path>
@@ -95,5 +98,6 @@ func usage() {
 	-m the max thread to run test at the same time
 	-b the begin index to read file
 	-e the end index to write file
+	-n not clear the tmp file
 	`)
 }

@@ -10,7 +10,15 @@ func TestFPerf(t *testing.T) {
 	os.RemoveAll("abc")
 	os.Mkdir("abc", os.ModePerm)
 	fp := NewFPerf("./abc")
+	fp.Clear = true
 	used, err := fp.Perf4MultiRw("a", "", 100, 5, 10240, 1)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(used)
+	fp.Clear = false
+	used, err = fp.Perf4MultiRw("a", "", 100, 5, 10240, 1)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -22,6 +30,7 @@ func TestFPerf(t *testing.T) {
 		return
 	}
 	fmt.Println(used)
+	fp.Clear = true
 	used, err = fp.Perf4MultiW("ab", "", 100, 5, 10240, 1)
 	if err != nil {
 		t.Error(err.Error())
@@ -60,4 +69,5 @@ func TestFPerf(t *testing.T) {
 		t.Error("error")
 		return
 	}
+	os.RemoveAll("abc")
 }

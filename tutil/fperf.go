@@ -10,12 +10,14 @@ import (
 )
 
 type FPerf struct {
-	Path string
+	Path  string
+	Clear bool
 }
 
 func NewFPerf(path string) *FPerf {
 	return &FPerf{
-		Path: path,
+		Path:  path,
+		Clear: true,
 	}
 }
 
@@ -56,6 +58,9 @@ func (f *FPerf) Read(name string) (int64, error) {
 	}
 	return readed, err
 }
+func (f *FPerf) remove(name string) {
+	os.Remove(filepath.Join(f.Path, name))
+}
 
 func (f *FPerf) Rw(name string, bs int64, count int) error {
 	err := f.Write(name, bs, count)
@@ -77,6 +82,9 @@ func (f *FPerf) Perf4MultiW(pref, logf string, fc, max int, bs int64, count int)
 			terr = err
 			log.E("TestMultiW error to (%v) on path(%v) error->%v", tp, f.Path, err.Error())
 		}
+		if f.Clear {
+			f.remove(tp)
+		}
 	})
 	if err == nil {
 		err = terr
@@ -92,6 +100,9 @@ func (f *FPerf) Perf4MultiRw(pref, logf string, fc, max int, bs int64, count int
 		if err != nil {
 			terr = err
 			log.E("TestMultiRw error to (%v) on path(%v) error->%v", tp, f.Path, err.Error())
+		}
+		if f.Clear {
+			f.remove(tp)
 		}
 	})
 	if err == nil {

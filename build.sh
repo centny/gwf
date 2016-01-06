@@ -44,7 +44,7 @@ echo "Running Test"
 #  github.com/Centny/gwf/im\
 # "
 pkgs="\
-  github.com/Centny/gwf/netw/rc/plugin\
+  github.com/Centny/gwf/cmd/fperf\
 "
 echo "mode: set" > a.out
 for p in $pkgs;
@@ -72,3 +72,4 @@ go install github.com/Centny/gwf/cmd/hj
 go install github.com/Centny/gwf/cmd/mexec
 go install github.com/Centny/gwf/cmd/rnet
 go install github.com/Centny/gwf/cmd/rweb
+go install github.com/Centny/gwf/cmd/fperf
