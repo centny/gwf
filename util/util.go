@@ -410,3 +410,15 @@ func Join(v interface{}, seq string) string {
 func Trim(s string) string {
 	return strings.Trim(s, " \t")
 }
+
+func BysSize(size int64) string {
+	keys := []string{"B", "KB", "MB", "GB", "TB"}
+	for i := 0; i < len(keys); i++ {
+		if size < 1024 {
+			return fmt.Sprintf("%v%v", size, keys[i])
+		} else {
+			size = size / 1024
+		}
+	}
+	return fmt.Sprintf("%v%v", size, keys[len(keys)-1])
+}

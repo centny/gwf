@@ -451,3 +451,16 @@ func TestJsonInt(t *testing.T) {
 	}
 	fmt.Println(xk.Kk)
 }
+
+func TestBysSize(t *testing.T) {
+	fmt.Println(BysSize(10))
+	fmt.Println(BysSize(1024))
+	fmt.Println(BysSize(1034))
+	fmt.Println(BysSize(1024 * 1024))
+	fmt.Println(BysSize(1024*1024 + 1))
+	fmt.Println(BysSize(1024 * 1024 * 1024))
+	fmt.Println(BysSize(1024*1024*1024 + 1))
+	fmt.Println(BysSize(1024*1024*1024*1024 + 1))
+	fmt.Println(BysSize(1024 * 1024 * 1024 * 1024 * 1024))
+	fmt.Println(BysSize(1024*1024*1024*1024*1024 + 1))
+}
