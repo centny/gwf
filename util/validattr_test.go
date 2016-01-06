@@ -267,16 +267,47 @@ func TestValidAttrF(t *testing.T) {
 	var i int64
 	var k string
 	var f float64
+	var iv1 int
+	var iv2 int16
+	var iv3 int32
+	var iv4 int64
+	var iv5 uint
+	var iv6 uint16
+	var iv7 uint32
+	var iv8 uint64
+	var iv9 float32
+	var iv10 float64
+	var iv11 string
+	var iv12 int64
 	err := ValidAttrF(`//abc
 		a,R|S,L:~5;//abc
 		i,R|I,R:1~20;
 		k,O|I,R:1~20;//sfdsj
 		f,R|F,R:1.5~20;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|S,L:0;
 		`, func(key string) string {
 		return mv[key]
-	}, true, &a, &i, &k, &f)
+	}, true, &a, &i, &k, &f,
+		&iv1, &iv2, &iv3, &iv4, &iv5,
+		&iv6, &iv7, &iv8, &iv9, &iv10,
+		&iv11, &iv12)
 	if err != nil {
 		t.Error(err.Error())
+		return
+	}
+	if iv1 != 10 && iv10 != 10 {
+		t.Error("error")
 		return
 	}
 	fmt.Println(a, i, k, f)

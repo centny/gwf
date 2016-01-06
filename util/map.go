@@ -20,89 +20,126 @@ type Validable interface {
 type Map map[string]interface{}
 
 func IntVal(v interface{}) int64 {
-	if v == nil {
+	val, err := IntValV(v)
+	if err == nil {
+		return val
+	} else {
 		return math.MaxInt64
+	}
+}
+
+func IntValV(v interface{}) (int64, error) {
+	if v == nil {
+		return 0, Err("arg value is null")
 	}
 	k := reflect.TypeOf(v)
 	if k.Name() == "Time" {
 		t := v.(time.Time)
-		return Timestamp(t)
+		return Timestamp(t), nil
 	}
 	switch k.Kind() {
 	case reflect.Int:
-		return int64(v.(int))
+		return int64(v.(int)), nil
 	case reflect.Int8:
-		return int64(v.(int8))
+		return int64(v.(int8)), nil
 	case reflect.Int16:
-		return int64(v.(int16))
+		return int64(v.(int16)), nil
 	case reflect.Int32:
-		return int64(v.(int32))
+		return int64(v.(int32)), nil
 	case reflect.Int64:
-		return v.(int64)
+		return v.(int64), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return int64(UintVal(v))
+		return int64(UintVal(v)), nil
 	case reflect.Float32, reflect.Float64:
-		return int64(FloatVal(v))
+		return int64(FloatVal(v)), nil
 	case reflect.String:
 		if fv, err := strconv.ParseInt(v.(string), 10, 64); err == nil {
-			return fv
+			return fv, nil
 		} else {
-			return math.MaxInt64
+			return 0, err
+		}
+	case reflect.Struct:
+		if k.Name() == "Time" {
+			return Timestamp(v.(time.Time)), nil
+		} else {
+			return 0, Err("incompactable kind(%v)", k.Kind())
 		}
 	default:
-		return math.MaxInt64
+		return 0, Err("incompactable kind(%v)", k.Kind())
 	}
 }
+
 func UintVal(v interface{}) uint64 {
-	if v == nil {
+	val, err := UintValV(v)
+	if err == nil {
+		return val
+	} else {
 		return math.MaxUint64
 	}
-	switch reflect.TypeOf(v).Kind() {
+}
+
+func UintValV(v interface{}) (uint64, error) {
+	if v == nil {
+		return 0, Err("arg value is null")
+	}
+	k := reflect.TypeOf(v)
+	switch k.Kind() {
 	case reflect.Uint:
-		return uint64(v.(uint))
+		return uint64(v.(uint)), nil
 	case reflect.Uint8:
-		return uint64(v.(uint8))
+		return uint64(v.(uint8)), nil
 	case reflect.Uint16:
-		return uint64(v.(uint16))
+		return uint64(v.(uint16)), nil
 	case reflect.Uint32:
-		return uint64(v.(uint32))
+		return uint64(v.(uint32)), nil
 	case reflect.Uint64:
-		return v.(uint64)
+		return v.(uint64), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return uint64(IntVal(v))
+		return uint64(IntVal(v)), nil
 	case reflect.Float32, reflect.Float64:
-		return uint64(FloatVal(v))
+		return uint64(FloatVal(v)), nil
 	case reflect.String:
 		if fv, err := strconv.ParseUint(v.(string), 10, 64); err == nil {
-			return fv
+			return fv, nil
 		} else {
-			return math.MaxInt64
+			return 0, err
 		}
 	default:
-		return math.MaxUint64
+		return 0, Err("incompactable kind(%v)", k.Kind().String())
 	}
 }
+
 func FloatVal(v interface{}) float64 {
-	if v == nil {
+	val, err := FloatValV(v)
+	if err == nil {
+		return val
+	} else {
 		return math.MaxFloat64
 	}
-	switch reflect.TypeOf(v).Kind() {
+}
+
+func FloatValV(v interface{}) (float64, error) {
+	if v == nil {
+		return 0, Err("arg value is null")
+	}
+	k := reflect.TypeOf(v)
+	switch k.Kind() {
 	case reflect.Float32:
-		return float64(v.(float32))
+		return float64(v.(float32)), nil
 	case reflect.Float64:
-		return float64(v.(float64))
+		return float64(v.(float64)), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return float64(UintVal(v))
+		return float64(UintVal(v)), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return float64(IntVal(v))
+		return float64(IntVal(v)), nil
 	case reflect.String:
 		if fv, err := strconv.ParseFloat(v.(string), 64); err == nil {
-			return fv
+			return fv, nil
 		} else {
-			return math.MaxFloat64
+			return 0, err
 		}
 	default:
-		return math.MaxFloat64
+		return 0, Err("incompactable kind(%v)", k.Kind().String())
 	}
 }
 func StrVal(v interface{}) string {

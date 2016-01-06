@@ -243,11 +243,91 @@ func ValidAttrF(f string, cf AttrFunc, limit_r bool, args ...interface{}) error 
 			continue
 		}
 		pval := reflect.Indirect(reflect.ValueOf(args[idx]))
-		tval := reflect.ValueOf(rval)
-		if pval.Kind() != tval.Kind() {
-			return errors.New(fmt.Sprintf("target kind is %v, but %v found", pval.Kind(), tval.Kind()))
+		err = ValidSetVal(pval, rval)
+		if err != nil {
+			return err
 		}
-		pval.Set(tval)
 	}
 	return nil
+}
+
+func ValidSetVal(dst reflect.Value, src interface{}) error {
+	sk := reflect.TypeOf(src)
+	if sk.Kind() == dst.Kind() {
+		dst.Set(reflect.ValueOf(src))
+		return nil
+	}
+	var tiv int64
+	var tfv float64
+	var terr error
+	switch dst.Kind() {
+	case reflect.Int:
+		tiv, terr = IntValV(src)
+		if terr == nil {
+			iv := int(tiv)
+			dst.Set(reflect.ValueOf(iv))
+		}
+	case reflect.Int16:
+		tiv, terr = IntValV(src)
+		if terr == nil {
+			iv := int16(tiv)
+			dst.Set(reflect.ValueOf(iv))
+		}
+	case reflect.Int32:
+		tiv, terr = IntValV(src)
+		if terr == nil {
+			iv := int32(tiv)
+			dst.Set(reflect.ValueOf(iv))
+		}
+	case reflect.Int64:
+		tiv, terr = IntValV(src)
+		if terr == nil {
+			iv := int64(tiv)
+			dst.Set(reflect.ValueOf(iv))
+		}
+	case reflect.Uint:
+		tiv, terr = IntValV(src)
+		if terr == nil {
+			iv := uint(tiv)
+			dst.Set(reflect.ValueOf(iv))
+		}
+	case reflect.Uint16:
+		tiv, terr = IntValV(src)
+		if terr == nil {
+			iv := uint16(tiv)
+			dst.Set(reflect.ValueOf(iv))
+		}
+	case reflect.Uint32:
+		tiv, terr = IntValV(src)
+		if terr == nil {
+			iv := uint32(tiv)
+			dst.Set(reflect.ValueOf(iv))
+		}
+	case reflect.Uint64:
+		tiv, terr = IntValV(src)
+		if terr == nil {
+			iv := uint64(tiv)
+			dst.Set(reflect.ValueOf(iv))
+		}
+	case reflect.Float32:
+		tfv, terr = FloatValV(src)
+		if terr == nil {
+			fv := float32(tfv)
+			dst.Set(reflect.ValueOf(fv))
+		}
+	case reflect.Float64:
+		tfv, terr = FloatValV(src)
+		if terr == nil {
+			fv := float64(tfv)
+			dst.Set(reflect.ValueOf(fv))
+		}
+	case reflect.String:
+		tsv := StrVal(src)
+		dst.Set(reflect.ValueOf(tsv))
+	}
+	if terr == nil {
+		return nil
+	} else {
+		return Err("parse kind(%v) value to kind(%v) value->%v", sk.Kind(), dst.Kind(), terr)
+	}
 }

@@ -24,6 +24,17 @@ type S1 struct {
 	J  string    `m2s:"JV"`
 	K  string    `m2s:"T2" tf:"2006-01-02 15:04:05"`
 	K2 string    `m2s:"T2"`
+	//
+	IV1  int     `m2s:"IV"`
+	IV2  int16   `m2s:"IV"`
+	IV3  int32   `m2s:"IV"`
+	IV4  int64   `m2s:"IV"`
+	IV5  uint    `m2s:"IV"`
+	IV6  uint16  `m2s:"IV"`
+	IV7  uint32  `m2s:"IV"`
+	IV8  uint64  `m2s:"IV"`
+	IV9  float32 `m2s:"IV"`
+	IV10 float64 `m2s:"IV"`
 }
 
 func TestM2S(t *testing.T) {
@@ -38,6 +49,7 @@ func TestM2S(t *testing.T) {
 	m["HT"] = int32(tt)
 	m["IT"] = int64(tt)
 	m["JV"] = nil
+	m["IV"] = 111
 	m1 := make(map[string]interface{})
 	m1["VA"] = "S3_A"
 	m1["VB"] = "S4_B"
@@ -57,6 +69,10 @@ func TestM2S(t *testing.T) {
 	}
 	fmt.Println(Timestamp(dest.E), tt)
 	if int64(tt) != Timestamp(dest.E) {
+		t.Error("value not corrent ...")
+		return
+	}
+	if dest.IV1 != 111 || dest.IV10 != 111 {
 		t.Error("value not corrent ...")
 		return
 	}
