@@ -16,7 +16,7 @@ func main() {
 	var pref string = "test_"
 	var bs int64 = 1024
 	var count int = 1
-	var total, max int = 100, util.CPU()
+	var total, max int = 1, util.CPU()
 	var beg, end int = 0, 8
 	var clean bool = true
 
@@ -24,7 +24,7 @@ func main() {
 	err := options.ValidF(`
 		M,O|S,O:RW~R~W;
 		p,O|S,L:0;
-		B,O|I,R:8~1024000;
+		B,O|I,R:8;
 		c,O|I,R:0;
 		t,O|I,R:0;
 		m,O|I,R:0;
