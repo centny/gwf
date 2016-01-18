@@ -27,6 +27,9 @@ func (o *OBDH_Con) Writeb(bys ...[]byte) (int, error) {
 func (o *OBDH_Con) Writev(val interface{}) (int, error) {
 	return netw.Writev(o, val)
 }
+func (o *OBDH_Con) Writev2(bys []byte, val interface{}) (int, error) {
+	return netw.Writev2(o, bys, val)
+}
 
 // func (o *OBDH_Con) Exec(dest interface{}, args interface{}) (interface{}, error) {
 // 	return nil, util.Err("connection not implement Exec")
