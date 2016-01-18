@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -166,10 +167,20 @@ func AryExist(ary interface{}, obj interface{}) bool {
 	}
 }
 
-var C_SH string = "/bin/bash"
+// var C_SH string = "/bin/bash"
 
 func Exec(args ...string) (string, error) {
-	bys, err := exec.Command(C_SH, "-c", strings.Join(args, " ")).Output()
+	return Exec2(strings.Join(args, ","))
+}
+func Exec2(cmds string) (string, error) {
+	var bys []byte
+	var err error
+	switch runtime.GOOS {
+	case "windows":
+		bys, err = exec.Command("cmd", "/C", cmds).Output()
+	default:
+		bys, err = exec.Command("bash", "-c", cmds).Output()
+	}
 	return string(bys), err
 }
 
