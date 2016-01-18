@@ -52,3 +52,5 @@ tutil/t.log
 *.log
 
 tutil/abc
+
+netw/dtm/a.txt
