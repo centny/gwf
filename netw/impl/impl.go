@@ -174,6 +174,7 @@ func (r *RC_Runner_m) Stop() {
 	if r.L != nil {
 		r.L.Close()
 	}
+	r.Timeout()
 	log.D("RC Runner is stopping")
 }
 func (r *RC_Runner_m) Wait() {
