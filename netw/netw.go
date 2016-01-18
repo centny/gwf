@@ -79,6 +79,12 @@ type CmdHandler interface {
 	OnCmd(c Cmd) int
 }
 
+type CmdH func(Cmd) int
+
+func (ch CmdH) OnCmd(c Cmd) int {
+	return ch(c)
+}
+
 //all ConPool handler contain CmdHandler and ConHandler.
 type CCHandler interface {
 	ConHandler
@@ -99,7 +105,7 @@ func (w *wsConn) String() string {
 
 /*
 
-*/
+ */
 
 //the connection interface.
 //it will be created when client connect to server or server received one connection.
@@ -540,7 +546,7 @@ func (l *LConPool) runc_(con Con) {
 		}
 	}()
 	// if l.Name == "WIM" {
-	log_d("%v:running connection(%v,%v) in pool(%v)", l.Name, con.RemoteAddr().String(), con.Id(), l.Id())
+	log_d("Pool(%v):running connection(%v,%v) in pool(%v)", l.Name, con.RemoteAddr().String(), con.Id(), l.Id())
 	// }
 	//
 	l.Runner_.Run(l, l.P, con)
