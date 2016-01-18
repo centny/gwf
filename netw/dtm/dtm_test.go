@@ -37,7 +37,7 @@ func TestDtmBase(t *testing.T) {
 		return
 	}
 	do_c := func(wait bool) {
-		tid, err := dtms.StartTask(cid, "./dtm_test.sh 1 http://127.0.0.1:${proc_port}/proc?tid=${tid}")
+		tid, err := dtms.StartTask(cid, "./dtm_test.sh 1 http://127.0.0.1:${PROC_PORT}/proc?tid=${PROC_TID}")
 		if err != nil {
 			t.Error(err.Error())
 			return

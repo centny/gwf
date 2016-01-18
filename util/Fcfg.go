@@ -52,6 +52,15 @@ func NewFcfg3() *Fcfg {
 		SecLn:   map[string]int{},
 	}
 }
+func NewFcfg4(src *Fcfg) *Fcfg {
+	cfg := &Fcfg{
+		Map:     Map{},
+		ShowLog: true,
+		SecLn:   map[string]int{},
+	}
+	cfg.InitWithCfg(src)
+	return cfg
+}
 func (f *Fcfg) slog(fs string, args ...interface{}) {
 	if f.ShowLog {
 		fmt.Println(fmt.Sprintf(fs, args...))
@@ -66,6 +75,15 @@ func (f *Fcfg) Val(key string) string {
 		return val.(string)
 	} else {
 		return ""
+	}
+}
+
+func (f *Fcfg) Val2(key, def string) string {
+	val := f.Val(key)
+	if len(val) > 0 {
+		return val
+	} else {
+		return def
 	}
 }
 
@@ -140,6 +158,12 @@ func (f *Fcfg) InitWithUri(uri string) error {
 		return f.InitWithURL(uri)
 	} else {
 		return f.InitWithFilePath(uri)
+	}
+}
+
+func (f *Fcfg) InitWithCfg(cfg *Fcfg) {
+	for k, v := range cfg.Map {
+		f.Map[k] = v
 	}
 }
 

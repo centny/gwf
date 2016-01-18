@@ -165,7 +165,7 @@ func (d *DTM_S) WaitTask(cid, tid string) error {
 
 type DTM_C struct {
 	*rc.RC_Runner_m
-	Ws string
+	Cfg *util.Fcfg
 	//
 	Tasks   map[string]*exec.Cmd
 	tasks_l sync.RWMutex
@@ -180,7 +180,7 @@ type DTM_C struct {
 
 func NewDTM_C(bp *pool.BytePool, addr string, rcm *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) *DTM_C {
 	ch := &DTM_C{
-		Ws:       ".",
+		Cfg:      util.NewFcfg3(),
 		ProcKey:  "process",
 		Tasks:    map[string]*exec.Cmd{},
 		tasks_l:  sync.RWMutex{},
@@ -291,7 +291,6 @@ func (d *DTM_C) HandleProc(hs *routing.HTTPSession) routing.HResult {
 		hs.W.Write([]byte(fmt.Sprintf("DTM_C HandleProc receive bad arguments->%v", err.Error())))
 		return routing.HRES_RETURN
 	}
-	fmt.Println("xxxx->x->00")
 	_, err = d.Writev2([]byte{CMD_M_PROC}, util.Map{
 		"tid":  tid,
 		"rate": rate,
@@ -299,7 +298,6 @@ func (d *DTM_C) HandleProc(hs *routing.HTTPSession) routing.HResult {
 	if err != nil {
 		log.E("DTM_C HandleProc send process info by tid(%v),rate(%v) err->%v", tid, rate, err)
 	}
-	fmt.Println("xxxx->x->aa")
 	hs.W.Write([]byte("OK"))
 	return routing.HRES_RETURN
 }
@@ -324,15 +322,15 @@ func (d *DTM_C) del_task(tid string) {
 
 func (d *DTM_C) run_cmd(tid, cmds string) error {
 	log.I("DTM_C run_cmd running command(%v) by tid(%v)", cmds, tid)
-	cfg := util.NewFcfg3()
-	cfg.SetVal("tid", tid)
-	cfg.SetVal("proc_port", fmt.Sprintf("%v", d.ProcPort))
-	cfg.SetVal("proc_key", d.ProcKey)
+	cfg := util.NewFcfg4(d.Cfg)
+	cfg.SetVal("PROC_TID", tid)
+	cfg.SetVal("PROC_PORT", fmt.Sprintf("%v", d.ProcPort))
+	cfg.SetVal("PROC_KEY", d.ProcKey)
 	cmds = cfg.EnvReplaceV(cmds, false)
 	cmds_ := util.ParseArgs(cmds)
 	beg := util.Now()
 	runner := exec.Command(cmds_[0], cmds_[1:]...)
-	runner.Dir = d.Ws
+	runner.Dir = cfg.Val2("PROC_WS", ".")
 	buf := &bytes.Buffer{}
 	runner.Stdout = buf
 	runner.Stderr = buf
