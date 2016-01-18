@@ -83,3 +83,82 @@ func TestArgs(t *testing.T) {
 	os.Args = targs
 	fmt.Println(os.Args)
 }
+
+func TestParseArgs(t *testing.T) {
+	args := ParseArgs("")
+	if len(args) != 0 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+	//
+	args = ParseArgs("a")
+	if len(args) != 1 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+	//
+	args = ParseArgs("a b")
+	if len(args) != 2 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+	//
+	args = ParseArgs("a b c")
+	if len(args) != 3 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+	//
+	args = ParseArgs("a \"b   x\" c")
+	if len(args) != 3 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+	//
+	args = ParseArgs("a 'b   x' c")
+	if len(args) != 3 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+	//
+	args = ParseArgs("a 'b \"s\"  x' c")
+	if len(args) != 3 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+	//
+	args = ParseArgs("a \"b  'xd' x\" c")
+	if len(args) != 3 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+	//
+	args = ParseArgs("\"b  'xd' x\"")
+	if len(args) != 1 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+	//
+	args = ParseArgs("'b   x'")
+	if len(args) != 1 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+	//
+	args = ParseArgs("a\tb\tc")
+	if len(args) != 3 {
+		t.Error("error len")
+		return
+	}
+	fmt.Println(args)
+}
