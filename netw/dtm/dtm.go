@@ -22,39 +22,82 @@ const (
 )
 
 type DTM_S_H interface {
-	OnProc(d *DTM_S, tid string, rate float64)
-	OnStart(d *DTM_S, tid, cmds string)
-	OnStop(d *DTM_S, tid string)
+	rc.RC_Login_h
+	OnProc(d *DTM_S, cid, tid string, rate float64)
+	OnStart(d *DTM_S, cid, tid, cmds string)
+	OnStop(d *DTM_S, cid, tid string)
+	OnDone(d *DTM_S, cid, tid string, code int, err string, used int64)
+	MinUsedCid() string
 }
 
 type DTM_S_Proc struct {
-	Rates   map[string]float64
-	rates_l sync.RWMutex
+	Rates  map[string]map[string]float64
+	AllC   int
+	TaskC  map[string]int
+	proc_l sync.RWMutex
+	cid    int64
 }
 
 func NewDTM_S_Proc() *DTM_S_Proc {
 	return &DTM_S_Proc{
-		Rates:   map[string]float64{},
-		rates_l: sync.RWMutex{},
+		Rates:  map[string]map[string]float64{},
+		AllC:   0,
+		TaskC:  map[string]int{},
+		proc_l: sync.RWMutex{},
+		cid:    0,
 	}
 }
-func (d *DTM_S_Proc) OnProc(dtm *DTM_S, tid string, rate float64) {
-	d.Rates[tid] = rate
+func (d *DTM_S_Proc) OnProc(dtm *DTM_S, cid, tid string, rate float64) {
+	if _, ok := d.Rates[cid]; ok {
+		d.Rates[cid][tid] = rate
+	}
 }
-func (d *DTM_S_Proc) OnStart(dtm *DTM_S, tid, cmds string) {
-	d.rates_l.Lock()
-	defer d.rates_l.Unlock()
-	d.Rates[tid] = 0
+func (d *DTM_S_Proc) OnStart(dtm *DTM_S, cid, tid, cmds string) {
+	d.proc_l.Lock()
+	defer d.proc_l.Unlock()
+	if _, ok := d.Rates[cid]; !ok {
+		d.Rates[cid] = map[string]float64{}
+	}
+	d.Rates[cid][tid] = 0
+	d.TaskC[cid] += 1
+	d.AllC += 1
 }
-func (d *DTM_S_Proc) OnStop(dtm *DTM_S, tid string) {
-	d.rates_l.Lock()
-	defer d.rates_l.Unlock()
-	delete(d.Rates, tid)
+func (d *DTM_S_Proc) OnStop(dtm *DTM_S, cid, tid string) {
+}
+func (d *DTM_S_Proc) OnDone(dtm *DTM_S, cid, tid string, code int, err string, used int64) {
+	d.proc_l.Lock()
+	defer d.proc_l.Unlock()
+	if tv, ok := d.Rates[cid]; ok {
+		if _, ok := tv[tid]; ok {
+			d.TaskC[cid] -= 1
+			d.AllC -= 1
+		}
+		delete(tv, tid)
+		d.Rates[cid] = tv
+	}
+}
+func (d *DTM_S_Proc) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
+	d.proc_l.Lock()
+	defer d.proc_l.Unlock()
+	cid := atomic.AddInt64(&d.cid, 1)
+	cid_ := fmt.Sprintf("N-%v", cid)
+	d.TaskC[cid_] = 0
+	return cid_, nil
+}
+func (d *DTM_S_Proc) MinUsedCid() string {
+	var tcid string = ""
+	var min int = 999
+	for cid, tc := range d.TaskC {
+		if tc < min {
+			tcid = cid
+			min = tc
+		}
+	}
+	return tcid
 }
 
 type DTM_S struct {
 	*rc.RC_Listener_m
-	//
 	H        DTM_S_H
 	sequence int64
 }
@@ -68,6 +111,7 @@ func NewDTM_S(bp *pool.BytePool, addr string, h DTM_S_H, rcm *impl.RCM_S, v2b ne
 	obdh.AddF(CMD_M_PROC, sh.OnProc)
 	obdh.AddF(CMD_M_DONE, sh.OnDone)
 	lm := rc.NewRC_Listener_m(bp, addr, netw.NewCCH(sh, obdh), rcm, v2b, b2v, na)
+	lm.LCH = h
 	sh.RC_Listener_m = lm
 	return sh
 }
@@ -94,10 +138,31 @@ func (d *DTM_S) OnProc(c netw.Cmd) int {
 		log.E("DTM_S OnProc receive bad arguments detail(%v)", err)
 		return -1
 	}
-	d.H.OnProc(d, tid, rate)
+	d.H.OnProc(d, d.ConCid(c), tid, rate)
 	return 0
 }
 func (d *DTM_S) OnDone(c netw.Cmd) int {
+	var args util.Map
+	_, err := c.V(&args)
+	if err != nil {
+		log.E("DTM_S OnDone convert arguments error(%v)", err)
+		return -1
+	}
+	var code int
+	var tid string
+	var err_m string
+	var used int64
+	err = args.ValidF(`
+		code,R|I,R:-999;
+		tid,R|S,L:0;
+		err,O|S,L:0;
+		used,R|I,R:-1;
+		`, &code, &tid, &err_m, &used)
+	if err != nil {
+		log.E("DTM_S OnDone receive bad arguments detail(%v)", err)
+		return -1
+	}
+	d.H.OnDone(d, d.ConCid(c), tid, code, err_m, used)
 	return 0
 }
 func (d *DTM_S) OnConn(c netw.Con) bool {
@@ -107,26 +172,49 @@ func (d *DTM_S) OnConn(c netw.Con) bool {
 func (d *DTM_S) OnClose(c netw.Con) {
 }
 
-func (d *DTM_S) StartTask(cid, cmds string) (string, error) {
+//start task by command and special client id.
+//return task id
+//return error when start task fail.
+func (d *DTM_S) StartTask(cid, tid, cmds string) error {
 	tc := d.CmdC(cid)
 	if tc == nil {
-		return "", util.Err("DTM_S StartTask by cid(%v) error->client not found", cid)
+		return util.Err("DTM_S StartTask by cid(%v) error->client not found", cid)
 	}
 	res, err := tc.Exec_m("start_task", util.Map{
+		"tid":  tid,
 		"cmds": cmds,
 	})
 	if err != nil {
-		return "", util.Err("DTM_S StartTask executing by cmds(%v) error->%v", err)
+		return util.Err("DTM_S StartTask executing by tid(%v),cmds(%v) on client(%v) error->%v", tid, cmds, cid, err)
 	}
 	if res.IntVal("code") == 0 {
-		tid := res.StrVal("tid")
-		d.H.OnStart(d, tid, cmds)
-		return tid, nil
+		d.H.OnStart(d, cid, tid, cmds)
+		return nil
 	} else {
-		return "", util.Err("DTM_S StartTask executing by cmds(%v) error(%v)->%v", cmds, res.IntVal("code"), err)
+		return util.Err("DTM_S StartTask executing by tid(%v),cmds(%v) on client(%v)  error(%v)->%v",
+			tid, cmds, cid, res.IntVal("code"), err)
 	}
 }
 
+func (d *DTM_S) StartTask2(tid, cmds string) (string, error) {
+	cid := d.H.MinUsedCid()
+	if len(cid) < 1 {
+		return "", util.Err("DTM_S StartTask2 by cmds(%v) error->not logined client found by calling MinUsedCid", cmds)
+	}
+	return cid, d.StartTask(cid, tid, cmds)
+}
+
+//start task by command, it will select the client which the number of task is minimal to run the task.
+//return the client id to run task and task id
+//return error when start task fail.
+func (d *DTM_S) StartTask3(cmds string) (cid string, tid string, err error) {
+	tid = fmt.Sprintf("T-%v", atomic.AddInt64(&d.sequence, 1))
+	cid, err = d.StartTask2(tid, cmds)
+	return
+}
+
+//stop task by client id and task id.
+//return error when stop task fail.
 func (d *DTM_S) StopTask(cid, tid string) error {
 	tc := d.CmdC(cid)
 	if tc == nil {
@@ -139,12 +227,15 @@ func (d *DTM_S) StopTask(cid, tid string) error {
 		return util.Err("DTM_S StopTask executing by tid(%v) error->%v", tid, err)
 	}
 	if res.IntVal("code") == 0 {
-		d.H.OnStop(d, tid)
+		d.H.OnStop(d, cid, tid)
 		return nil
 	} else {
 		return util.Err("DTM_S StopTask executing by tid(%v) error(%v)->%v", tid, res.IntVal("code"), err)
 	}
 }
+
+//wait the task done by client id and task id.
+//return error when stop task fail.
 func (d *DTM_S) WaitTask(cid, tid string) error {
 	tc := d.CmdC(cid)
 	if tc == nil {
@@ -170,22 +261,14 @@ type DTM_C struct {
 	Tasks   map[string]*exec.Cmd
 	tasks_l sync.RWMutex
 	tasks_c map[string]chan string
-	//
-	ProcPort  int
-	ProcKey   string
-	NoticeUrl string
-	//
-	sequence int64
 }
 
 func NewDTM_C(bp *pool.BytePool, addr string, rcm *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) *DTM_C {
 	ch := &DTM_C{
-		Cfg:      util.NewFcfg3(),
-		ProcKey:  "process",
-		Tasks:    map[string]*exec.Cmd{},
-		tasks_l:  sync.RWMutex{},
-		tasks_c:  map[string]chan string{},
-		sequence: 0,
+		Cfg:     util.NewFcfg3(),
+		Tasks:   map[string]*exec.Cmd{},
+		tasks_l: sync.RWMutex{},
+		tasks_c: map[string]chan string{},
 	}
 	cr := rc.NewRC_Runner_m(bp, addr, ch, rcm, v2b, b2v, na)
 	ch.RC_Runner_m = cr
@@ -212,14 +295,15 @@ func (d *DTM_C) OnClose(c netw.Con) {
 
 //start task
 func (d *DTM_C) StartTask(rc *impl.RCM_Cmd) (interface{}, error) {
+	var tid string
 	var cmds string
 	err := rc.ValidF(`
+		tid,R|S,L:0;
 		cmds,R|S,L:0;
-		`, &cmds)
+		`, &tid, &cmds)
 	if err != nil {
 		return util.Map{"code": -1, "err": fmt.Sprintf("DTM_C start task calling by bad arguments->%v", err)}, nil
 	}
-	tid := fmt.Sprintf("task-%v", atomic.AddInt64(&d.sequence, 1))
 	err = d.run_cmd(tid, cmds)
 	if err == nil {
 		return util.Map{"code": 0, "tid": tid}, nil
@@ -268,12 +352,16 @@ func (d *DTM_C) WaitTask(rc *impl.RCM_Cmd) (interface{}, error) {
 	}
 }
 
-func (d *DTM_C) RunProcH(port int) error {
+func (d *DTM_C) RunProcH() error {
+	addr := d.Cfg.Val("PROC_ADDR")
+	if len(addr) < 1 {
+		log.I("DTM_C RunProcH listen address configure(PROC_ADDR) is not found, http proccess receiver will not start")
+		return nil
+	}
 	mux := routing.NewSessionMux2("")
 	mux.HFunc("^/proc(\\?.*)?$", d.HandleProc)
-	d.ProcPort = port
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%v", d.ProcPort),
+		Addr:    addr,
 		Handler: mux,
 	}
 	log.I("DTM_C RunProcH listen the process handle on addr(%v)", srv.Addr)
@@ -286,7 +374,7 @@ func (d *DTM_C) HandleProc(hs *routing.HTTPSession) routing.HResult {
 	var rate float64
 	err := hs.ValidCheckVal(`
 		tid,R|S,L:0;
-		`+d.ProcKey+`,R|F,R:0;`, &tid, &rate)
+		`+d.Cfg.Val2("PROC_KEY", "process")+`,R|F,R:0;`, &tid, &rate)
 	if err != nil {
 		hs.W.Write([]byte(fmt.Sprintf("DTM_C HandleProc receive bad arguments->%v", err.Error())))
 		return routing.HRES_RETURN
@@ -324,8 +412,8 @@ func (d *DTM_C) run_cmd(tid, cmds string) error {
 	log.I("DTM_C run_cmd running command(%v) by tid(%v)", cmds, tid)
 	cfg := util.NewFcfg4(d.Cfg)
 	cfg.SetVal("PROC_TID", tid)
-	cfg.SetVal("PROC_PORT", fmt.Sprintf("%v", d.ProcPort))
-	cfg.SetVal("PROC_KEY", d.ProcKey)
+	// cfg.SetVal("PROC_PORT", fmt.Sprintf("%v", d.ProcPort))
+	// cfg.SetVal("PROC_KEY", d.ProcKey)
 	cmds = cfg.EnvReplaceV(cmds, false)
 	cmds_ := util.ParseArgs(cmds)
 	beg := util.Now()
@@ -342,13 +430,15 @@ func (d *DTM_C) run_cmd(tid, cmds string) error {
 	go func() {
 		args := util.Map{"tid": tid}
 		err = runner.Wait()
+		used := util.Now() - beg
 		if err == nil {
-			log.D("DTM_C run_cmd by running command(%v) success->\n%v", cmds, buf.String())
+			log.D("DTM_C run_cmd by running command(%v) success,used(%vms)->\n%v", cmds, used, buf.String())
+			args["code"] = 0
 		} else {
 			log.E("DTM_C run_cmd by running command(%v) error(%v)->\n%v", cmds, err, buf.String())
+			args["code"] = -1
 			args["err"] = err.Error()
 		}
-		used := util.Now() - beg
 		args["used"] = used
 		d.Writev2([]byte{CMD_M_DONE}, args)
 		task_c <- args.StrVal("err")
