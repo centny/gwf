@@ -82,7 +82,7 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 		c.Value = uuid.New()
 		c.Path = s.Path
 		c.Domain = s.Domain
-		c.MaxAge = 0
+		c.MaxAge = 10 * 24 * 60 * 60
 		//
 		session := &SrvSession{}
 		session.token = c.Value
