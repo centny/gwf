@@ -71,6 +71,22 @@ func ParseInt64(s string) (int64, error) {
 	return strconv.ParseInt(s, 10, 64)
 }
 
+func ParseInt64s(ss []string) ([]int64, error) {
+	is := []int64{}
+	for _, s := range ss {
+		i, err := ParseInt64(s)
+		if err != nil {
+			return nil, err
+		}
+		is = append(is, i)
+	}
+	return is, nil
+}
+
+func ParseInt64s2(s, sep string) ([]int64, error) {
+	return ParseInt64s(strings.Split(s, sep))
+}
+
 func ParseInts(ss []string) ([]int, error) {
 	is := []int{}
 	for _, s := range ss {
