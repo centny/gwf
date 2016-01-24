@@ -174,6 +174,10 @@ func (h *HTTPSession) SetVal(key string, val interface{}) {
 	h.S.Set(key, val)
 }
 
+func (h *HTTPSession) Flush() error {
+	return h.S.Flush()
+}
+
 func (h *HTTPSession) Val(key string) interface{} {
 	return h.S.Val(key)
 }
