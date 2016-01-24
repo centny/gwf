@@ -150,6 +150,14 @@ func (r *RC_Cmd_h) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 	return fmt.Sprintf("N-%v", cid), nil
 }
 
+func AuthF(r *impl.RCM_Cmd) (bool, interface{}, error) {
+	if r.Having("cid") {
+		return true, nil, nil
+	} else {
+		return false, nil, util.Err("please login first")
+	}
+}
+
 //remote command listener.
 type RC_Listener_m struct {
 	*netw.Listener //listener
@@ -243,6 +251,11 @@ func (r *RC_Listener_m) CmdCs() map[string]*impl.RCM_Con {
 	return r.RCH.CCS
 }
 
+//find user id by connection id
+func (r *RC_Listener_m) ConCid(c netw.Con) string {
+	return r.RCH.MID[c.Id()]
+}
+
 func (r *RC_Listener_m) TokenVal(token string) int {
 	return r.RCH.TokenVal(token)
 }
@@ -270,6 +283,7 @@ func (r *RC_Listener_m) Login_(rc *impl.RCM_Cmd) (interface{}, error) {
 	}
 	r.AddC_rc(tcid, rc)
 	rc.Kvs().SetVal("token", token)
+	rc.Kvs().SetVal("cid", tcid)
 	return util.Map{"code": 0}, nil
 }
 
