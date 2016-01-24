@@ -129,6 +129,8 @@ type Con interface {
 	SetId(id string)
 	//connection seesion.
 	Kvs() util.Map
+	//having valuf of key
+	Having(key string) bool
 	//the last update time for data transfer
 	Last() int64
 	//set connection wait status, if true,the connection will not timeout
@@ -255,6 +257,9 @@ func (c *Con_) P() *pool.BytePool {
 
 func (c *Con_) Kvs() util.Map {
 	return c.Kvs_
+}
+func (c *Con_) Having(key string) bool {
+	return c.Kvs().Exist(key)
 }
 func (c *Con_) Last() int64 {
 	return c.Last_
