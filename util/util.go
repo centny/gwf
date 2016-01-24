@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"crypto/md5"
 	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
@@ -369,6 +371,21 @@ func Md5(fn string) (string, error) {
 	sha_h := md5.New()
 	_, err = bufio.NewReader(f).WriteTo(sha_h)
 	return fmt.Sprintf("%x", sha_h.Sum(nil)), err
+}
+
+func Sha1_b(bys []byte) string {
+	sha_h := sha1.New()
+	return fmt.Sprintf("%x", sha_h.Sum(bys))
+}
+
+func Sha256_b(bys []byte) string {
+	sha_h := sha256.New()
+	return fmt.Sprintf("%x", sha_h.Sum(bys))
+}
+
+func Sha512_b(bys []byte) string {
+	sha_h := sha512.New()
+	return fmt.Sprintf("%x", sha_h.Sum(bys))
 }
 
 func ChkVer(n string, o string) (int, error) {
