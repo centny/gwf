@@ -228,6 +228,9 @@ func (f *Fcfg) exec(base, line string) error {
 		return nil
 	}
 	line = strings.Trim(ps[0], " \t")
+	if len(line) < 1 {
+		return nil
+	}
 	if regexp.MustCompile("^\\[[^\\]]*\\][\t ]*$").MatchString(line) {
 		sec := strings.Trim(line, "\t []")
 		f.sec = sec + "/"
@@ -378,12 +381,19 @@ func (f *Fcfg) Merge(t *Fcfg) {
 
 func (f *Fcfg) String() string {
 	buf := bytes.NewBuffer(nil)
-	keys := []string{}
+	keys, locs := []string{}, []string{}
 	for k, _ := range f.Map {
-		keys = append(keys, k)
+		if strings.HasPrefix(k, "loc/") {
+			locs = append(locs, k)
+		} else {
+			keys = append(keys, k)
+		}
 	}
 	sort.Sort(sort.StringSlice(keys))
 	for _, k := range keys {
+		buf.WriteString(fmt.Sprintf("%v=%v\n", k, f.Map[k]))
+	}
+	for _, k := range locs {
 		buf.WriteString(fmt.Sprintf("%v=%v\n", k, f.Map[k]))
 	}
 	return buf.String()
