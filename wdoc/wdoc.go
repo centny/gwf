@@ -211,13 +211,12 @@ func (p *Parser) ISH(dir string, decl *ast.FuncDecl) bool {
 	return p.H.ISH(dir, decl)
 }
 
-func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, info util.Map) {
+func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 	lines := strings.Split(text, "\n")
-	info.SetValP(cmd+"/desc", strings.Trim(lines[0], " \t"))
+	arg.Desc = strings.Trim(lines[0], " \t")
 	if len(lines) < 2 {
 		return
 	}
-	var items = []util.Map{}
 	lines = lines[1:]
 	var sidx = -1
 	for idx, line := range lines {
@@ -227,13 +226,12 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, info util.Ma
 			break
 		}
 		vals := strings.SplitN(line, "\t", 3)
-		items = append(items, util.Map{
-			"name": vals[0],
-			"type": vals[1],
-			"desc": vals[2],
+		arg.Items = append(arg.Items, Item{
+			Name: vals[0],
+			Type: vals[1],
+			Desc: vals[2],
 		})
 	}
-	info.SetValP(cmd+"/items", items)
 	if sidx > -1 {
 		var ctext = ""
 		for i := sidx; i < len(lines); i++ {
@@ -242,50 +240,30 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, info util.Ma
 		ctext = strings.Trim(ctext, " \t")
 		cm, err := util.Json2Map(ctext)
 		if err == nil {
-			info.SetValP(cmd+"/example", cm)
+			arg.Example = cm
 		} else {
-			info.SetValP(cmd+"/example", ctext)
+			arg.Example = strings.Trim(ctext, " \t\n")
 		}
 	}
 }
-func (p *Parser) do_url(text string, info util.Map) {
+func (p *Parser) do_url(text string, url *Url) {
 	lines := strings.Split(text, "\n")
-	info.SetValP("/url/desc", strings.Trim(lines[0], " \t"))
+	url.Desc = strings.Trim(lines[0], " \t")
 	if len(lines) < 2 {
 		return
 	}
 	vals := strings.SplitN(strings.Trim(lines[1], " \t"), "\t", 3)
-	info.SetValP("/url/path", vals[0])
+	url.Path = vals[0]
 	if len(vals) > 1 {
-		info.SetValP("/url/method", vals[1])
+		url.Method = vals[1]
 	}
 	if len(vals) > 2 {
-		info.SetValP("/url/ctype", vals[2])
+		url.Ctype = vals[2]
 	}
 }
-func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) util.Map {
-	var info = util.Map{
-		"name":  fn,
-		"title": "",
-		"desc":  "",
-		"tags":  []string{},
-		"url": util.Map{
-			"desc":   "",
-			"path":   "",
-			"method": "",
-			"ctype":  "",
-		},
-		"arg": util.Map{
-			"desc":    "",
-			"items":   nil,
-			"example": nil,
-		},
-		"ret": util.Map{
-			"desc":    "",
-			"items":   nil,
-			"ctype":   "",
-			"example": nil,
-		},
+func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) Func {
+	var info = Func{
+		Name: fn,
 	}
 	if f.Doc == nil {
 		return info
@@ -299,9 +277,9 @@ func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) util.Map {
 	cmds := reg.FindAllString(doc, -1)
 	dataes := reg.Split(doc, -1)
 	desces := strings.SplitN(dataes[0], "\n", 2)
-	info.SetValP("/title", desces[0])
+	info.Title = desces[0]
 	if len(desces) > 1 {
-		info.SetValP("/desc", desces[1])
+		info.Desc = desces[1]
 	}
 	if len(cmds) < 1 || len(cmds) != len(dataes)-1 {
 		return info
@@ -310,48 +288,43 @@ func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) util.Map {
 		var text = strings.Trim(dataes[idx+1], " \t\n")
 		switch cmd {
 		case "@url,":
-			p.do_url(text, info)
+			info.Url = &Url{}
+			p.do_url(text, info.Url)
 		case "@arg,":
-			p.do_arg_ret("/arg", text, ARG_REG, info)
+			info.Arg = &Arg{}
+			p.do_arg_ret("/arg", text, ARG_REG, info.Arg)
 		case "@ret,":
-			p.do_arg_ret("/ret", text, RET_REG, info)
+			info.Ret = &Arg{}
+			p.do_arg_ret("/ret", text, RET_REG, info.Ret)
 		case "@tag,":
-			info.SetValP("/tags", strings.Split(text, ","))
+			info.Tags = strings.Split(text, ",")
 		default:
 			log.E("unknow command(%v) for data(%v)", cmd, text)
 		}
 	}
 	return info
 }
-func (p *Parser) ToM(prefix string) util.Map {
-	var res = util.Map{}
-	var pkgs = []util.Map{}
+func (p *Parser) ToM(prefix string) *Wdoc {
+	var res = &Wdoc{}
+	var pkgs = []Pkg{}
 	for name, fs := range p.FS {
-		var tfs = []util.Map{}
+		var tfs = []Func{}
 		for fn, f := range fs {
 			tfs = append(tfs, p.Func2Map(fn, f))
 		}
-		sort.Sort(&util.MapSorter{
-			Maps: tfs,
-			Key:  "/name",
-			Type: 2,
-		})
+		sort.Sort(Funcs(tfs))
 		names := strings.SplitN(name, "src/", 2)
 		if len(names) == 2 {
 			name = names[1]
 		}
 		name = strings.TrimPrefix(name, prefix)
-		pkgs = append(pkgs, util.Map{
-			"name":  name,
-			"items": tfs,
+		pkgs = append(pkgs, Pkg{
+			Name:  name,
+			Funcs: tfs,
 		})
 	}
-	sort.Sort(&util.MapSorter{
-		Maps: pkgs,
-		Key:  "/name",
-		Type: 2,
-	})
-	res["pkgs"] = pkgs
+	sort.Sort(Pkgs(pkgs))
+	res.Pkgs = pkgs
 	return res
 }
 

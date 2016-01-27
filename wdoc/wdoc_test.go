@@ -13,7 +13,7 @@ func TestParser(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	var res = pp.ToM()
+	var res = pp.ToM("")
 	fmt.Println(util.S2Json(res))
 }
 

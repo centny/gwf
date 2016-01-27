@@ -22,11 +22,11 @@ func main() {
 	var delay int64 = 100000
 	_, options, path := util.Args()
 	err := options.ValidF(`
-		i,O|S,L:0;
-		e,O|S,L:0;
-		a,R|S,L:0;
-		p,O|S,L:0;
-		d,O|I,R:0;
+		inc,O|S,L:0;
+		exc,O|S,L:0;
+		addr,R|S,L:0;
+		prefix,O|S,L:0;
+		delay,O|I,R:0;
 		`, &inc, &exc, &addr, &prefix, &delay)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -40,7 +40,6 @@ func main() {
 		wd = path[0]
 	}
 	var inc_, exc_ []string
-	fmt.Println(inc, exc)
 	if len(inc) > 0 {
 		inc_ = strings.Split(inc, ",")
 	}
