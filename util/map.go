@@ -376,3 +376,27 @@ func NewMaps(f string) ([]Map, error) {
 	err = json.Unmarshal(bys, &kvs)
 	return kvs, err
 }
+
+type MapSorter struct {
+	Maps []Map
+	Key  string
+	Type int //0 is int,1 is float,2 is string
+}
+
+func (m *MapSorter) Len() int {
+	return len(m.Maps)
+}
+
+func (m *MapSorter) Less(i, j int) bool {
+	switch m.Type {
+	case 0:
+		return m.Maps[i].IntValP(m.Key) < m.Maps[j].IntValP(m.Key)
+	case 1:
+		return m.Maps[i].FloatValP(m.Key) < m.Maps[j].FloatValP(m.Key)
+	default:
+		return m.Maps[i].StrValP(m.Key) < m.Maps[j].StrValP(m.Key)
+	}
+}
+func (m *MapSorter) Swap(i, j int) {
+	m.Maps[i], m.Maps[j] = m.Maps[j], m.Maps[i]
+}
