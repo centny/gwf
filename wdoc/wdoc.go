@@ -304,13 +304,19 @@ func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) Func {
 	}
 	return info
 }
-func (p *Parser) ToM(prefix string) *Wdoc {
+func (p *Parser) ToMv(prefix, key, tags string) *Wdoc {
 	var res = &Wdoc{}
 	var pkgs = []Pkg{}
 	for name, fs := range p.FS {
 		var tfs = []Func{}
 		for fn, f := range fs {
-			tfs = append(tfs, p.Func2Map(fn, f))
+			ff := p.Func2Map(fn, f)
+			if ff.Matched(key, tags) {
+				tfs = append(tfs, ff)
+			}
+		}
+		if len(tfs) < 1 {
+			continue
 		}
 		sort.Sort(Funcs(tfs))
 		names := strings.SplitN(name, "src/", 2)
@@ -327,8 +333,20 @@ func (p *Parser) ToM(prefix string) *Wdoc {
 	res.Pkgs = pkgs
 	return res
 }
+func (p *Parser) ToM(prefix string) *Wdoc {
+	return p.ToMv(prefix, "", "")
+}
 
 func (p *Parser) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
+	var key string
+	var tags string
+	err := hs.ValidCheckVal(`
+		key,O|S,L:0;
+		tags,O|S,L:0;
+		`, &key, &tags)
+	if err != nil {
+		return hs.MsgResErr2(1, "arg-err", err)
+	}
 	// t, err := template.New("Parser").Parse(HTML)
 	// if err == nil {
 	// 	err = t.Execute(hs.W, p.ToM(p.Pre))
@@ -336,5 +354,5 @@ func (p *Parser) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	// 	fmt.Fprintf(hs.W, "%v", err.Error())
 	// }
 	// return routing.HRES_RETURN
-	return hs.MsgRes(p.ToM(p.Pre))
+	return hs.MsgRes(p.ToMv(p.Pre, ".*"+key+".*", tags))
 }

@@ -1,5 +1,10 @@
 package wdoc
 
+import (
+	"regexp"
+	"strings"
+)
+
 type Wdoc struct {
 	Pkgs []Pkg `json:"pkgs,omitempty"`
 }
@@ -16,6 +21,36 @@ type Func struct {
 	Arg   *Arg     `json:"arg,omitempty"`
 	Ret   *Arg     `json:"ret,omitempty"`
 }
+
+func (f *Func) Matched(key, tags string) bool {
+	if len(tags) > 0 {
+		var tags_ = strings.Split(tags, ",")
+		for _, tag := range tags_ {
+			var matched = false
+			for _, t := range f.Tags {
+				if tag == t {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				return false
+			}
+		}
+	}
+	if len(key) > 0 {
+		var reg = regexp.MustCompile(key)
+		if reg.MatchString(f.Title) ||
+			reg.MatchString(f.Desc) ||
+			reg.MatchString(f.Name) {
+			return true
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
 type Url struct {
 	Path   string `json:"path,omitempty"`
 	Method string `json:"method,omitempty"`
