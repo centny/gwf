@@ -13,13 +13,14 @@ type Pkg struct {
 	Funcs []Func `json:"funcs,omitempty"`
 }
 type Func struct {
-	Name  string   `json:"name,omitempty"`
-	Title string   `json:"title,omitempty"`
-	Desc  string   `json:"desc,omitempty"`
-	Tags  []string `json:"tags,omitempty"`
-	Url   *Url     `json:"url,omitempty"`
-	Arg   *Arg     `json:"arg,omitempty"`
-	Ret   *Arg     `json:"ret,omitempty"`
+	Name   string   `json:"name,omitempty"`
+	Title  string   `json:"title,omitempty"`
+	Desc   string   `json:"desc,omitempty"`
+	Tags   []string `json:"tags,omitempty"`
+	Url    *Url     `json:"url,omitempty"`
+	Arg    *Arg     `json:"arg,omitempty"`
+	Ret    *Arg     `json:"ret,omitempty"`
+	Author *Author  `json:"author,omitempty"`
 }
 
 func (f *Func) Matched(key, tags string) bool {
@@ -51,6 +52,11 @@ func (f *Func) Matched(key, tags string) bool {
 	return true
 }
 
+type Author struct {
+	Name string `json:"name,omitempty"`
+	Date int64  `json:"date,omitempty"`
+	Desc string `json:"desc,omitempty"`
+}
 type Url struct {
 	Path   string `json:"path,omitempty"`
 	Method string `json:"method,omitempty"`

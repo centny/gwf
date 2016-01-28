@@ -46,7 +46,7 @@ import (
 	}
 */
 //@tag,接口分类tags
-//@author,作者,创建时间
+//@author,作者,创建时间,完成
 func XXV(hs *routing.HTTPSession) routing.HResult { //也可以是golang默认的http handler
 	return routing.HRES_CONTINUE
 }

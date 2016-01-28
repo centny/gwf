@@ -19,6 +19,7 @@ import (
 var ARG_REG = regexp.MustCompile("^[^\\t]*\\t(required|optional|R|O)\\t.*$")
 
 var RET_REG = regexp.MustCompile("^[^\\t]*\\t(S|I|F|A|O|string|int|float|array|object)\\t.*$")
+var multi_t = regexp.MustCompile("\t+")
 
 type Handler interface {
 	ISH(dir string, decl *ast.FuncDecl) bool
@@ -221,6 +222,7 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 	var sidx = -1
 	for idx, line := range lines {
 		line = strings.Trim(line, " \t")
+		line = multi_t.ReplaceAllString(line, "\t")
 		if !valid.MatchString(line) {
 			sidx = idx
 			break
@@ -252,13 +254,32 @@ func (p *Parser) do_url(text string, url *Url) {
 	if len(lines) < 2 {
 		return
 	}
-	vals := strings.SplitN(strings.Trim(lines[1], " \t"), "\t", 3)
+	line := strings.Trim(lines[1], " \t")
+	line = multi_t.ReplaceAllString(line, "\t")
+	vals := strings.SplitN(line, "\t", 3)
 	url.Path = vals[0]
 	if len(vals) > 1 {
 		url.Method = vals[1]
 	}
 	if len(vals) > 2 {
 		url.Ctype = vals[2]
+	}
+}
+func (p *Parser) do_author(text string, author *Author) {
+	line := strings.Trim(text, " \t")
+	line = multi_t.ReplaceAllString(line, "\t")
+	vals := strings.SplitN(line, ",", 3)
+	author.Name = vals[0]
+	if len(vals) > 1 {
+		date, err := time.Parse("yyyy-mm-dd", vals[1])
+		if err == nil {
+			author.Date = util.Timestamp(date)
+		} else {
+			log.W("parsing date(%v) on line(%v) error->%v", text, err)
+		}
+	}
+	if len(vals) > 2 {
+		author.Desc = vals[2]
 	}
 }
 func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) Func {
@@ -297,7 +318,11 @@ func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) Func {
 			info.Ret = &Arg{}
 			p.do_arg_ret("/ret", text, RET_REG, info.Ret)
 		case "@tag,":
+			info.Tags = []string{}
 			info.Tags = strings.Split(text, ",")
+		case "@author,":
+			info.Author = &Author{}
+			p.do_author(text, info.Author)
 		default:
 			log.E("unknow command(%v) for data(%v)", cmd, text)
 		}
