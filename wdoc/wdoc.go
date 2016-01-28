@@ -278,8 +278,8 @@ func (p *Parser) do_author(text string, author *Author) {
 }
 
 //parse matched func to Func
-func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) Func {
-	var info = Func{
+func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) *Func {
+	var info = &Func{
 		Name: fn,
 	}
 	if f.Doc == nil {
@@ -329,10 +329,10 @@ func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) Func {
 //parse and search all matched func to Wdoc
 func (p *Parser) ToMv(prefix, key, tags string) *Wdoc {
 	var res = &Wdoc{}
-	var pkgs_ = []Pkg{}
+	var pkgs_ = []*Pkg{}
 	var tags_ = map[string]int{}
 	for name, fs := range p.FS {
-		var tfs = []Func{}
+		var tfs = []*Func{}
 		for fn, f := range fs {
 			ff := p.Func2Map(fn, f)
 			if !ff.Matched(key, tags) {
@@ -352,7 +352,7 @@ func (p *Parser) ToMv(prefix, key, tags string) *Wdoc {
 			name = names[1]
 		}
 		name = strings.TrimPrefix(name, prefix)
-		pkgs_ = append(pkgs_, Pkg{
+		pkgs_ = append(pkgs_, &Pkg{
 			Name:  name,
 			Funcs: tfs,
 		})
@@ -369,6 +369,7 @@ func (p *Parser) ToM(prefix string) *Wdoc {
 }
 
 //list all web api doc
+//list all web api doc by key,tags
 //@url,the normal GET request
 //	~/wdoc	GET
 //@arg,the normal query arguments
@@ -388,6 +389,48 @@ func (p *Parser) ToM(prefix string) *Wdoc {
 //	arg/type	S	the argument item type, options:R/required,O/optional
 //	ret/type	S	the return item value type, options:S/string,I/int,F/float,A/array,O/object,V/void.
 //	example		V	the example value. exammple is object type when return value is json, other case is string type
+/*	example
+	{
+		"tags": {
+			"godoc": 1,
+			"wdoc": 1
+		},
+		"pkgs": [{
+			"name": "github.com/Centny/gwf/wdoc/",
+			"funcs": [{
+				"name": "Parser.SrvHTTP",
+				"title": "list all web api doc",
+				"tags": ["wdoc", "godoc"],
+				"url": {
+					"path": "~/wdoc",
+					"method": "GET",
+					"desc": "the normal GET request"
+				},
+				"arg": {
+					"items": [{
+						"name": "key",
+						"type": "O",
+						"desc": "the search key for seaching doc"
+					}],
+					"desc": "the normal query arguments",
+					"example": "~/wdoc?key=xx\u0026tags=wdoc,godoc"
+				},
+				"ret": {
+					"items": [{
+						"name": "pkgs",
+						"type": "A",
+						"desc": "the package list"
+					}],
+					"desc": "the json result"
+				},
+				"author": {
+					"name": "Centny",
+					"date": 1453939200000
+				}
+			}]
+		}]
+	}
+*/
 //@tag,wdoc,godoc
 //
 //@author,Centny,2016-01-28

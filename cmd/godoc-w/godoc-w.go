@@ -5,6 +5,7 @@ import (
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
 	"github.com/Centny/gwf/wdoc"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"runtime"
@@ -20,14 +21,16 @@ func main() {
 	var addr string = ""
 	var prefix string = ""
 	var delay int64 = 100000
+	var out string = ""
 	_, options, path := util.Args()
 	err := options.ValidF(`
 		inc,O|S,L:0;
 		exc,O|S,L:0;
-		addr,R|S,L:0;
+		addr,O|S,L:0;
 		prefix,O|S,L:0;
 		delay,O|I,R:0;
-		`, &inc, &exc, &addr, &prefix, &delay)
+		out,O|S,L:0;
+		`, &inc, &exc, &addr, &prefix, &delay, &out)
 	if err != nil {
 		fmt.Println(err.Error())
 		usage()
@@ -48,10 +51,31 @@ func main() {
 	}
 	pars := wdoc.NewParser()
 	pars.Pre = prefix
-	go pars.LoopParse(wd, inc_, exc_, time.Duration(delay))
-	mux := routing.NewSessionMux2("")
-	mux.H("^.*$", pars)
-	http.ListenAndServe(addr, mux)
+	if len(addr) > 0 {
+		go pars.LoopParse(wd, inc_, exc_, time.Duration(delay))
+		mux := routing.NewSessionMux2("")
+		mux.H("^.*$", pars)
+		http.ListenAndServe(addr, mux)
+	} else if len(out) > 0 {
+		err := pars.ParseDir(wd, inc_, exc_)
+		if err != nil {
+			fmt.Println(err.Error())
+			ef(1)
+			return
+		}
+		var res = pars.ToM(prefix)
+		res.RateV()
+		bys, _ := res.Marshal()
+		err = ioutil.WriteFile(out, bys, os.ModePerm)
+		if err != nil {
+			fmt.Println(err.Error())
+			ef(1)
+			return
+		}
+	} else {
+		fmt.Println("-addr or -out must be setted")
+		ef(1)
+	}
 }
 func usage() {
 	fmt.Println(`Usage:

@@ -30,6 +30,16 @@ func TestParser(t *testing.T) {
 		return
 	}
 	res = pp.ToM("")
+	res.RateV()
+	bys, err := res.Marshal()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(string(bys))
+	//
+	fmt.Println("------>")
+	//
 	fmt.Println(util.S2Json(res))
 	//
 	ts := httptest.NewServer2(pp)
@@ -42,7 +52,7 @@ func TestParser(t *testing.T) {
 	go pp.LoopParse("/dsfsfd", nil, nil, 1000)
 	time.Sleep(2 * time.Second)
 	pp.Running = false
-	pkgs_l([]Pkg{Pkg{}, Pkg{}}).Swap(0, 1)
+	pkgs_l([]*Pkg{&Pkg{}, &Pkg{}}).Swap(0, 1)
 }
 
 func TestReg(t *testing.T) {
@@ -77,3 +87,58 @@ func TestReg(t *testing.T) {
 	}
 	fmt.Println("done...")
 }
+
+// type coverage_ struct {
+// 	XMLName  string     `xml:"coverage"`
+// 	Packages []package_ `xml:"packages>package"`
+// }
+
+// type package_ struct {
+// 	Name     string   `xml:"name,attr"`
+// 	Linerate string   `xml:"line-rate,attr"`
+// 	Classes  []class_ `xml:"classes>class"`
+// }
+// type class_ struct {
+// 	Name     string    `xml:"name,attr"`
+// 	Linerate string    `xml:"line-rate,attr"`
+// 	Methods  []method_ `xml:"methods>method"`
+// }
+// type method_ struct {
+// 	Name     string `xml:"name,attr"`
+// 	Linerate string `xml:"line-rate,attr"`
+// }
+
+// func TestXx(t *testing.T) {
+// 	bys, _ := xml.Marshal(&coverage_{
+// 		Packages: []package_{
+// 			package_{
+// 				Classes: []class_{
+// 					class_{
+// 						Methods: []method_{
+// 							method_{},
+// 						},
+// 					},
+// 				},
+// 			},
+// 		},
+// 	})
+// 	fmt.Println(string(bys))
+// }
+
+// func TestXx(t *testing.T) {
+// 	wdoc := &Wdoc{
+// 		Pkgs: []Pkg{
+// 			Pkg{
+// 				Funcs: []Func{
+// 					Func{
+// 						Methods: []Method{
+// 							Method{},
+// 						},
+// 					},
+// 				},
+// 			},
+// 		},
+// 	}
+// 	bys, _ := wdoc.Marshal()
+// 	fmt.Println(string(bys))
+// }
