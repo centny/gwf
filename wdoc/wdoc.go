@@ -1,42 +1,46 @@
+//Package wdco provider Parser to parse golang doc to web api documnet.
+//it support multi command to special api items.
 package wdoc
 
 import (
-	"time"
-	// "fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	// "html/template"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
+//the @arg command regex
 var ARG_REG = regexp.MustCompile("^[^\\t]*\\t(required|optional|R|O)\\t.*$")
 
-var RET_REG = regexp.MustCompile("^[^\\t]*\\t(S|I|F|A|O|string|int|float|array|object)\\t.*$")
+//the @ret command regex
+var RET_REG = regexp.MustCompile("^[^\\t]*\\t(S|I|F|A|O|V|string|int|float|array|object|void)\\t.*$")
+
+//multi tab regex
 var multi_t = regexp.MustCompile("\t+")
 
+//Parser handler.
 type Handler interface {
+	//is handler checker
 	ISH(dir string, decl *ast.FuncDecl) bool
-	Filter(f os.FileInfo) bool
 }
 
+//normal parser handler impl
 type NormalH struct {
-	Inc []*regexp.Regexp
-	Exc []*regexp.Regexp
 }
 
+//create normal handler
 func NewNormalH() *NormalH {
-	return &NormalH{
-		Exc: []*regexp.Regexp{regexp.MustCompile(".*_test.go")},
-	}
+	return &NormalH{}
 }
 
+//impl is handler checker
 func (n *NormalH) ISH(dir string, decl *ast.FuncDecl) bool {
 	if !decl.Name.IsExported() {
 		return false
@@ -87,83 +91,65 @@ func (n *NormalH) ISH(dir string, decl *ast.FuncDecl) bool {
 		return false
 	}
 }
-func (n *NormalH) Filter(f os.FileInfo) bool {
-	var name = f.Name()
-	if len(n.Inc) > 0 {
-		for _, inc := range n.Inc {
-			if inc.MatchString(name) {
-				return true
-			}
-		}
-		return false
-	}
-	if len(n.Exc) > 0 {
-		for _, exc := range n.Exc {
-			if exc.MatchString(name) {
-				return false
-			}
-		}
-		return true
-	}
-	return true
-}
 
-//xxx
-//
-//	sds	abc <a>skks</a> fdsf dsf kskd fkd sfjds kf djslfj sdl fks jdfk dsjfsd fjdksd lfjs dkfjs df jsd kf  jskdf abc skks fdsf dsf kskd fkd sfjds kf djslfj sdl fks jdfk dsjfsd fjdksd lfjs dkfjs df jsd kf  jskdf
-//	fs	required	xxsds
-//
+//the web api parser
 type Parser struct {
-	Pre string
-	H   Handler
-	PS  map[string]*ast.Package
-	FS  map[string]map[string]*ast.FuncDecl
+	Running bool
+	Pre     string
+	H       Handler
+	PS      map[string]*ast.Package
+	FS      map[string]map[string]*ast.FuncDecl
 }
 
+//create parser
 func NewParser() *Parser {
 	return &Parser{
-		H:  &NormalH{},
+		H:  NewNormalH(),
 		PS: map[string]*ast.Package{},
 		FS: map[string]map[string]*ast.FuncDecl{},
 	}
 }
 
+//loop parse root directory by delay and include/exclude
 func (p *Parser) LoopParse(root string, inc, exc []string, delay time.Duration) {
-	for {
+	p.Running = true
+	for p.Running {
 		err := p.ParseDir(root, inc, exc)
 		if err != nil {
-			log.E("loop parse dir(%v) error->%v", err)
+			log.E("loop parse dir(%v),inc(%v),exc(%v) error->%v", root, inc, exc, err)
 		}
 		time.Sleep(delay * time.Millisecond)
 	}
 }
 
+//parser root and child directory by include/exclude.
 func (p *Parser) ParseDir(root string, inc, exc []string) error {
 	dirs := util.FilterDir(root, inc, exc)
 	if len(dirs) < 1 {
 		return util.Err("filter root dir(%v) is empty", root)
 	}
-	err := p.Parse(dirs...)
-	if err == nil {
-		log.D("parse dir(%v) success with dirs(%v),inc(%v),exc(%v)", root, len(dirs), inc, exc)
-	} else {
-		log.E("parse dir(%v) error with dirs(%v),inc(%v),exc(%v)->%v", root, len(dirs), inc, exc, err)
-	}
-	return err
+	return p.Parse(dirs...)
 }
+
+//parser all directory
 func (p *Parser) Parse(dirs ...string) error {
 	var fs = token.NewFileSet()
 	for _, dir := range dirs {
-		pkgs, err := parser.ParseDir(fs, dir, p.Filter, parser.ParseComments)
+		pkgs, err := parser.ParseDir(fs, dir, func(f os.FileInfo) bool {
+			return !strings.HasSuffix(f.Name(), "_test.go")
+		}, parser.ParseComments)
 		if err == nil {
 			p.parse_pkgs(dir, pkgs)
 		} else {
+			log.E("parse error with dirs(%v)->%v", len(dirs), err)
 			return err
 		}
 	}
+	log.D("parse success with dirs(%v)", len(dirs))
 	return nil
 }
 
+//parser packages on directory and return the FuncDecl map
 func (p *Parser) parse_pkgs(dir string, pkgs map[string]*ast.Package) {
 	for _, pkg := range pkgs {
 		doutf := p.parse_pkg_(dir, pkg)
@@ -174,6 +160,7 @@ func (p *Parser) parse_pkgs(dir string, pkgs map[string]*ast.Package) {
 	}
 }
 
+//parser package and return the FuncDecl map
 func (p *Parser) parse_pkg_(dir string, pkg *ast.Package) map[string]*ast.FuncDecl {
 	outf := map[string]*ast.FuncDecl{}
 	for _, f := range pkg.Files {
@@ -182,6 +169,7 @@ func (p *Parser) parse_pkg_(dir string, pkg *ast.Package) map[string]*ast.FuncDe
 	return outf
 }
 
+//parser file and return the FuncDecl map
 func (p *Parser) parse_file(dir string, f *ast.File, outf map[string]*ast.FuncDecl) {
 	for _, decl := range f.Decls {
 		fdecl, ok := decl.(*ast.FuncDecl)
@@ -204,14 +192,12 @@ func (p *Parser) parse_file(dir string, f *ast.File, outf map[string]*ast.FuncDe
 	}
 }
 
-func (p *Parser) Filter(f os.FileInfo) bool {
-	return p.H.Filter(f)
-}
-
+//is web api handler H
 func (p *Parser) ISH(dir string, decl *ast.FuncDecl) bool {
 	return p.H.ISH(dir, decl)
 }
 
+//do arg/ret command
 func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 	lines := strings.Split(text, "\n")
 	arg.Desc = strings.Trim(lines[0], " \t")
@@ -234,12 +220,16 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 			Desc: vals[2],
 		})
 	}
+	sort.Sort(items_l(arg.Items))
 	if sidx > -1 {
 		var ctext = ""
 		for i := sidx; i < len(lines); i++ {
 			ctext += "\n" + lines[i]
 		}
-		ctext = strings.Trim(ctext, " \t")
+		ctext = strings.Trim(ctext, " \t\n")
+		ctext = strings.TrimPrefix(ctext, "样例")
+		ctext = strings.TrimPrefix(ctext, "example")
+		ctext = strings.Trim(ctext, " \t\n")
 		cm, err := util.Json2Map(ctext)
 		if err == nil {
 			arg.Example = cm
@@ -248,6 +238,8 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 		}
 	}
 }
+
+//do url command
 func (p *Parser) do_url(text string, url *Url) {
 	lines := strings.Split(text, "\n")
 	url.Desc = strings.Trim(lines[0], " \t")
@@ -265,23 +257,27 @@ func (p *Parser) do_url(text string, url *Url) {
 		url.Ctype = vals[2]
 	}
 }
+
+//do auth command
 func (p *Parser) do_author(text string, author *Author) {
 	line := strings.Trim(text, " \t")
 	line = multi_t.ReplaceAllString(line, "\t")
 	vals := strings.SplitN(line, ",", 3)
 	author.Name = vals[0]
 	if len(vals) > 1 {
-		date, err := time.Parse("yyyy-mm-dd", vals[1])
+		date, err := time.Parse("2006-01-02", vals[1])
 		if err == nil {
 			author.Date = util.Timestamp(date)
 		} else {
-			log.W("parsing date(%v) on line(%v) error->%v", text, err)
+			log.W("parsing date(%v) on line(%v) error->%v", vals[1], text, err)
 		}
 	}
 	if len(vals) > 2 {
 		author.Desc = vals[2]
 	}
 }
+
+//parse matched func to Func
 func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) Func {
 	var info = Func{
 		Name: fn,
@@ -329,55 +325,75 @@ func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) Func {
 	}
 	return info
 }
+
+//parse and search all matched func to Wdoc
 func (p *Parser) ToMv(prefix, key, tags string) *Wdoc {
 	var res = &Wdoc{}
-	var pkgs = []Pkg{}
+	var pkgs_ = []Pkg{}
+	var tags_ = map[string]int{}
 	for name, fs := range p.FS {
 		var tfs = []Func{}
 		for fn, f := range fs {
 			ff := p.Func2Map(fn, f)
-			if ff.Matched(key, tags) {
-				tfs = append(tfs, ff)
+			if !ff.Matched(key, tags) {
+				continue
+			}
+			tfs = append(tfs, ff)
+			for _, tag := range ff.Tags {
+				tags_[tag] += 1
 			}
 		}
 		if len(tfs) < 1 {
 			continue
 		}
-		sort.Sort(Funcs(tfs))
+		sort.Sort(funcs_l(tfs))
 		names := strings.SplitN(name, "src/", 2)
 		if len(names) == 2 {
 			name = names[1]
 		}
 		name = strings.TrimPrefix(name, prefix)
-		pkgs = append(pkgs, Pkg{
+		pkgs_ = append(pkgs_, Pkg{
 			Name:  name,
 			Funcs: tfs,
 		})
 	}
-	sort.Sort(Pkgs(pkgs))
-	res.Pkgs = pkgs
+	sort.Sort(pkgs_l(pkgs_))
+	res.Pkgs = pkgs_
+	res.Tags = tags_
 	return res
 }
+
+//parse all matched func to Wdoc
 func (p *Parser) ToM(prefix string) *Wdoc {
 	return p.ToMv(prefix, "", "")
 }
 
+//list all web api doc
+//@url,the normal GET request
+//	~/wdoc	GET
+//@arg,the normal query arguments
+//	key		O	the search key for seaching doc
+//	tags	O	the filter tag for filter Api
+//	~/wdoc?key=xx&tags=wdoc,godoc
+//@ret,the json result
+//	pkgs		A	the package list
+//	name		S	the unique name for package/function
+//	title		S	the title for package/function
+//	desc		S	the description for package/function/item.
+//	tags		A	the function tags for filter or seach.
+//	funcs		A	the function list on package.
+//	url			O	the web api url info object, contain method/path/desc field
+//	method		S	the web api request method on GET/POST
+//	path		S	the web api releative path
+//	arg/type	S	the argument item type, options:R/required,O/optional
+//	ret/type	S	the return item value type, options:S/string,I/int,F/float,A/array,O/object,V/void.
+//	example		V	the example value. exammple is object type when return value is json, other case is string type
+//@tag,wdoc,godoc
+//
+//@author,Centny,2016-01-28
 func (p *Parser) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
-	var key string
-	var tags string
-	err := hs.ValidCheckVal(`
-		key,O|S,L:0;
-		tags,O|S,L:0;
-		`, &key, &tags)
-	if err != nil {
-		return hs.MsgResErr2(1, "arg-err", err)
-	}
-	// t, err := template.New("Parser").Parse(HTML)
-	// if err == nil {
-	// 	err = t.Execute(hs.W, p.ToM(p.Pre))
-	// } else {
-	// 	fmt.Fprintf(hs.W, "%v", err.Error())
-	// }
-	// return routing.HRES_RETURN
-	return hs.MsgRes(p.ToMv(p.Pre, ".*"+key+".*", tags))
+	var key string = hs.CheckVal("key")
+	var tags string = hs.CheckVal("tags")
+	hs.JsonRes(p.ToMv(p.Pre, ".*"+key+".*", tags))
+	return routing.HRES_RETURN
 }

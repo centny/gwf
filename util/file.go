@@ -25,7 +25,7 @@ func FilterDir(root string, inc []string, exc []string) []string {
 		return false
 	}
 	filepath.Walk(root, func(path string, fi os.FileInfo, err error) error {
-		if !fi.IsDir() {
+		if fi == nil || !fi.IsDir() {
 			return nil
 		}
 		if m_reg(path, reg_i) {

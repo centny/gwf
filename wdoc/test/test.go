@@ -74,6 +74,7 @@ func X4(hs *routing.HTTPSession) (x routing.HResult) {
 //@url,xxxx
 //	~/xx/api/x1?a=1&b=xx&c=n	GET	application/json
 //@arg,xxx
+//@xxx,sds
 func X5(hs *routing.HTTPSession) (x routing.HResult) {
 	return routing.HRES_RETURN
 }

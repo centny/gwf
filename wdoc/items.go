@@ -5,24 +5,31 @@ import (
 	"strings"
 )
 
+//the web api doc
 type Wdoc struct {
-	Pkgs []Pkg `json:"pkgs,omitempty"`
-}
-type Pkg struct {
-	Name  string `json:"name,omitempty"`
-	Funcs []Func `json:"funcs,omitempty"`
-}
-type Func struct {
-	Name   string   `json:"name,omitempty"`
-	Title  string   `json:"title,omitempty"`
-	Desc   string   `json:"desc,omitempty"`
-	Tags   []string `json:"tags,omitempty"`
-	Url    *Url     `json:"url,omitempty"`
-	Arg    *Arg     `json:"arg,omitempty"`
-	Ret    *Arg     `json:"ret,omitempty"`
-	Author *Author  `json:"author,omitempty"`
+	Tags map[string]int `json:"tags,omitempty"` //all tags
+	Pkgs []Pkg          `json:"pkgs,omitempty"` //packages
 }
 
+//the package
+type Pkg struct {
+	Name  string `json:"name,omitempty"`  //the package name
+	Funcs []Func `json:"funcs,omitempty"` //the functions
+}
+
+//the func
+type Func struct {
+	Name   string   `json:"name,omitempty"`   //the func name
+	Title  string   `json:"title,omitempty"`  //the func title
+	Desc   string   `json:"desc,omitempty"`   //the func desc
+	Tags   []string `json:"tags,omitempty"`   //the func tags
+	Url    *Url     `json:"url,omitempty"`    //the func url
+	Arg    *Arg     `json:"arg,omitempty"`    //the func argument
+	Ret    *Arg     `json:"ret,omitempty"`    //the func return
+	Author *Author  `json:"author,omitempty"` //the func author
+}
+
+//chekc if matched by key,tags
 func (f *Func) Matched(key, tags string) bool {
 	if len(tags) > 0 {
 		var tags_ = strings.Split(tags, ",")
@@ -52,61 +59,68 @@ func (f *Func) Matched(key, tags string) bool {
 	return true
 }
 
+//the author
 type Author struct {
-	Name string `json:"name,omitempty"`
-	Date int64  `json:"date,omitempty"`
-	Desc string `json:"desc,omitempty"`
+	Name string `json:"name,omitempty"` //the author name
+	Date int64  `json:"date,omitempty"` //the create date
+	Desc string `json:"desc,omitempty"` //the auth desc
 }
+
+//the url
 type Url struct {
-	Path   string `json:"path,omitempty"`
-	Method string `json:"method,omitempty"`
-	Ctype  string `json:"ctype,omitempty"`
-	Desc   string `json:"desc,omitempty"`
+	Path   string `json:"path,omitempty"`   //the url path
+	Method string `json:"method,omitempty"` //the request method
+	Ctype  string `json:"ctype,omitempty"`  //the content type
+	Desc   string `json:"desc,omitempty"`   //the url dec
 }
+
+//the argument
 type Arg struct {
-	Items   []Item      `json:"items,omitempty"`
-	Desc    string      `json:"desc,omitempty"`
-	Ctype   string      `json:"ctype,omitempty"`
-	Example interface{} `json:"example,omitempty"`
+	Items   []Item      `json:"items,omitempty"`   //the item list
+	Desc    string      `json:"desc,omitempty"`    //the argument desc
+	Ctype   string      `json:"ctype,omitempty"`   //the request content type
+	Example interface{} `json:"example,omitempty"` //the example
 }
+
+//the item
 type Item struct {
-	Name string `json:"name,omitempty"`
-	Type string `json:"type,omitempty"`
-	Desc string `json:"desc,omitempty"`
+	Name string `json:"name,omitempty"` //the item name
+	Type string `json:"type,omitempty"` //the item type
+	Desc string `json:"desc,omitempty"` //the item desc
 }
 
-type Pkgs []Pkg
+type pkgs_l []Pkg
 
-func (p Pkgs) Len() int {
+func (p pkgs_l) Len() int {
 	return len(p)
 }
-func (p Pkgs) Less(i, j int) bool {
+func (p pkgs_l) Less(i, j int) bool {
 	return p[i].Name < p[j].Name
 }
-func (p Pkgs) Swap(i, j int) {
+func (p pkgs_l) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
-type Funcs []Func
+type funcs_l []Func
 
-func (f Funcs) Len() int {
+func (f funcs_l) Len() int {
 	return len(f)
 }
-func (f Funcs) Less(i, j int) bool {
+func (f funcs_l) Less(i, j int) bool {
 	return f[i].Name < f[j].Name
 }
-func (f Funcs) Swap(i, j int) {
+func (f funcs_l) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
-type Items []Item
+type items_l []Item
 
-func (i Items) Len() int {
+func (i items_l) Len() int {
 	return len(i)
 }
-func (iv Items) Less(i, j int) bool {
+func (iv items_l) Less(i, j int) bool {
 	return iv[i].Name < iv[j].Name
 }
-func (iv Items) Swap(i, j int) {
+func (iv items_l) Swap(i, j int) {
 	iv[i], iv[j] = iv[j], iv[i]
 }
