@@ -131,8 +131,9 @@ func (f *Func) RateV() float32 {
 }
 
 type Method struct {
-	Name string  `xml:"name,attr"`
-	Rate float32 `xml:"line-rate,attr"`
+	Name      string  `xml:"name,attr"`
+	Rate      float32 `xml:"line-rate,attr"`
+	Signature string  `xml:"signature,attr"`
 }
 
 //chekc if matched by key,tags
