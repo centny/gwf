@@ -53,16 +53,17 @@ func (p *Pkg) RateV() float32 {
 
 //the func
 type Func struct {
-	Name    string    `json:"name,omitempty" xml:"name,attr"`      //the func name
-	Title   string    `json:"title,omitempty" xml:"-"`             //the func title
-	Desc    string    `json:"desc,omitempty" xml:"-"`              //the func desc
-	Tags    []string  `json:"tags,omitempty" xml:"-"`              //the func tags
-	Url     *Url      `json:"url,omitempty" xml:"-"`               //the func url
-	Arg     *Arg      `json:"arg,omitempty" xml:"-"`               //the func argument
-	Ret     *Arg      `json:"ret,omitempty" xml:"-"`               //the func return
-	Author  *Author   `json:"author,omitempty" xml:"-"`            //the func author
-	Methods []*Method `json:"-" xml:"methods>method"`              //the methods
-	Rate    float32   `json:"rate,omitempty" xml:"line-rate,attr"` //rate
+	Name     string    `json:"name,omitempty" xml:"name,attr"`      //the func name
+	Title    string    `json:"title,omitempty" xml:"-"`             //the func title
+	Desc     string    `json:"desc,omitempty" xml:"-"`              //the func desc
+	Tags     []string  `json:"tags,omitempty" xml:"-"`              //the func tags
+	Url      *Url      `json:"url,omitempty" xml:"-"`               //the func url
+	Arg      *Arg      `json:"arg,omitempty" xml:"-"`               //the func argument
+	Ret      *Arg      `json:"ret,omitempty" xml:"-"`               //the func return
+	Author   *Author   `json:"author,omitempty" xml:"-"`            //the func author
+	Methods  []*Method `json:"-" xml:"methods>method"`              //the methods
+	Rate     float32   `json:"rate,omitempty" xml:"line-rate,attr"` //rate
+	Filename string    `json:"-" xml:"filename,attr"`
 }
 
 func (f *Func) RateV() float32 {
