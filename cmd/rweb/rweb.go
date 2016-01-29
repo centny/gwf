@@ -18,7 +18,7 @@ func main() {
 	mux.HFilterFunc("^.*$", MicroMessengerFilter)
 	mux.HFilterFunc("^.*\\.apk$", func(hs *routing.HTTPSession) routing.HResult {
 		hs.W.Header().Set("Content-Type", "application/vnd.android.package-archive")
-		return routing.HRES_RETURN
+		return routing.HRES_CONTINUE
 	})
 	mux.Handler("^/.*$", http.FileServer(http.Dir(".")))
 	fmt.Println(http.ListenAndServe(addr, mux))
