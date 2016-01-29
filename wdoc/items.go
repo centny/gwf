@@ -20,120 +20,70 @@ func (w *Wdoc) Marshal() ([]byte, error) {
 	return xml.MarshalIndent(w, " ", "  ")
 }
 
-func (w *Wdoc) RateV() float32 {
-	var rate float32 = 0
+func (w *Wdoc) RateV() {
 	for _, p := range w.Pkgs {
-		rate += p.RateV()
+		p.RateV()
 	}
-	if len(w.Pkgs) > 0 {
-		rate /= float32(len(w.Pkgs))
-	}
-	w.Rate = rate
-	return w.Rate
 }
 
 //the package
 type Pkg struct {
 	Name  string  `json:"name,omitempty" xml:"name,attr"`      //the package name
 	Funcs []*Func `json:"funcs,omitempty" xml:"classes>class"` //the functions
-	Rate  float32 `json:"rate,omitempty" xml:"line-rate,attr"` //rate
 }
 
-func (p *Pkg) RateV() float32 {
-	var rate float32 = 0
+func (p *Pkg) RateV() {
 	for _, f := range p.Funcs {
-		rate += f.RateV()
+		f.RateV()
 	}
-	if len(p.Funcs) > 0 {
-		rate /= float32(len(p.Funcs))
-	}
-	p.Rate = rate
-	return p.Rate
 }
 
 //the func
 type Func struct {
-	Name     string    `json:"name,omitempty" xml:"name,attr"`      //the func name
-	Title    string    `json:"title,omitempty" xml:"-"`             //the func title
-	Desc     string    `json:"desc,omitempty" xml:"-"`              //the func desc
-	Tags     []string  `json:"tags,omitempty" xml:"-"`              //the func tags
-	Url      *Url      `json:"url,omitempty" xml:"-"`               //the func url
-	Arg      *Arg      `json:"arg,omitempty" xml:"-"`               //the func argument
-	Ret      *Arg      `json:"ret,omitempty" xml:"-"`               //the func return
-	Author   *Author   `json:"author,omitempty" xml:"-"`            //the func author
-	Methods  []*Method `json:"-" xml:"methods>method"`              //the methods
-	Rate     float32   `json:"rate,omitempty" xml:"line-rate,attr"` //rate
-	Filename string    `json:"-" xml:"filename,attr"`
+	Name   string   `json:"name,omitempty" xml:"name,attr"` //the func name
+	Title  string   `json:"title,omitempty" xml:"-"`        //the func title
+	Desc   string   `json:"desc,omitempty" xml:"-"`         //the func desc
+	Tags   []string `json:"tags,omitempty" xml:"-"`         //the func tags
+	Url    *Url     `json:"url,omitempty" xml:"-"`          //the func url
+	Arg    *Arg     `json:"arg,omitempty" xml:"-"`          //the func argument
+	Ret    *Arg     `json:"ret,omitempty" xml:"-"`          //the func return
+	Author *Author  `json:"author,omitempty" xml:"-"`       //the func author
+	//
+	Methods  []*Method `json:"-" xml:"methods>method"` //the methods
+	Filename string    `json:"-" xml:"filename,attr"`  //the filename
 }
 
-func (f *Func) RateV() float32 {
+func (f *Func) RateV() {
+	f.Methods = []*Method{}
 	//
-	var title = desc_rate(f.Title)
-	f.Methods = append(f.Methods, &Method{
-		Name: "title",
-		Rate: title,
-	})
-	//
-	var desc = desc_rate(f.Desc)
-	f.Methods = append(f.Methods, &Method{
-		Name: "desc",
-		Rate: desc,
-	})
-	//
-	var tag float32 = 0
-	if len(f.Tags) < 1 {
-		tag = 0
+	f.Methods = append(f.Methods, NewMethod("name", desc_hits(f.Name)))
+	f.Methods = append(f.Methods, NewMethod("title", desc_hits(f.Title)))
+	f.Methods = append(f.Methods, NewMethod("desc", desc_hits(f.Desc)))
+	if len(f.Tags) > 0 {
+		f.Methods = append(f.Methods, NewMethod("tags", 1))
 	} else {
-		tag = 1
+		f.Methods = append(f.Methods, NewMethod("tags", 0))
 	}
-	f.Methods = append(f.Methods, &Method{
-		Name: "tag",
-		Rate: tag,
-	})
-	//
-	var url float32 = 0
-	if f.Url != nil {
-		url = f.Url.RateV()
+	if f.Url == nil {
+		f.Methods = append(f.Methods, NewMethod("url", 0))
+	} else {
+		f.Methods = append(f.Methods, f.Url.RateV()...)
 	}
-	f.Methods = append(f.Methods, &Method{
-		Name: "url",
-		Rate: url,
-	})
-	//
-	var arg float32 = 0
-	if f.Arg != nil {
-		arg = f.Arg.RateV()
+	if f.Arg == nil {
+		f.Methods = append(f.Methods, NewMethod("arg", 0))
+	} else {
+		f.Methods = append(f.Methods, f.Arg.RateV()...)
 	}
-	f.Methods = append(f.Methods, &Method{
-		Name: "arg",
-		Rate: arg,
-	})
-	//
-	var ret float32 = 0
-	if f.Ret != nil {
-		ret = f.Ret.RateV()
+	if f.Ret == nil {
+		f.Methods = append(f.Methods, NewMethod("ret", 0))
+	} else {
+		f.Methods = append(f.Methods, f.Ret.RateV()...)
 	}
-	f.Methods = append(f.Methods, &Method{
-		Name: "ret",
-		Rate: ret,
-	})
-	//
-	var author float32 = 0
-	if f.Author != nil {
-		author = f.Author.RateV()
+	if f.Author == nil {
+		f.Methods = append(f.Methods, NewMethod("author", 0))
+	} else {
+		f.Methods = append(f.Methods, f.Author.RateV()...)
 	}
-	f.Methods = append(f.Methods, &Method{
-		Name: "author",
-		Rate: author,
-	})
-	f.Rate = (title + desc + tag + url + arg + ret + author) / 7
-	return f.Rate
-}
-
-type Method struct {
-	Name      string  `xml:"name,attr"`
-	Rate      float32 `xml:"line-rate,attr"`
-	Signature string  `xml:"signature,attr"`
 }
 
 //chekc if matched by key,tags
@@ -173,11 +123,10 @@ type Author struct {
 	Desc string `json:"desc,omitempty"` //the auth desc
 }
 
-func (a *Author) RateV() float32 {
-	if a.Date > 0 {
-		return 1
-	} else {
-		return 0
+func (a *Author) RateV() []*Method {
+	return []*Method{
+		NewMethod("author.name", desc_hits(a.Name)),
+		NewMethod("author.desc", desc_hits(a.Desc)),
 	}
 }
 
@@ -189,8 +138,11 @@ type Url struct {
 	Desc   string `json:"desc,omitempty"`   //the url dec
 }
 
-func (u *Url) RateV() float32 {
-	return desc_rate(u.Desc)
+func (u *Url) RateV() []*Method {
+	return []*Method{
+		NewMethod("url.path", desc_hits(u.Path)),
+		NewMethod("url.desc", desc_hits(u.Desc)),
+	}
 }
 
 //the argument
@@ -201,22 +153,18 @@ type Arg struct {
 	Example interface{} `json:"example,omitempty"` //the example
 }
 
-func (a *Arg) RateV() float32 {
-	var item float32 = 0
+func (a *Arg) RateV() []*Method {
+	var ms = []*Method{}
 	for _, i := range a.Items {
-		item += i.RateV()
+		ms = append(ms, NewMethod("arg."+i.Name, i.Hits()))
 	}
-	if len(a.Items) > 0 {
-		item /= float32(len(a.Items))
-	}
-	var exm float32 = 0
 	if a.Example == nil {
-		exm = 0
+		ms = append(ms, NewMethod("arg.example", 0))
 	} else {
-		exm = 1
+		ms = append(ms, NewMethod("arg.example", 1))
 	}
-	var desc = desc_rate(a.Desc)
-	return 0.1*item + 0.4*desc + 0.5*exm
+	ms = append(ms, NewMethod("arg.desc", desc_hits(a.Desc)))
+	return ms
 }
 
 //the item
@@ -226,16 +174,15 @@ type Item struct {
 	Desc string `json:"desc,omitempty"` //the item desc
 }
 
-func (i *Item) RateV() float32 {
-	return desc_rate(i.Desc)
+func (i *Item) Hits() int {
+	return desc_hits(i.Desc)
 }
 
-func desc_rate(desc string) float32 {
-	var clen = len(desc)
-	if clen >= DESC_L {
+func desc_hits(desc string) int {
+	if len(desc) > DESC_L {
 		return 1
 	} else {
-		return float32(clen) / float32(DESC_L)
+		return 0
 	}
 }
 
@@ -273,4 +220,26 @@ func (iv items_l) Less(i, j int) bool {
 }
 func (iv items_l) Swap(i, j int) {
 	iv[i], iv[j] = iv[j], iv[i]
+}
+
+type Method struct {
+	Name      string  `xml:"name,attr"`
+	Signature string  `xml:"signature,attr"`
+	Lines     []*Line `xml:"lines>line"`
+}
+
+func NewMethod(name string, hits int) *Method {
+	return &Method{
+		Name: name,
+		Lines: []*Line{
+			&Line{
+				Hits: hits,
+			},
+		},
+	}
+}
+
+type Line struct {
+	Line int `xml:"line,attr"`
+	Hits int `xml:"hits,attr"`
 }
