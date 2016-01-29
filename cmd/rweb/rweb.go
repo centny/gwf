@@ -16,7 +16,7 @@ func main() {
 	fmt.Println("running on", addr)
 	mux := routing.NewSessionMux2("")
 	mux.HFilterFunc("^.*$", MicroMessengerFilter)
-	mux.HFunc("^/apk/$", func(hs *routing.HTTPSession) routing.HResult {
+	mux.HFunc("^/apk/.*$", func(hs *routing.HTTPSession) routing.HResult {
 		var path = hs.R.URL.Path
 		path = strings.TrimPrefix(path, "/api")
 		hs.SendF("rcpa.apk", path, "application/vnd.android", false)
