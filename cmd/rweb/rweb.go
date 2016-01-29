@@ -16,6 +16,12 @@ func main() {
 	fmt.Println("running on", addr)
 	mux := routing.NewSessionMux2("")
 	mux.HFilterFunc("^.*$", MicroMessengerFilter)
+	mux.HFunc("^/apk/$", func(hs *routing.HTTPSession) routing.HResult {
+		var path = hs.R.URL.Path
+		path = strings.TrimPrefix(path, "/api")
+		hs.SendF("rcpa.apk", path, "application/vnd.android", false)
+		return routing.HRES_RETURN
+	})
 	mux.Handler("^/.*$", http.FileServer(http.Dir(".")))
 	fmt.Println(http.ListenAndServe(addr, mux))
 }
