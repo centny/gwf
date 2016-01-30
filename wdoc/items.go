@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const DESC_L = 5
+const DESC_L = 2
 
 //the web api doc
 type Wdoc struct {
