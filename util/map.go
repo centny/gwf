@@ -164,6 +164,43 @@ func MapVal(v interface{}) Map {
 	}
 }
 
+func AryVal(v interface{}) []interface{} {
+	if vals, ok := v.([]interface{}); ok {
+		return vals
+	} else {
+		return nil
+	}
+}
+
+func AryMapVal(v interface{}) []Map {
+	var vals = AryVal(v)
+	if vals == nil {
+		return nil
+	}
+	var ms = []Map{}
+	for _, val := range vals {
+		var mv = MapVal(val)
+		if mv == nil {
+			return nil
+		} else {
+			ms = append(ms, mv)
+		}
+	}
+	return ms
+}
+
+func AryStrVal(v interface{}) []string {
+	var vals = AryVal(v)
+	if vals == nil {
+		return nil
+	}
+	var ms = []string{}
+	for _, val := range vals {
+		ms = append(ms, StrVal(val))
+	}
+	return ms
+}
+
 func (m Map) UintVal(key string) uint64 {
 	if v, ok := m[key]; ok {
 		return UintVal(v)
@@ -195,6 +232,27 @@ func (m Map) StrVal(key string) string {
 func (m Map) MapVal(key string) Map {
 	if v, ok := m[key]; ok {
 		return MapVal(v)
+	} else {
+		return nil
+	}
+}
+func (m Map) AryVal(key string) []interface{} {
+	if v, ok := m[key]; ok {
+		return AryVal(v)
+	} else {
+		return nil
+	}
+}
+func (m Map) AryMapVal(key string) []Map {
+	if v, ok := m[key]; ok {
+		return AryMapVal(v)
+	} else {
+		return nil
+	}
+}
+func (m Map) AryStrVal(key string) []string {
+	if v, ok := m[key]; ok {
+		return AryStrVal(v)
 	} else {
 		return nil
 	}
@@ -234,6 +292,18 @@ func (m Map) StrValP(path string) string {
 func (m Map) MapValP(path string) Map {
 	v, _ := m.ValP(path)
 	return MapVal(v)
+}
+func (m Map) AryValP(path string) []interface{} {
+	v, _ := m.ValP(path)
+	return AryVal(v)
+}
+func (m Map) AryMapValP(path string) []Map {
+	v, _ := m.ValP(path)
+	return AryMapVal(v)
+}
+func (m Map) AryStrValP(path string) []string {
+	v, _ := m.ValP(path)
+	return AryStrVal(v)
 }
 func (m Map) ValP(path string) (interface{}, error) {
 	path = strings.TrimPrefix(path, "/")

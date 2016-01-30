@@ -258,3 +258,45 @@ func TestValidF(t *testing.T) {
 		`, &v1, &v2)
 	fmt.Println(v1, v2)
 }
+
+func TestAryMapVal(t *testing.T) {
+	mv, err := NewMap("map2.json")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	var ary_1 = mv.AryVal("ary_1")
+	if ary_1 == nil || len(ary_1) < 1 {
+		t.Error("error")
+		return
+	}
+	fmt.Println(ary_1)
+	var ary_2 = mv.AryVal("ary_2")
+	if ary_2 == nil || len(ary_2) < 1 {
+		t.Error("error")
+		return
+	}
+	fmt.Println(ary_2)
+	var ary_3 = mv.AryMapVal("ary_3")
+	if ary_3 == nil || len(ary_3) < 1 {
+		t.Error("error")
+		return
+	}
+	fmt.Println(ary_3)
+	var ary_4 = mv.AryStrVal("ary_1")
+	if ary_4 == nil || len(ary_4) < 1 {
+		t.Error("error")
+		return
+	}
+	fmt.Println(ary_4)
+	var ary_5 = mv.AryStrVal("ary_2")
+	if ary_5 == nil || len(ary_5) < 1 {
+		t.Error("error")
+		return
+	}
+	fmt.Println(ary_5)
+	mv.AryValP("/ary_1")
+	mv.AryValP("/ary_2")
+	mv.AryMapValP("/ary_3")
+	mv.AryStrValP("/ary_2")
+}
