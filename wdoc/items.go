@@ -126,7 +126,7 @@ type Author struct {
 func (a *Author) RateV() []*Method {
 	return []*Method{
 		NewMethod("author.name", desc_hits(a.Name)),
-		NewMethod("author.desc", desc_hits(a.Desc)),
+		//NewMethod("author.desc", desc_hits(a.Desc)),
 	}
 }
 
