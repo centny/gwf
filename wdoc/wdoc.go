@@ -287,6 +287,9 @@ func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) *Func {
 	}
 	var doc = f.Doc.Text()
 	doc = strings.Trim(doc, " \t")
+	if strings.Contains(doc, "@ignore") {
+		return nil
+	}
 	if len(doc) < 1 {
 		return info
 	}
@@ -335,7 +338,7 @@ func (p *Parser) ToMv(prefix, key, tags string) *Wdoc {
 		var tfs = []*Func{}
 		for fn, f := range fs {
 			ff := p.Func2Map(fn, f)
-			if !ff.Matched(key, tags) {
+			if ff == nil || !ff.Matched(key, tags) {
 				continue
 			}
 			tfs = append(tfs, ff)
