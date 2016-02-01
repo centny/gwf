@@ -237,7 +237,7 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 			arg.Example = cm
 		} else {
 			if json_m.MatchString(ctext) {
-				log.W("parsing liked json data error(%v) by \n%v\n", ctext)
+				log.W("parsing liked json data error(%v) by \n%v\n", ctext, err)
 			}
 			arg.Example = ctext
 		}
