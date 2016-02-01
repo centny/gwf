@@ -79,6 +79,6 @@ func main() {
 }
 func usage() {
 	fmt.Println(`Usage:
-	godoc-w -inc <include list> -exc <exclude list> -addr <listen addr> -prefix <prefix trim> -delay <check delay> <root path>
+	godoc-w -inc <include list> -exc <exclude list> -addr <listen addr> -prefix <prefix trim> -delay <check delay> -out <coverage output file> <root path>
 			`)
 }

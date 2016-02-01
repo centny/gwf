@@ -24,6 +24,8 @@ var RET_REG = regexp.MustCompile("^[^\\t]*\\t(S|I|F|A|O|V|string|int|float|array
 
 //multi tab regex
 var multi_t = regexp.MustCompile("\t+")
+var json_m = regexp.MustCompile("(?s)^\\{.*\\}$")
+var cmd_m = regexp.MustCompile("\\@[a-z]*\\,")
 
 //Parser handler.
 type Handler interface {
@@ -234,7 +236,10 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 		if err == nil {
 			arg.Example = cm
 		} else {
-			arg.Example = strings.Trim(ctext, " \t\n")
+			if json_m.MatchString(ctext) {
+				log.W("parsing liked json data error(%v) by \n%v\n", ctext)
+			}
+			arg.Example = ctext
 		}
 	}
 }
@@ -293,7 +298,8 @@ func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) *Func {
 	if len(doc) < 1 {
 		return info
 	}
-	reg := regexp.MustCompile("\\@[^\\,]*\\,")
+	var reg = cmd_m
+	// fmt.Println(doc)
 	cmds := reg.FindAllString(doc, -1)
 	dataes := reg.Split(doc, -1)
 	desces := strings.SplitN(dataes[0], "\n", 2)
