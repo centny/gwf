@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/Centny/gwf/routing"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -11,10 +13,31 @@ import (
 func main() {
 	addr := ":80"
 	if len(os.Args) > 1 {
+		if os.Args[1] == "-h" {
+			fmt.Println("Usage: rweb <addr> <proxy addres> <proxy path regex>")
+			return
+		}
 		addr = os.Args[1]
 	}
 	fmt.Println("running on", addr)
 	mux := routing.NewSessionMux2("")
+	if len(os.Args) > 2 {
+		var burl, err = url.Parse(os.Args[2])
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		var proxy = httputil.NewSingleHostReverseProxy(burl)
+		var proxy_d = proxy.Director
+		proxy.Director = func(r *http.Request) {
+			r.Host = burl.Host
+			proxy_d(r)
+		}
+		for _, arg := range os.Args[3:] {
+			mux.Handler(arg, proxy)
+		}
+
+	}
 	mux.HFilterFunc("^.*$", MicroMessengerFilter)
 	mux.HFilterFunc("^.*\\.apk$", func(hs *routing.HTTPSession) routing.HResult {
 		hs.W.Header().Set("Content-Type", "application/vnd.android.package-archive")
