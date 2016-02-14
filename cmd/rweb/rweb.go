@@ -38,6 +38,23 @@ func main() {
 		}
 
 	}
+	mux.HFunc("^/_echo_.*$", func(hs *routing.HTTPSession) routing.HResult {
+		hs.R.ParseForm()
+		fmt.Println("---Header---")
+		for k, v := range hs.R.Header {
+			fmt.Println(k, "\t", v)
+		}
+		fmt.Println("---Form---")
+		for k, v := range hs.R.Form {
+			fmt.Println(k, "\t", v)
+		}
+		fmt.Println("---PostForm---")
+		for k, v := range hs.R.PostForm {
+			fmt.Println(k, "\t", v)
+		}
+		hs.W.Write([]byte("OK"))
+		return routing.HRES_RETURN
+	})
 	mux.HFilterFunc("^.*$", MicroMessengerFilter)
 	mux.HFilterFunc("^.*\\.apk$", func(hs *routing.HTTPSession) routing.HResult {
 		hs.W.Header().Set("Content-Type", "application/vnd.android.package-archive")
