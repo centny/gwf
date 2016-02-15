@@ -131,3 +131,12 @@ func TestSection(t *testing.T) {
 	fmt.Println(f.Val("wwwk"))
 	fmt.Println(f.Val("wxk"))
 }
+
+func TestCfgEscape(t *testing.T) {
+	var cfg, _ = NewFcfg2(`
+		kk=${ss}
+		${xx}=1
+		`)
+	cfg.Print()
+	fmt.Println(cfg.Val("kk"))
+}

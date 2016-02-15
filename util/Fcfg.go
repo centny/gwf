@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"math"
 	nurl "net/url"
 	"os"
 	"path/filepath"
@@ -89,24 +88,31 @@ func (f *Fcfg) Val2(key, def string) string {
 
 //get the int value by key.
 func (f *Fcfg) IntVal(key string) int {
+	return f.IntValV(key, 0)
+}
+
+func (f *Fcfg) IntValV(key string, d int) int {
 	if !f.Exist(key) {
-		return math.MaxInt8
+		return d
 	}
 	val, err := strconv.Atoi(f.Val(key))
 	if err != nil {
-		return math.MaxInt8
+		return d
 	}
 	return val
 }
 
 //get the float value by key.
 func (f *Fcfg) FloatVal(key string) float64 {
+	return f.FloatValV(key, 0)
+}
+func (f *Fcfg) FloatValV(key string, d float64) float64 {
 	if !f.Exist(key) {
-		return math.MaxFloat64
+		return d
 	}
 	val, err := strconv.ParseFloat(f.Val(key), 64)
 	if err != nil {
-		return math.MaxFloat64
+		return d
 	}
 	return val
 }
