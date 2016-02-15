@@ -1,3 +1,8 @@
+//Package dtm provider distributed task control manager.
+//
+//the DTM_S/DTCM_S is the server side impl.
+//
+//the DTM_C is the client side impl.
 package dtm
 
 import (
@@ -21,23 +26,35 @@ const (
 	CMD_M_DONE = 20
 )
 
+//the DTM handler
 type DTM_S_H interface {
 	rc.RC_Login_h
+	//process event
 	OnProc(d *DTM_S, cid, tid string, rate float64)
+	//start event
 	OnStart(d *DTM_S, cid, tid, cmds string)
+	//stop event
 	OnStop(d *DTM_S, cid, tid string)
+	//done event
 	OnDone(d *DTM_S, cid, tid string, code int, err string, used int64)
+	//check and return minial used client id
 	MinUsedCid() string
 }
 
+//the default DTM process handler
 type DTM_S_Proc struct {
-	Rates  map[string]map[string]float64
-	AllC   int
-	TaskC  map[string]int
+	//process rate
+	Rates map[string]map[string]float64
+	//all client count
+	AllC int
+	//client count by id
+	TaskC map[string]int
+	//
 	proc_l sync.RWMutex
 	cid    int64
 }
 
+//new the default DTM process handler
 func NewDTM_S_Proc() *DTM_S_Proc {
 	return &DTM_S_Proc{
 		Rates:  map[string]map[string]float64{},
@@ -47,11 +64,15 @@ func NewDTM_S_Proc() *DTM_S_Proc {
 		cid:    0,
 	}
 }
+
+//process event
 func (d *DTM_S_Proc) OnProc(dtm *DTM_S, cid, tid string, rate float64) {
 	if _, ok := d.Rates[cid]; ok {
 		d.Rates[cid][tid] = rate
 	}
 }
+
+//start event
 func (d *DTM_S_Proc) OnStart(dtm *DTM_S, cid, tid, cmds string) {
 	d.proc_l.Lock()
 	defer d.proc_l.Unlock()
@@ -62,8 +83,12 @@ func (d *DTM_S_Proc) OnStart(dtm *DTM_S, cid, tid, cmds string) {
 	d.TaskC[cid] += 1
 	d.AllC += 1
 }
+
+//stop event
 func (d *DTM_S_Proc) OnStop(dtm *DTM_S, cid, tid string) {
 }
+
+//done event
 func (d *DTM_S_Proc) OnDone(dtm *DTM_S, cid, tid string, code int, err string, used int64) {
 	d.proc_l.Lock()
 	defer d.proc_l.Unlock()
@@ -76,6 +101,8 @@ func (d *DTM_S_Proc) OnDone(dtm *DTM_S, cid, tid string, code int, err string, u
 		d.Rates[cid] = tv
 	}
 }
+
+//login event
 func (d *DTM_S_Proc) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 	d.proc_l.Lock()
 	defer d.proc_l.Unlock()
@@ -84,6 +111,8 @@ func (d *DTM_S_Proc) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 	d.TaskC[cid_] = 0
 	return cid_, nil
 }
+
+//minial used client id
 func (d *DTM_S_Proc) MinUsedCid() string {
 	var tcid string = ""
 	var min int = 999
@@ -96,12 +125,19 @@ func (d *DTM_S_Proc) MinUsedCid() string {
 	return tcid
 }
 
-type DTM_S struct {
-	*rc.RC_Listener_m
-	H        DTM_S_H
-	sequence int64
+//total count
+func (d *DTM_S_Proc) Total() int {
+	return d.AllC
 }
 
+//the distributed task manager server impl
+type DTM_S struct {
+	*rc.RC_Listener_m
+	H        DTM_S_H //the distributed task manager handler
+	sequence int64   //sequence
+}
+
+//new the distributed task manager server impl
 func NewDTM_S(bp *pool.BytePool, addr string, h DTM_S_H, rcm *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) *DTM_S {
 	sh := &DTM_S{
 		H:        h,
@@ -116,11 +152,13 @@ func NewDTM_S(bp *pool.BytePool, addr string, h DTM_S_H, rcm *impl.RCM_S, v2b ne
 	return sh
 }
 
+//new the distributed task manager server impl by json impl
 func NewDTM_S_j(bp *pool.BytePool, addr string, h DTM_S_H) *DTM_S {
 	rcm := impl.NewRCM_S_j()
 	return NewDTM_S(bp, addr, h, rcm, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
 }
 
+//process event impl handler
 func (d *DTM_S) OnProc(c netw.Cmd) int {
 	var args util.Map
 	_, err := c.V(&args)
@@ -141,6 +179,8 @@ func (d *DTM_S) OnProc(c netw.Cmd) int {
 	d.H.OnProc(d, d.ConCid(c), tid, rate)
 	return 0
 }
+
+//done event impl handler
 func (d *DTM_S) OnDone(c netw.Cmd) int {
 	var args util.Map
 	_, err := c.V(&args)
@@ -165,10 +205,14 @@ func (d *DTM_S) OnDone(c netw.Cmd) int {
 	d.H.OnDone(d, d.ConCid(c), tid, code, err_m, used)
 	return 0
 }
+
+//connection event
 func (d *DTM_S) OnConn(c netw.Con) bool {
 	c.SetWait(true)
 	return true
 }
+
+//connection event
 func (d *DTM_S) OnClose(c netw.Con) {
 }
 
@@ -196,6 +240,7 @@ func (d *DTM_S) StartTask(cid, tid, cmds string) error {
 	}
 }
 
+//start task by special task id and commands
 func (d *DTM_S) StartTask2(tid, cmds string) (string, error) {
 	cid := d.H.MinUsedCid()
 	if len(cid) < 1 {
@@ -254,15 +299,19 @@ func (d *DTM_S) WaitTask(cid, tid string) error {
 	}
 }
 
+//new the distributed task manager client impl
 type DTM_C struct {
 	*rc.RC_Runner_m
-	Cfg *util.Fcfg
-	//
-	Tasks   map[string]*exec.Cmd
+	Cfg     *util.Fcfg           //configure
+	Tasks   map[string]*exec.Cmd //running task
 	tasks_l sync.RWMutex
 	tasks_c map[string]chan string
 }
 
+//new the distributed task manager client impl
+//
+//it will parse command by DTM_C.Cfg
+//
 func NewDTM_C(bp *pool.BytePool, addr string, rcm *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) *DTM_C {
 	ch := &DTM_C{
 		Cfg:     util.NewFcfg3(),
@@ -278,22 +327,32 @@ func NewDTM_C(bp *pool.BytePool, addr string, rcm *impl.RCM_S, v2b netw.V2Byte, 
 	return ch
 }
 
+//new the distributed task manager client impl by json
 func NewDTM_C_j(bp *pool.BytePool, addr string) *DTM_C {
 	rcm := impl.NewRCM_S_j()
 	return NewDTM_C(bp, addr, rcm, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
 }
 
+//command impl
 func (d *DTM_C) OnCmd(c netw.Cmd) int {
 	return 0
 }
+
+//connection event
 func (d *DTM_C) OnConn(c netw.Con) bool {
 	c.SetWait(true)
+	var token = d.Cfg.Val("token")
+	if len(token) > 0 {
+		go d.Login_(token)
+	}
 	return true
 }
+
+//connection event
 func (d *DTM_C) OnClose(c netw.Con) {
 }
 
-//start task
+//start task impl func
 func (d *DTM_C) StartTask(rc *impl.RCM_Cmd) (interface{}, error) {
 	var tid string
 	var cmds string
@@ -312,6 +371,7 @@ func (d *DTM_C) StartTask(rc *impl.RCM_Cmd) (interface{}, error) {
 	}
 }
 
+//stop task impl func
 func (d *DTM_C) StopTask(rc *impl.RCM_Cmd) (interface{}, error) {
 	var tid string
 	err := rc.ValidF(`
@@ -332,6 +392,7 @@ func (d *DTM_C) StopTask(rc *impl.RCM_Cmd) (interface{}, error) {
 	}
 }
 
+//wait task impl func
 func (d *DTM_C) WaitTask(rc *impl.RCM_Cmd) (interface{}, error) {
 	var tid string
 	err := rc.ValidF(`
@@ -352,6 +413,7 @@ func (d *DTM_C) WaitTask(rc *impl.RCM_Cmd) (interface{}, error) {
 	}
 }
 
+//run the process http handler
 func (d *DTM_C) RunProcH() error {
 	addr := d.Cfg.Val("PROC_ADDR")
 	if len(addr) < 1 {
@@ -368,6 +430,7 @@ func (d *DTM_C) RunProcH() error {
 	return srv.ListenAndServe()
 }
 
+//process http handler impl
 func (d *DTM_C) HandleProc(hs *routing.HTTPSession) routing.HResult {
 	log.D("DTM_C HandleProc reiceve process %v", hs.R.URL.Query().Encode())
 	var tid string
@@ -379,10 +442,7 @@ func (d *DTM_C) HandleProc(hs *routing.HTTPSession) routing.HResult {
 		hs.W.Write([]byte(fmt.Sprintf("DTM_C HandleProc receive bad arguments->%v", err.Error())))
 		return routing.HRES_RETURN
 	}
-	_, err = d.Writev2([]byte{CMD_M_PROC}, util.Map{
-		"tid":  tid,
-		"rate": rate,
-	})
+	err = d.NotifyProc(tid, rate)
 	if err != nil {
 		log.E("DTM_C HandleProc send process info by tid(%v),rate(%v) err->%v", tid, rate, err)
 	}
@@ -390,6 +450,16 @@ func (d *DTM_C) HandleProc(hs *routing.HTTPSession) routing.HResult {
 	return routing.HRES_RETURN
 }
 
+//notify process to server
+func (d *DTM_C) NotifyProc(tid string, rate float64) error {
+	_, err := d.Writev2([]byte{CMD_M_PROC}, util.Map{
+		"tid":  tid,
+		"rate": rate,
+	})
+	return err
+}
+
+//add task by id and runner
 func (d *DTM_C) add_task(tid string, runner *exec.Cmd) chan string {
 	d.tasks_l.Lock()
 	d.Tasks[tid] = runner
@@ -399,6 +469,7 @@ func (d *DTM_C) add_task(tid string, runner *exec.Cmd) chan string {
 	return c
 }
 
+//delete task by id
 func (d *DTM_C) del_task(tid string) {
 	d.tasks_l.Lock()
 	delete(d.Tasks, tid)
@@ -408,6 +479,7 @@ func (d *DTM_C) del_task(tid string) {
 	d.tasks_l.Unlock()
 }
 
+//run command by id and commmand string
 func (d *DTM_C) run_cmd(tid, cmds string) error {
 	log.I("DTM_C run_cmd running command(%v) by tid(%v)", cmds, tid)
 	cfg := util.NewFcfg4(d.Cfg)
