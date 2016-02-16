@@ -101,6 +101,19 @@ func (f *Fcfg) IntValV(key string, d int) int {
 	}
 	return val
 }
+func (f *Fcfg) Int64Val(key string) int64 {
+	return f.Int64ValV(key, 0)
+}
+func (f *Fcfg) Int64ValV(key string, d int64) int64 {
+	if !f.Exist(key) {
+		return d
+	}
+	val, err := IntValV(f.Val(key))
+	if err != nil {
+		return d
+	}
+	return val
+}
 
 //get the float value by key.
 func (f *Fcfg) FloatVal(key string) float64 {
@@ -382,6 +395,12 @@ func (f *Fcfg) Merge(t *Fcfg) {
 	}
 	for k, v := range t.Map {
 		f.Map[k] = v
+	}
+}
+
+func (f *Fcfg) Merge2(sec string, t *Fcfg) {
+	for k, v := range t.Map {
+		f.Map[sec+"/"+k] = v
 	}
 }
 
