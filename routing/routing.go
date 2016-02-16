@@ -847,3 +847,42 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hooks.Call(HK_ROUTING, HK_H_END, nil, hs, mrv, res)
 	}
 }
+
+func (s *SessionMux) Print() {
+	if len(s.Filters) > 0 {
+		fmt.Println(" >Filters---->")
+		for reg, h := range s.Filters {
+			fmt.Printf("\t%v->%p\n", reg.String(), h)
+		}
+	}
+	if len(s.FilterFunc) > 0 {
+		fmt.Println(" >FilterFunc---->")
+		for reg, h := range s.FilterFunc {
+			fmt.Printf("\t%v->%p\n", reg.String(), h)
+		}
+	}
+	if len(s.Handlers) > 0 {
+		fmt.Println(" >Handlers---->")
+		for reg, h := range s.Handlers {
+			fmt.Printf("\t%v->%p\n", reg.String(), h)
+		}
+	}
+	if len(s.HandlerFunc) > 0 {
+		fmt.Println(" >HandlerFunc---->")
+		for reg, h := range s.HandlerFunc {
+			fmt.Printf("\t%v->%p\n", reg.String(), h)
+		}
+	}
+	if len(s.NHandlers) > 0 {
+		fmt.Println(" >NHandlers---->")
+		for reg, h := range s.NHandlers {
+			fmt.Printf("\t%v->%p\n", reg.String(), h)
+		}
+	}
+	if len(s.NHandlerFunc) > 0 {
+		fmt.Println(" >NHandlerFunc---->")
+		for reg, h := range s.NHandlerFunc {
+			fmt.Printf("\t%v->%p\n", reg.String(), h)
+		}
+	}
+}
