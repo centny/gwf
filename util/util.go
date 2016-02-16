@@ -172,7 +172,7 @@ func AryExist(ary interface{}, obj interface{}) bool {
 // var C_SH string = "/bin/bash"
 
 func Exec(args ...string) (string, error) {
-	return Exec2(strings.Join(args, ","))
+	return Exec2(strings.Join(args, " "))
 }
 func Exec2(cmds string) (string, error) {
 	var bys []byte
