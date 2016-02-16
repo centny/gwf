@@ -1,5 +1,9 @@
 package routing
 
+import (
+	"net/http"
+)
+
 var Shared = NewSessionMux2("")
 
 func HFilter(pattern string, h Handler) {
@@ -13,4 +17,8 @@ func H(pattern string, h Handler) {
 }
 func HFunc(pattern string, h HandleFunc) {
 	Shared.HFunc(pattern, h)
+}
+
+func ListenAndServe(addr string) error {
+	return http.ListenAndServe(addr, Shared)
 }
