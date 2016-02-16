@@ -477,6 +477,11 @@ func (h *HTTPSession) MsgResErr2(code int, key string, err error) HResult {
 	return h.JRes(http_res(code, nil, h.LocalVal(key), err.Error()))
 }
 
+func (h *HTTPSession) Printf(format string, args ...interface{}) HResult {
+	fmt.Fprintf(h.W, format, args...)
+	return HRES_RETURN
+}
+
 /* International */
 func (h *HTTPSession) SetLocal(local string) {
 	if h.INT != nil {
