@@ -113,6 +113,13 @@ func TestWebts(t *testing.T) {
 		return
 	}
 	//
+	ts.G("/echo?a=1&b=2")
+	var args = url.Values{}
+	args.Add("a", "1")
+	args.Add("b", "2")
+	ts.PostFormV("/echo", nil, args)
+	ts.PostN("/echo", "text/plain", bytes.NewBufferString("xxx"))
+	//
 	//
 	options := cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,

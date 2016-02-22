@@ -17,5 +17,6 @@ func Hand(pre string, mux *routing.SessionMux) {
 	mux.HFunc("^/body(\\?.*)?$", Body)
 	mux.HFunc("^/req_ctype(\\?.*)?$", ReqCType)
 	mux.HFunc("^/res_ctype(\\?.*)?$", ResCType)
+	mux.HFunc("^/echo(\\?.*)?$", Echo)
 	mux.Handler("^.*$", http.FileServer(http.Dir(WWW)))
 }

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
 	"io"
+	"io/ioutil"
 	"strings"
 )
 
@@ -87,4 +89,29 @@ func ResCType(hs *routing.HTTPSession) routing.HResult {
 		args.SetVal(key, hs.RVal(key))
 	}
 	return hs.JRes(args)
+}
+
+func Echo(hs *routing.HTTPSession) routing.HResult {
+	hs.R.ParseForm()
+	fmt.Println(">Headers>>")
+	for key, _ := range hs.R.Header {
+		fmt.Println(key, ":", hs.R.Header.Get(key))
+	}
+	fmt.Println("\n")
+	fmt.Println(">Get>>")
+	for key, _ := range hs.R.Form {
+		fmt.Println("  ", key, ":", hs.R.FormValue(key))
+	}
+	fmt.Println("\n")
+	fmt.Println(">Post>>")
+	for key, _ := range hs.R.PostForm {
+		fmt.Println("  ", key, ":", hs.R.PostFormValue(key))
+	}
+	fmt.Println("\n")
+	fmt.Println(">Body>>")
+	bys, _ := ioutil.ReadAll(hs.R.Body)
+	fmt.Println(string(bys))
+	fmt.Println("\n")
+	fmt.Fprintf(hs.W, "OK")
+	return routing.HRES_RETURN
 }
