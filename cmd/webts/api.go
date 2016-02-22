@@ -111,7 +111,7 @@ func Echo(hs *routing.HTTPSession) routing.HResult {
 	fmt.Println(">Body>>")
 	bys, _ := ioutil.ReadAll(hs.R.Body)
 	fmt.Println(string(bys))
-	fmt.Println("\n\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n")
 	fmt.Fprintf(hs.W, "OK")
 	return routing.HRES_RETURN
 }
