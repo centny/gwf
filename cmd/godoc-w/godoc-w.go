@@ -19,6 +19,7 @@ func main() {
 	var inc string = ""
 	var exc string = ""
 	var addr string = ""
+	var www string = "."
 	var prefix string = ""
 	var delay int64 = 100000
 	var out string = ""
@@ -30,7 +31,8 @@ func main() {
 		prefix,O|S,L:0;
 		delay,O|I,R:0;
 		out,O|S,L:0;
-		`, &inc, &exc, &addr, &prefix, &delay, &out)
+		www,O|S,L:0;
+		`, &inc, &exc, &addr, &prefix, &delay, &out, &www)
 	if err != nil {
 		fmt.Println(err.Error())
 		usage()
@@ -54,8 +56,9 @@ func main() {
 	if len(addr) > 0 {
 		go pars.LoopParse(wd, inc_, exc_, time.Duration(delay))
 		mux := routing.NewSessionMux2("")
-		mux.H("^.*$", pars)
-		http.ListenAndServe(addr, mux)
+		mux.H("^/doc(\\?.*)?$", pars)
+		mux.Handler("^.*$", http.FileServer(http.Dir(www)))
+		fmt.Println(http.ListenAndServe(addr, mux))
 	} else if len(out) > 0 {
 		err := pars.ParseDir(wd, inc_, exc_)
 		if err != nil {
