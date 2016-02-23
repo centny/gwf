@@ -6,11 +6,13 @@ import (
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
 	"gopkg.in/mgo.v2/bson"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -25,32 +27,41 @@ var NOT_MATCHED = util.Err("not matched command")
 
 //sub process
 type Proc struct {
-	Cid    string  `bson:"cid",json:"cid"`       //runner id
-	Tid    string  `bson:"tid",json:"tid"`       //task id
-	Cmds   string  `bson:"cmds",json:"cmds"`     //commands
-	Done   float32 `bson:"done",json:"done"`     //the complete rate
-	Msg    string  `bson:"msg",json:"msg"`       //the task exit message
-	Time   int64   `bson:"time",json:"time"`     //last update time
-	Status string  `bson:"status",json:"status"` //the task status
+	Cid    string  `bson:"cid" json:"cid"`       //runner id
+	Tid    string  `bson:"tid" json:"tid"`       //task id
+	Cmds   string  `bson:"cmds" json:"cmds"`     //commands
+	Done   float32 `bson:"done" json:"done"`     //the complete rate
+	Msg    string  `bson:"msg" json:"msg"`       //the task exit message
+	Time   int64   `bson:"time" json:"time"`     //last update time
+	Status string  `bson:"status" json:"status"` //the task status
 }
 
 //task
 type Task struct {
-	Id   string           `bson:"_id",json:"id"`    //the id.
-	Args []interface{}    `bson:"args",json:"args"` //source file
-	Sid  string           `bson:"sid",json:"sid"`   //the server id.
-	Proc map[string]*Proc `bson:"proc",json:"proc"` //the proc status
-	Info util.Map         `bson:"info",json:"info"` //the task exit message
+	Id   string           `bson:"_id" json:"id"`    //the id.
+	Args []interface{}    `bson:"args" json:"args"` //source file
+	Sid  string           `bson:"sid" json:"sid"`   //the server id.
+	Proc map[string]*Proc `bson:"proc" json:"proc"` //the proc status
+	Info interface{}      `bson:"info" json:"info"` //the task exit message
 }
 
 //check if task is done
 func (t *Task) IsDone() bool {
 	for _, proc := range t.Proc {
-		if proc.Status == TKS_PENDING || proc.Status == TKS_RUNNING {
+		if proc.Status == TKS_PENDING || proc.Status == TKS_RUNNING || proc.Status == TKS_COV_ERR {
 			return false
 		}
 	}
 	return true
+}
+
+func (t *Task) IsRunning() bool {
+	for _, proc := range t.Proc {
+		if proc.Status == TKS_RUNNING {
+			return true
+		}
+	}
+	return false
 }
 
 //command define
@@ -75,7 +86,11 @@ func (c *Cmd) Match(args ...interface{}) bool {
 
 //parse command by arguments.
 func (c *Cmd) ParseCmd(args ...interface{}) string {
-	return fmt.Sprintf(c.Cmds, args...)
+	var cfg = util.NewFcfg3()
+	for idx, arg := range args {
+		cfg.SetVal(fmt.Sprintf("v%v", idx), fmt.Sprintf("%v", arg))
+	}
+	return cfg.EnvReplaceV(c.Cmds, false)
 }
 
 //parse command from configure
@@ -110,6 +125,65 @@ func ParseCmds(cfg *util.Fcfg, cmds []string) ([]*Cmd, error) {
 	return cmds_, nil
 }
 
+type Client struct {
+	Name  string
+	Regs  []*regexp.Regexp
+	Max   int
+	Token map[string]int
+}
+
+func (c *Client) Match(args ...interface{}) bool {
+	if len(args) < 1 {
+		return false
+	}
+	for _, reg := range c.Regs {
+		if reg.MatchString(fmt.Sprintf("%v", args[0])) {
+			return true
+		}
+	}
+	return false
+}
+
+//parse command from configure
+func ParseClients(cfg *util.Fcfg, clients []string) (map[string]*Client, error) {
+	var clients_ = map[string]*Client{}
+	for _, client := range clients {
+		var regs_s = cfg.Val(client + "/regs")
+		if len(regs_s) < 1 {
+			return nil, util.Err("%v/regs is empty on client(%v)", client, client)
+		}
+		var regs = strings.Split(regs_s, "&")
+		var regs_ []*regexp.Regexp
+		for _, reg := range regs {
+			var reg_, err = regexp.Compile(reg)
+			if err == nil {
+				regs_ = append(regs_, reg_)
+				continue
+			} else {
+				return nil, err
+			}
+		}
+		var token_s = cfg.Val(client + "/token")
+		if len(token_s) < 1 {
+			return nil, util.Err("%v/tokens is empty on client(%v)", client, client)
+		}
+		var token_m = map[string]int{}
+		for idx, token := range strings.Split(token_s, ",") {
+			token_m[token] = idx + 1
+		}
+		if _, ok := clients_[client]; ok {
+			return nil, util.Err("client by name(%v) is repeat", client)
+		}
+		clients_[client] = &Client{
+			Name:  client,
+			Regs:  regs_,
+			Token: token_m,
+			Max:   cfg.IntValV(client+"/max", 8),
+		}
+	}
+	return clients_, nil
+}
+
 //the database handler
 type DbH interface {
 	//add task to db
@@ -118,6 +192,8 @@ type DbH interface {
 	Update(t *Task) error
 	//delete task to db
 	Del(t *Task) error
+	//list task from db
+	List() ([]*Task, error)
 }
 
 //the database creator func
@@ -147,6 +223,27 @@ func (m *MemH) Del(t *Task) error {
 	delete(m.Data, t.Id)
 	return nil
 }
+func (m *MemH) List() ([]*Task, error) {
+	var ts []*Task
+	for _, task := range m.Data {
+		ts = append(ts, task)
+	}
+	return ts, nil
+}
+
+type DoNoneH struct {
+}
+
+func NewDoNoneH() *DoNoneH {
+	return &DoNoneH{}
+}
+func (d *DoNoneH) OnStart(dtcm *DTCM_S, task *Task) {
+	log.D("DoNoneH task(%v) is started", task.Id)
+}
+func (d *DoNoneH) OnDone(dtcm *DTCM_S, task *Task) error {
+	log.D("DoNoneH task(%v) is done", task.Id)
+	return nil
+}
 
 //the DTCM handler
 type DTCM_S_H interface {
@@ -160,15 +257,21 @@ type DTCM_S_H interface {
 type DTCM_S struct {
 	*DTM_S
 	*DTM_S_Proc
-	H    DTCM_S_H   //the handler
-	Db   DbH        //the database handler
-	Sid  string     //the server id
-	Cmds []*Cmd     //command list
-	Cfg  *util.Fcfg //the configure
+	H       DTCM_S_H           //the handler
+	Db      DbH                //the database handler
+	Sid     string             //the server id
+	Cmds    []*Cmd             //command list
+	Clients map[string]*Client //client list
+	Cfg     *util.Fcfg         //the configure
+	T2C     map[string]*Client //mapping token to clients
 	//
 	task_l   sync.RWMutex      //task lock
+	tasks    map[string]*Task  //mapping Task.Id to Task
 	tid2task map[string]*Task  //mapping task id on runner to Task.Id
 	tid2proc map[string]string //mapping task id on runner to Task.Proc
+	//
+	running bool
+	run_c   chan int
 }
 
 //new DTCM_S by configure, it will be used by DTM_C as client.
@@ -205,15 +308,31 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 	if err != nil {
 		return nil, err
 	}
+	//
 	var cmds = cfg.Val("cmds")
 	if len(cmds) < 1 {
 		return nil, util.Err("loc/cmds is empty")
 	}
 	var cmds_ []*Cmd
-	cmds_, err = ParseCmds(cfg, strings.Split(cmds, ","))
+	var cmds_s = strings.Split(cmds, ",")
+	log.D("DTCM_S parsing cmds by names(%v)", cmds_s)
+	cmds_, err = ParseCmds(cfg, cmds_s)
 	if err != nil {
 		return nil, err
 	}
+	//
+	var clients = cfg.Val("clients")
+	if len(clients) < 1 {
+		return nil, util.Err("loc/clients is empty")
+	}
+	var clients_ map[string]*Client
+	var clients_s = strings.Split(clients, ",")
+	log.D("DTCM_S parsing clients by names(%v)", clients_s)
+	clients_, err = ParseClients(cfg, clients_s)
+	if err != nil {
+		return nil, err
+	}
+	//
 	var sid, addr string = cfg.Val("sid"), cfg.Val("addr")
 	var sh = NewDTM_S_Proc()
 	var dtcm = &DTCM_S{
@@ -222,18 +341,27 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 		Db:         dbh,
 		Sid:        sid,
 		Cmds:       cmds_,
+		Clients:    clients_,
 		Cfg:        cfg,
+		T2C:        map[string]*Client{},
 		task_l:     sync.RWMutex{},
+		tasks:      map[string]*Task{},
 		tid2task:   map[string]*Task{},
 		tid2proc:   map[string]string{},
+		run_c:      make(chan int, 1),
 	}
 	var dtm = NewDTM_S(bp, addr, dtcm, rcm, v2b, b2v, na)
 	dtcm.DTM_S = dtm
-	var tokens = cfg.Val("tokens")
-	if len(tokens) > 0 {
-		dtcm.AddToken2(strings.Split(tokens, ","))
+	for _, client := range clients_ {
+		for token, v := range client.Token {
+			if oc, ok := dtcm.T2C[token]; ok {
+				return nil, util.Err("token(%v) is repeat on clinet(%v,%v)", token, oc.Name, client.Name)
+			}
+			dtcm.AddToken3(token, v)
+			dtcm.T2C[token] = client
+		}
 	}
-	log.D("create DTCM_S by cmds(%v),tokens(%v), parsing %v commands", cmds, tokens, len(cmds_))
+	log.D("create DTCM_S by cmds(%v),clients(%v), parsing %v commands", cmds, clients, len(cmds_))
 	return dtcm, nil
 }
 
@@ -243,8 +371,7 @@ func NewDTCM_S_j(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H) (*DTCM
 	return NewDTCM_S(bp, cfg, dbc, h, rcm, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
 }
 
-//add task by info and arguments
-func (d *DTCM_S) AddTask(info util.Map, args ...interface{}) error {
+func (d *DTCM_S) NewTask(info interface{}, args ...interface{}) *Task {
 	var task = &Task{
 		Id:   bson.NewObjectId().Hex(),
 		Args: args,
@@ -262,6 +389,12 @@ func (d *DTCM_S) AddTask(info util.Map, args ...interface{}) error {
 			Status: TKS_PENDING,
 		}
 	}
+	return task
+}
+
+//add task by info and arguments
+func (d *DTCM_S) AddTask(info interface{}, args ...interface{}) error {
+	var task = d.NewTask(info, args...)
 	if len(task.Proc) < 1 {
 		return NOT_MATCHED
 	}
@@ -272,14 +405,14 @@ func (d *DTCM_S) AddTask(info util.Map, args ...interface{}) error {
 	}
 	var current, max, res = d.do_task(task)
 	if res == 0 {
-		log.D("DTCM_S add task success by %v matched, task(%v) will be running, current(%v)/max(%v)",
-			len(task.Proc), task.Id, current, max)
+		log.D("DTCM_S add task success by %v matched, task(%v) will be running, current(%v)/max(%v)/clients(%v)",
+			len(task.Proc), task.Id, current, max, len(d.TaskC))
 	} else if res == 1 {
-		log.D("DTCM_S add task success by %v matched, but runner is busy now on current(%v)/max(%v), task(%v) will be pending",
-			len(task.Proc), current, max, task.Id)
+		log.D("DTCM_S add task success by %v matched, but runner is busy now on current(%v)/max(%v)/clients(%v), task(%v) will be pending",
+			len(task.Proc), current, max, len(d.TaskC), task.Id)
 	} else {
-		log.W("DTCM_S add task having error(code:%v) by %v matched, running status is current(%v)/max(%v), task(%v) will be pending",
-			res, len(task.Proc), current, max, task.Id)
+		log.W("DTCM_S add task having error(code:%v) by %v matched, running status is current(%v)/max(%v)/clients(%v), task(%v) will be pending",
+			res, len(task.Proc), current, max, len(d.TaskC), task.Id)
 	}
 	return nil
 }
@@ -287,44 +420,80 @@ func (d *DTCM_S) AddTask(info util.Map, args ...interface{}) error {
 //do task, it will check running
 func (d *DTCM_S) do_task(t *Task) (int, int, int) {
 	d.task_l.Lock()
+	defer d.task_l.Unlock()
+	return d.do_task_(t)
+}
+func (d *DTCM_S) do_task_(t *Task) (int, int, int) {
 	var max = d.Cfg.IntValV("max", 100)
 	var current = d.DTM_S_Proc.Total()
 	if max < current+len(t.Proc) {
-		d.task_l.Unlock()
 		return current, max, 1
 	}
 	d.start_task(t)
 	var err = d.Db.Update(t)
 	if err == nil {
 		d.H.OnStart(d, t)
-		d.task_l.Unlock()
 		return current, max, 0
 	} else {
 		log.E("DTCM_S update task(%v) error->%v", t.Id, err)
-		d.task_l.Unlock()
-		d.stop_task(t)
+		go d.stop_task(t)
 		return current, max, 2
 	}
+}
+
+func (d *DTCM_S) min_used_cid(t *Task, proc *Proc) string {
+	var tcid string = ""
+	var min int = 999
+	for cid, tc := range d.TaskC {
+		var token = d.MsgC(cid).Kvs().StrVal("token")
+		var client = d.T2C[token]
+		if !client.Match(t.Args...) {
+			continue
+		}
+		if tc >= client.Max {
+			continue
+		}
+		if tc < min {
+			tcid = cid
+			min = tc
+		}
+	}
+	return tcid
 }
 
 //start task
 func (d *DTCM_S) start_task(t *Task) {
 	var err error
+	var running bool = false
 	for cmd, proc := range t.Proc {
-		proc.Cid, proc.Tid, err = d.StartTask3(proc.Cmds)
+		if proc.Status == TKS_DONE {
+			continue
+		}
+		proc.Cid = d.min_used_cid(t, proc)
+		if len(proc.Cid) < 1 {
+			proc.Status = TKS_PENDING
+			proc.Cid = ""
+			log.D("DTCM_S check min used cid is not found, process will be pending")
+			continue
+		}
+		proc.Tid, err = d.StartTask4(proc.Cid, proc.Cmds)
 		if err == nil {
 			d.tid2task[proc.Tid] = t
 			d.tid2proc[proc.Tid] = cmd
 			proc.Msg = ""
 			proc.Status = TKS_RUNNING
-			log.D("DTCM_S start task success on cid(%v),tid(%v) by cmds(%v)", proc.Cid, proc.Tid, proc.Cmds)
+			log.D("DTCM_S start runner(%v/%v) success on task(%v) by cmds(\n\t%v\n)", proc.Tid, proc.Cid, t.Id, proc.Cmds)
+			running = true
 		} else {
 			proc.Cid = ""
 			proc.Tid = ""
 			proc.Msg = fmt.Sprintf("start task error->%v", err)
 			proc.Status = TKS_COV_ERR
-			log.E("DTCM_S start task error->%v", err)
+			log.E("DTCM_S start task error by %v->%v", proc.Cmds, err)
 		}
+	}
+	if running {
+		d.tasks[t.Id] = t
 	}
 }
 
@@ -344,6 +513,7 @@ func (d *DTCM_S) stop_task(t *Task) {
 		delete(d.tid2task, proc.Tid)
 		delete(d.tid2proc, proc.Tid)
 	}
+	delete(d.tasks, t.Id)
 	log.D("DTCM_S stop task(%v)", t.Id)
 }
 
@@ -384,7 +554,7 @@ func (d *DTCM_S) mark_done(cid, tid, msg, status string) {
 		log.E("DTCM_S stop task error(not found) by tid(%v)", tid)
 		return
 	}
-	log.D("DTCM_S runner(%v/%v) is stopped on task(%v)", tid, cid, task.Id)
+	log.D("DTCM_S runner(%v/%v) is done on task(%v)", tid, cid, task.Id)
 	var proc = task.Proc[d.tid2proc[tid]]
 	proc.Cid = ""
 	proc.Tid = ""
@@ -396,16 +566,29 @@ func (d *DTCM_S) mark_done(cid, tid, msg, status string) {
 	var rerr = d.Db.Update(task)
 	if rerr == nil {
 		d.check_done(task)
-	} else {
-		log.E("DTCM_S update task error by %v ->%v", util.S2Json(task), rerr)
+		return
+	}
+	log.E("DTCM_S update task error by %v ->%v", util.S2Json(task), rerr)
+	if !task.IsRunning() {
+		delete(d.tasks, task.Id)
+		log.W("DTCM_S remove running task(%v) for update task error(%v), it will move to pending pool", util.S2Json(task), rerr)
 	}
 }
 
 //check done
 func (d *DTCM_S) check_done(task *Task) {
+	if task.IsRunning() {
+		return
+	}
+	delete(d.tasks, task.Id)
 	if !task.IsDone() {
 		return
 	}
+	d.do_done(task)
+}
+
+//do done
+func (d *DTCM_S) do_done(task *Task) {
 	var err = d.H.OnDone(d, task)
 	if err != nil {
 		log.E("DTCM_S on done error by %v ->%v", util.S2Json(task), err)
@@ -415,4 +598,65 @@ func (d *DTCM_S) check_done(task *Task) {
 	if err != nil {
 		log.E("DTCM_S delete task error by %v ->%v", util.S2Json(task), err)
 	}
+}
+
+//start checker
+func (d *DTCM_S) StartChecker(delay int64) {
+	go d.loop_checker(delay)
+}
+
+//stop checker
+func (d *DTCM_S) StopChecker() {
+	d.running = false
+	<-d.run_c
+}
+
+//loop checker
+func (d *DTCM_S) loop_checker(delay int64) {
+	d.running = true
+	for d.running {
+		d.do_checker()
+		var tdelay = delay
+		for tdelay > 0 {
+			time.Sleep(200 * time.Millisecond)
+			tdelay -= 200
+		}
+	}
+	d.run_c <- 0
+}
+
+//do checker
+func (d *DTCM_S) do_checker() {
+	d.task_l.Lock()
+	defer d.task_l.Unlock()
+	ts, err := d.Db.List()
+	if err != nil {
+		log.E("DTCM_S do check error->%v", err)
+		return
+	}
+	if len(ts) < 1 {
+		log.D("DTCM_S do check succes and task is empty")
+		return
+	}
+	log.D("DTCM_S do check succes and %v task found", len(ts))
+	for _, task := range ts {
+		if _, ok := d.tasks[task.Id]; ok {
+			continue
+		}
+		if task.IsDone() {
+			d.do_done(task)
+		} else {
+			d.start_task(task)
+		}
+	}
+}
+
+func (d *DTCM_S) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
+	var ts, err = d.Db.List()
+	return hs.JRes(util.Map{
+		"proc":    d.DTM_S_Proc,
+		"tasks":   ts,
+		"running": d.tasks,
+		"err":     err,
+	})
 }

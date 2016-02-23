@@ -17,6 +17,8 @@ import (
 	"github.com/Centny/gwf/util"
 	"net/http"
 	"os/exec"
+	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -38,17 +40,14 @@ type DTM_S_H interface {
 	//done event
 	OnDone(d *DTM_S, cid, tid string, code int, err string, used int64)
 	//check and return minial used client id
-	MinUsedCid() string
+	MinUsedCid(d *DTM_S, args ...interface{}) string
 }
 
 //the default DTM process handler
 type DTM_S_Proc struct {
-	//process rate
-	Rates map[string]map[string]float64
-	//all client count
-	AllC int
-	//client count by id
-	TaskC map[string]int
+	Rates map[string]map[string]float64 `json:"rates"`  //process rate
+	AllC  int                           `json:"all_c"`  //all client count
+	TaskC map[string]int                `json:"task_c"` //client count by id
 	//
 	proc_l sync.RWMutex
 	cid    int64
@@ -113,7 +112,7 @@ func (d *DTM_S_Proc) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 }
 
 //minial used client id
-func (d *DTM_S_Proc) MinUsedCid() string {
+func (d *DTM_S_Proc) MinUsedCid(dtm *DTM_S, args ...interface{}) string {
 	var tcid string = ""
 	var min int = 999
 	for cid, tc := range d.TaskC {
@@ -128,6 +127,12 @@ func (d *DTM_S_Proc) MinUsedCid() string {
 //total count
 func (d *DTM_S_Proc) Total() int {
 	return d.AllC
+}
+
+//process status
+func (d *DTM_S_Proc) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
+	hs.JsonRes(d)
+	return routing.HRES_RETURN
 }
 
 //the distributed task manager server impl
@@ -170,7 +175,7 @@ func (d *DTM_S) OnProc(c netw.Cmd) int {
 	var rate float64
 	err = args.ValidF(`
 		tid,R|S,L:0;
-		rate,R|F,R:0;
+		rate,R|F,R:-0.99;
 		`, &tid, &rate)
 	if err != nil {
 		log.E("DTM_S OnProc receive bad arguments detail(%v)", err)
@@ -236,13 +241,13 @@ func (d *DTM_S) StartTask(cid, tid, cmds string) error {
 		return nil
 	} else {
 		return util.Err("DTM_S StartTask executing by tid(%v),cmds(%v) on client(%v)  error(%v)->%v",
-			tid, cmds, cid, res.IntVal("code"), err)
+			tid, cmds, cid, res.IntVal("code"), res.StrVal("err"))
 	}
 }
 
 //start task by special task id and commands
-func (d *DTM_S) StartTask2(tid, cmds string) (string, error) {
-	cid := d.H.MinUsedCid()
+func (d *DTM_S) StartTask2(tid, cmds string, args ...interface{}) (string, error) {
+	cid := d.H.MinUsedCid(d, args...)
 	if len(cid) < 1 {
 		return "", util.Err("DTM_S StartTask2 by cmds(%v) error->not logined client found by calling MinUsedCid", cmds)
 	}
@@ -252,10 +257,15 @@ func (d *DTM_S) StartTask2(tid, cmds string) (string, error) {
 //start task by command, it will select the client which the number of task is minimal to run the task.
 //return the client id to run task and task id
 //return error when start task fail.
-func (d *DTM_S) StartTask3(cmds string) (cid string, tid string, err error) {
+func (d *DTM_S) StartTask3(cmds string, args ...interface{}) (cid string, tid string, err error) {
 	tid = fmt.Sprintf("T-%v", atomic.AddInt64(&d.sequence, 1))
-	cid, err = d.StartTask2(tid, cmds)
+	cid, err = d.StartTask2(tid, cmds, args...)
 	return
+}
+
+func (d *DTM_S) StartTask4(cid, cmds string) (string, error) {
+	var tid = fmt.Sprintf("T-%v", atomic.AddInt64(&d.sequence, 1))
+	return tid, d.StartTask(cid, tid, cmds)
 }
 
 //stop task by client id and task id.
@@ -275,7 +285,7 @@ func (d *DTM_S) StopTask(cid, tid string) error {
 		d.H.OnStop(d, cid, tid)
 		return nil
 	} else {
-		return util.Err("DTM_S StopTask executing by tid(%v) error(%v)->%v", tid, res.IntVal("code"), err)
+		return util.Err("DTM_S StopTask executing by tid(%v) error(%v)->%v", tid, res.IntVal("code"), res.StrVal("err"))
 	}
 }
 
@@ -437,7 +447,7 @@ func (d *DTM_C) HandleProc(hs *routing.HTTPSession) routing.HResult {
 	var rate float64
 	err := hs.ValidCheckVal(`
 		tid,R|S,L:0;
-		`+d.Cfg.Val2("PROC_KEY", "process")+`,R|F,R:0;`, &tid, &rate)
+		`+d.Cfg.Val2("PROC_KEY", "process")+`,R|F,R:-0.001;`, &tid, &rate)
 	if err != nil {
 		hs.W.Write([]byte(fmt.Sprintf("DTM_C HandleProc receive bad arguments->%v", err.Error())))
 		return routing.HRES_RETURN
@@ -481,33 +491,42 @@ func (d *DTM_C) del_task(tid string) {
 
 //run command by id and commmand string
 func (d *DTM_C) run_cmd(tid, cmds string) error {
-	log.I("DTM_C run_cmd running command(%v) by tid(%v)", cmds, tid)
+	log.I("DTM_C run_cmd running command(\n\t%v\n) by tid(%v)", cmds, tid)
 	cfg := util.NewFcfg4(d.Cfg)
 	cfg.SetVal("PROC_TID", tid)
 	// cfg.SetVal("PROC_PORT", fmt.Sprintf("%v", d.ProcPort))
 	// cfg.SetVal("PROC_KEY", d.ProcKey)
 	cmds = cfg.EnvReplaceV(cmds, false)
-	cmds_ := util.ParseArgs(cmds)
+	log.D("DTM_C calling command(\n\t%v\n)", cmds)
 	beg := util.Now()
-	runner := exec.Command(cmds_[0], cmds_[1:]...)
+	var runner *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		runner = exec.Command("cmd", "/C", cmds)
+	default:
+		runner = exec.Command("bash", "-c", cmds)
+	}
 	runner.Dir = cfg.Val2("PROC_WS", ".")
 	buf := &bytes.Buffer{}
 	runner.Stdout = buf
 	runner.Stderr = buf
 	err := runner.Start()
 	if err != nil {
-		return util.Err("DTM_C run_cmd start error->%v", err)
+		err = util.Err("DTM_C run_cmd start error->%v", err)
+		log.E("%v", err)
+		return err
 	}
 	task_c := d.add_task(tid, runner)
 	go func() {
 		args := util.Map{"tid": tid}
 		err = runner.Wait()
 		used := util.Now() - beg
+		res := buf.String()
 		if err == nil {
-			log.D("DTM_C run_cmd by running command(%v) success,used(%vms)->\n%v", cmds, used, buf.String())
-			args["code"] = 0
+			log.D("DTM_C run_cmd by running command(\n\t%v\n) success,used(%vms)->\n%v", cmds, used, res)
+			args["code"] = d.cmd_do_res(args, cmds, res)
 		} else {
-			log.E("DTM_C run_cmd by running command(%v) error(%v)->\n%v", cmds, err, buf.String())
+			log.E("DTM_C run_cmd by running command(\n\t%v\n) error(%v)->\n%v", cmds, err, res)
 			args["code"] = -1
 			args["err"] = err.Error()
 		}
@@ -517,4 +536,27 @@ func (d *DTM_C) run_cmd(tid, cmds string) error {
 		d.del_task(tid)
 	}()
 	return nil
+}
+
+func (d *DTM_C) cmd_do_res(args util.Map, cmds, res string) int {
+	var res_a = strings.SplitN(res, "----------------result----------------", 2)
+	if len(res_a) < 2 {
+		return 0
+	}
+	var mres = util.ParseSectionF("[", "]", res_a[1])
+	var jval = mres.StrVal("json")
+	if len(jval) < 1 {
+		args["res"] = mres
+		return 0
+	}
+	var jval_m, err = util.Json2Map(jval)
+	if err == nil {
+		args["res"] = jval_m
+		return 0
+	} else {
+		log.E("DTM_C parse json result on command(\n\t%v\n) by data(%v) error->%v", cmds, jval, err)
+		args["res"] = res
+		args["err"] = err.Error()
+		return -2
+	}
 }

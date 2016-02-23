@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/routing/httptest"
 	"github.com/Centny/gwf/util"
 	"runtime"
 	"testing"
@@ -32,7 +33,9 @@ func TestDtmBase(t *testing.T) {
 	}
 
 	//test client connected case
-	dtmc := NewDTM_C_j(bp, "127.0.0.1:23244")
+	var dtmc *DTM_C
+
+	dtmc = NewDTM_C_j(bp, "127.0.0.1:23244")
 	dtmc.RunProcH() //not configure
 	dtmc.Cfg.SetVal("PROC_ADDR", ":23245")
 	dtmc.Start()
@@ -43,7 +46,7 @@ func TestDtmBase(t *testing.T) {
 		t.Error("clinet not found")
 		return
 	}
-	cid := dtmh.MinUsedCid()
+	cid := dtmh.MinUsedCid(dtms)
 	if len(cid) < 1 {
 		t.Error("error")
 		return
@@ -77,7 +80,54 @@ func TestDtmBase(t *testing.T) {
 	go do_c(false)
 	do_c(true)
 	//
-	dtms.StartTask(cid, "", "")
+	var args = util.Map{}
+	if dtmc.cmd_do_res(args, "xxxx", `
+		sfs
+		fsdf
+
+		`) != 0 {
+		t.Error("error")
+		return
+	}
+	if dtmc.cmd_do_res(args, "xxxx", `
+	----------------result----------------
+
+		`) != 0 {
+		t.Error("error")
+		return
+	}
+	if dtmc.cmd_do_res(args, "xxxx", `
+	----------------result----------------
+	[json]
+	{}
+	[/json]
+		`) != 0 {
+		t.Error("error")
+		return
+	}
+	if dtmc.cmd_do_res(args, "xxxx", `
+	----------------result----------------
+	[json]
+	{xx}
+	[/json]
+		`) == 0 {
+		t.Error("error")
+		return
+	}
+	//
+	httptest.NewServer2(dtms.H.(*DTM_S_Proc)).G("?xx=1")
+	//
+	//test error
+	fmt.Println("xxxx->")
+	err = dtms.StartTask(cid, "", "")
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	fmt.Println("\n\n\n\n\n\n\n\n", err, "\n\n\n\n\n\n\n\n")
+	// if true {
+	// 	return
+	// }
 	dtms.StartTask(cid, "", "xx")
 	dtms.StopTask(cid, "")
 	dtms.StopTask(cid, "tid")
@@ -93,6 +143,7 @@ func TestDtmBase(t *testing.T) {
 	dtmc.Writev2([]byte{CMD_M_DONE}, util.Map{})
 	util.HGet("http://127.0.0.1%v/proc", dtmc.Cfg.Val("PROC_ADDR"))
 	//
+	//test stop
 	fmt.Println("--------->>-a")
 	dtms.Close()
 	time.Sleep(time.Second)
