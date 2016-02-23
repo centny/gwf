@@ -15,7 +15,6 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
-	"net/http"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -425,19 +424,14 @@ func (d *DTM_C) WaitTask(rc *impl.RCM_Cmd) (interface{}, error) {
 
 //run the process http handler
 func (d *DTM_C) RunProcH() error {
-	addr := d.Cfg.Val("PROC_ADDR")
+	addr := d.Cfg.Val("proc_addr")
 	if len(addr) < 1 {
-		log.I("DTM_C RunProcH listen address configure(PROC_ADDR) is not found, http proccess receiver will not start")
+		log.I("DTM_C RunProcH listen address configure(proc_addr) is not found, http proccess receiver will not start")
 		return nil
 	}
-	mux := routing.NewSessionMux2("")
-	mux.HFunc("^/proc(\\?.*)?$", d.HandleProc)
-	srv := &http.Server{
-		Addr:    addr,
-		Handler: mux,
-	}
-	log.I("DTM_C RunProcH listen the process handle on addr(%v)", srv.Addr)
-	return srv.ListenAndServe()
+	routing.HFunc("^/proc(\\?.*)?$", d.HandleProc)
+	log.I("DTM_C RunProcH listen the process handle on addr(%v)", addr)
+	return routing.ListenAndServe(addr)
 }
 
 //process http handler impl
@@ -447,7 +441,7 @@ func (d *DTM_C) HandleProc(hs *routing.HTTPSession) routing.HResult {
 	var rate float64
 	err := hs.ValidCheckVal(`
 		tid,R|S,L:0;
-		`+d.Cfg.Val2("PROC_KEY", "process")+`,R|F,R:-0.001;`, &tid, &rate)
+		`+d.Cfg.Val2("proc_key", "process")+`,R|F,R:-0.001;`, &tid, &rate)
 	if err != nil {
 		hs.W.Write([]byte(fmt.Sprintf("DTM_C HandleProc receive bad arguments->%v", err.Error())))
 		return routing.HRES_RETURN
@@ -493,9 +487,7 @@ func (d *DTM_C) del_task(tid string) {
 func (d *DTM_C) run_cmd(tid, cmds string) error {
 	log.I("DTM_C run_cmd running command(\n\t%v\n) by tid(%v)", cmds, tid)
 	cfg := util.NewFcfg4(d.Cfg)
-	cfg.SetVal("PROC_TID", tid)
-	// cfg.SetVal("PROC_PORT", fmt.Sprintf("%v", d.ProcPort))
-	// cfg.SetVal("PROC_KEY", d.ProcKey)
+	cfg.SetVal("proc_tid", tid)
 	cmds = cfg.EnvReplaceV(cmds, false)
 	log.D("DTM_C calling command(\n\t%v\n)", cmds)
 	beg := util.Now()
@@ -506,7 +498,7 @@ func (d *DTM_C) run_cmd(tid, cmds string) error {
 	default:
 		runner = exec.Command("bash", "-c", cmds)
 	}
-	runner.Dir = cfg.Val2("PROC_WS", ".")
+	runner.Dir = cfg.Val2("proc_ws", ".")
 	buf := &bytes.Buffer{}
 	runner.Stdout = buf
 	runner.Stderr = buf

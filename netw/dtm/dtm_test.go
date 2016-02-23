@@ -37,7 +37,7 @@ func TestDtmBase(t *testing.T) {
 
 	dtmc = NewDTM_C_j(bp, "127.0.0.1:23244")
 	dtmc.RunProcH() //not configure
-	dtmc.Cfg.SetVal("PROC_ADDR", ":23245")
+	dtmc.Cfg.SetVal("proc_addr", ":23245")
 	dtmc.Start()
 	go dtmc.RunProcH()
 	dtmc.Login_("abc")
@@ -52,7 +52,7 @@ func TestDtmBase(t *testing.T) {
 		return
 	}
 	do_c := func(wait bool) {
-		cid, tid, err := dtms.StartTask3("./dtm_test.sh 1 http://127.0.0.1${PROC_ADDR}/proc?tid=${PROC_TID}")
+		cid, tid, err := dtms.StartTask3("./dtm_test.sh 1 http://127.0.0.1${proc_addr}/proc?tid=${proc_tid}")
 		if err != nil {
 			t.Error(err.Error())
 			return
@@ -141,14 +141,14 @@ func TestDtmBase(t *testing.T) {
 	dtmc.Writev2([]byte{CMD_M_PROC}, util.Map{})
 	dtmc.Writev2([]byte{CMD_M_DONE}, "{s}")
 	dtmc.Writev2([]byte{CMD_M_DONE}, util.Map{})
-	util.HGet("http://127.0.0.1%v/proc", dtmc.Cfg.Val("PROC_ADDR"))
+	util.HGet("http://127.0.0.1%v/proc", dtmc.Cfg.Val("proc_addr"))
 	//
 	//test stop
 	fmt.Println("--------->>-a")
 	dtms.Close()
 	time.Sleep(time.Second)
 	go func() {
-		fmt.Println(util.HGet("http://127.0.0.1%v/proc?tid=%v&process=0.5", dtmc.Cfg.Val("PROC_ADDR"), "tid"))
+		fmt.Println(util.HGet("http://127.0.0.1%v/proc?tid=%v&process=0.5", dtmc.Cfg.Val("proc_addr"), "tid"))
 		fmt.Println("--------->>-a-0")
 	}()
 	time.Sleep(time.Second)
