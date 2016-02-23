@@ -515,3 +515,22 @@ RC->Used:%vms,Fail:%v
 
 		`, used, fail)
 }
+
+func TestRelogin(t *testing.T) {
+	bp := pool.NewBytePool(8, 102400)
+	rcs := NewRC_Listener_m_j(bp, ":2311", netw.NewDoNotH())
+	rcs.AddToken2([]string{"abc"})
+	err := rcs.Run()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	rl := &AutoLoginH{}
+	rcc := NewRC_Runner_m_j(bp, "127.0.0.1:2311", netw.NewCCH(rl, netw.NewDoNotH()))
+	rl.Runner = rcc
+	rl.Token = "abc"
+	rcc.Start()
+	time.Sleep(time.Second)
+	rcc.RC_Con.Close()
+	time.Sleep(time.Second)
+}

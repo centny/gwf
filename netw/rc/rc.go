@@ -138,9 +138,12 @@ func (r *RC_Cmd_h) AddToken(ts map[string]int) {
 	}
 }
 func (r *RC_Cmd_h) AddToken2(ts []string) {
-	for _, v := range ts {
-		r.Token[v] = 2
+	for idx, v := range ts {
+		r.Token[v] = idx + 1
 	}
+}
+func (r *RC_Cmd_h) AddToken3(token string, v int) {
+	r.Token[token] = v
 }
 func (r *RC_Cmd_h) TokenVal(token string) int {
 	return r.Token[token]
@@ -234,6 +237,9 @@ func (r *RC_Listener_m) AddToken(ts map[string]int) {
 func (r *RC_Listener_m) AddToken2(ts []string) {
 	r.RCH.AddToken2(ts)
 }
+func (r *RC_Listener_m) AddToken3(token string, v int) {
+	r.RCH.AddToken3(token, v)
+}
 
 //find message connection by id.
 func (r *RC_Listener_m) MsgC(cid string) netw.Con {
@@ -284,6 +290,7 @@ func (r *RC_Listener_m) Login_(rc *impl.RCM_Cmd) (interface{}, error) {
 	r.AddC_rc(tcid, rc)
 	rc.Kvs().SetVal("token", token)
 	rc.Kvs().SetVal("cid", tcid)
+	log.D("RC_Listener_m login by token(%v),old(%v) success with cid(%v)", token, otk, tcid)
 	return util.Map{"code": 0}, nil
 }
 
@@ -389,4 +396,17 @@ func (r *RC_Runner_m) Login_(token string) error {
 	} else {
 		return util.Err("login error->%v", res.StrVal("err"))
 	}
+}
+
+type AutoLoginH struct {
+	Runner *RC_Runner_m
+	Token  string
+}
+
+func (a *AutoLoginH) OnConn(c netw.Con) bool {
+	go a.Runner.Login_(a.Token)
+	return true
+}
+
+func (a *AutoLoginH) OnClose(c netw.Con) {
 }
