@@ -1,12 +1,14 @@
 package httptest
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 )
 
 type Server struct {
@@ -50,6 +52,12 @@ func (s *Server) PostN(url, ctype string, buf io.Reader, args ...interface{}) (s
 func (s *Server) PostN2(url, ctype string, buf io.Reader, args ...interface{}) (util.Map, error) {
 	_, data, err := util.HPostN2(fmt.Sprintf("%v%v", s.URL, fmt.Sprintf(url, args...)), ctype, buf)
 	return data, err
+}
+func (s *Server) PostFormV(url string, headers map[string]string, buf url.Values, args ...interface{}) (int, string, map[string]string, error) {
+	return util.HPostFormV(fmt.Sprintf("%v%v", s.URL, fmt.Sprintf(url, args...)), nil, bytes.NewBufferString(buf.Encode()))
+}
+func (s *Server) PostFormV2(url string, headers map[string]string, buf url.Values, args ...interface{}) (int, util.Map, map[string]string, error) {
+	return util.HPostFormV2(fmt.Sprintf("%v%v", s.URL, fmt.Sprintf(url, args...)), nil, bytes.NewBufferString(buf.Encode()))
 }
 
 func NewServer(f routing.HandleFunc) *Server {

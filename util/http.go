@@ -28,6 +28,38 @@ type HClient struct {
 	http.Client
 }
 
+func (h *HClient) DoGet(header map[string]string, ufmt string, args ...interface{}) (int, string, map[string]string, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf(ufmt, args...), nil)
+	if err != nil {
+		return 0, "", nil, err
+	}
+	if header != nil {
+		for k, v := range header {
+			req.Header.Set(k, v)
+		}
+	}
+	res, err := h.Do(req)
+	if err != nil {
+		return 0, "", nil, err
+	}
+	var rh = map[string]string{}
+	for k, _ := range res.Header {
+		rh[k] = res.Header.Get(k)
+	}
+	defer res.Body.Close()
+	bys, err := ioutil.ReadAll(res.Body)
+	return res.StatusCode, string(bys), rh, err
+}
+
+func (h *HClient) DoGet2(header map[string]string, ufmt string, args ...interface{}) (int, Map, map[string]string, error) {
+	var code, data, rh, err = h.DoGet(header, ufmt, args...)
+	if len(data) < 1 || err != nil {
+		return -1, nil, nil, err
+	}
+	v, err := Json2Map(data)
+	return code, v, rh, err
+}
+
 func (h *HClient) HGet(ufmt string, args ...interface{}) (string, error) {
 	_, str, err := h.HGet_H(map[string]string{}, ufmt, args...)
 	return str, err
@@ -95,19 +127,32 @@ func (h *HClient) HPostF_Hv(url string, fields map[string]string, header map[str
 	return res.StatusCode, bys, err
 }
 
-func (h *HClient) HPostN(url string, ctype string, buf io.Reader) (int, string, error) {
+func (h *HClient) HPostNv(url string, headers map[string]string, buf io.Reader) (int, string, map[string]string, error) {
 	req, err := http.NewRequest("POST", url, buf)
 	if err != nil {
-		return 0, "", err
+		return 0, "", nil, err
 	}
-	req.Header.Set("Content-Type", ctype)
+	for key, val := range headers {
+		req.Header.Set(key, val)
+	}
 	res, err := h.Do(req)
 	if err != nil {
-		return 0, "", err
+		return 0, "", nil, err
+	}
+	var rh = map[string]string{}
+	for key, _ := range res.Header {
+		rh[key] = res.Header.Get(key)
 	}
 	defer res.Body.Close()
 	str, err := readAllStr(res.Body)
-	return res.StatusCode, str, err
+	return res.StatusCode, str, rh, err
+}
+
+func (h *HClient) HPostN(url string, ctype string, buf io.Reader) (int, string, error) {
+	var code, res, _, err = h.HPostNv(url, map[string]string{
+		"Content-Type": ctype,
+	}, buf)
+	return code, res, err
 }
 
 func (h *HClient) HPostN2(url string, ctype string, buf io.Reader) (int, Map, error) {
@@ -117,6 +162,31 @@ func (h *HClient) HPostN2(url string, ctype string, buf io.Reader) (int, Map, er
 	}
 	v, err := Json2Map(data)
 	return code, v, err
+}
+
+func (h *HClient) HPostN3(url string, ctype string, buf string) (int, Map, error) {
+	return h.HPostN2(url, ctype, bytes.NewBufferString(buf))
+}
+
+func (h *HClient) HPostFormV(url string, headers map[string]string, args io.Reader) (int, string, map[string]string, error) {
+	if headers == nil {
+		headers = map[string]string{}
+	}
+	headers["Content-Type"] = "application/x-www-form-urlencoded"
+	return h.HPostNv(url, headers, args)
+}
+
+func (h *HClient) HPostFormV2(url string, headers map[string]string, args io.Reader) (int, Map, map[string]string, error) {
+	var code, data, rh, err = h.HPostFormV(url, headers, args)
+	if len(data) < 1 || err != nil {
+		return -1, nil, nil, err
+	}
+	v, err := Json2Map(data)
+	return code, v, rh, err
+}
+
+func (h *HClient) HPostFormV3(url string, headers map[string]string, args url.Values) (int, Map, map[string]string, error) {
+	return h.HPostFormV2(url, headers, bytes.NewBufferString(args.Encode()))
 }
 
 func (h *HClient) HPost2(url string, fields map[string]string) (Map, error) {
@@ -215,6 +285,19 @@ func HPost2(url string, fields map[string]string) (Map, error) {
 func HPostF2(url string, fields map[string]string, fkey string, fp string) (Map, error) {
 	return HTTPClient.HPostF2(url, fields, fkey, fp)
 }
+
+func HPostFormV(url string, headers map[string]string, args io.Reader) (int, string, map[string]string, error) {
+	return HTTPClient.HPostFormV(url, headers, args)
+}
+
+func HPostFormV2(url string, headers map[string]string, args io.Reader) (int, Map, map[string]string, error) {
+	return HTTPClient.HPostFormV2(url, headers, args)
+}
+
+func HPostFormV3(url string, headers map[string]string, args url.Values) (int, Map, map[string]string, error) {
+	return HTTPClient.HPostFormV3(url, headers, args)
+}
+
 func HTTPGet(ufmt string, args ...interface{}) string {
 	return HTTPClient.HTTPGet(ufmt, args...)
 }
