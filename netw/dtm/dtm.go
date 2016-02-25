@@ -30,6 +30,7 @@ const (
 //the DTM handler
 type DTM_S_H interface {
 	rc.RC_Login_h
+	netw.ConHandler
 	//process event
 	OnProc(d *DTM_S, cid, tid string, rate float64)
 	//start event
@@ -37,7 +38,7 @@ type DTM_S_H interface {
 	//stop event
 	OnStop(d *DTM_S, cid, tid string)
 	//done event
-	OnDone(d *DTM_S, cid, tid string, code int, err string, used int64)
+	OnDone(d *DTM_S, args util.Map, cid, tid string, code int, err string, used int64)
 	//check and return minial used client id
 	MinUsedCid(d *DTM_S, args ...interface{}) string
 }
@@ -87,7 +88,7 @@ func (d *DTM_S_Proc) OnStop(dtm *DTM_S, cid, tid string) {
 }
 
 //done event
-func (d *DTM_S_Proc) OnDone(dtm *DTM_S, cid, tid string, code int, err string, used int64) {
+func (d *DTM_S_Proc) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int, err string, used int64) {
 	d.proc_l.Lock()
 	defer d.proc_l.Unlock()
 	if tv, ok := d.Rates[cid]; ok {
@@ -108,6 +109,21 @@ func (d *DTM_S_Proc) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 	cid_ := fmt.Sprintf("N-%v", cid)
 	d.TaskC[cid_] = 0
 	return cid_, nil
+}
+
+//connection event
+func (d *DTM_S_Proc) OnConn(c netw.Con) bool {
+	c.SetWait(true)
+	return true
+}
+
+func (d *DTM_S_Proc) OnClose(c netw.Con) {
+	d.proc_l.Lock()
+	defer d.proc_l.Unlock()
+	var cid = c.Kvs().StrVal("cid")
+	if len(cid) > 0 {
+		delete(d.TaskC, cid)
+	}
 }
 
 //minial used client id
@@ -150,7 +166,7 @@ func NewDTM_S(bp *pool.BytePool, addr string, h DTM_S_H, rcm *impl.RCM_S, v2b ne
 	obdh := impl.NewOBDH()
 	obdh.AddF(CMD_M_PROC, sh.OnProc)
 	obdh.AddF(CMD_M_DONE, sh.OnDone)
-	lm := rc.NewRC_Listener_m(bp, addr, netw.NewCCH(sh, obdh), rcm, v2b, b2v, na)
+	lm := rc.NewRC_Listener_m(bp, addr, netw.NewCCH(h, obdh), rcm, v2b, b2v, na)
 	lm.LCH = h
 	sh.RC_Listener_m = lm
 	return sh
@@ -206,19 +222,20 @@ func (d *DTM_S) OnDone(c netw.Cmd) int {
 		log.E("DTM_S OnDone receive bad arguments detail(%v)", err)
 		return -1
 	}
-	d.H.OnDone(d, d.ConCid(c), tid, code, err_m, used)
+	d.H.OnDone(d, args, d.ConCid(c), tid, code, err_m, used)
 	return 0
 }
 
 //connection event
-func (d *DTM_S) OnConn(c netw.Con) bool {
-	c.SetWait(true)
-	return true
-}
+// func (d *DTM_S) OnConn(c netw.Con) bool {
+// 	c.SetWait(true)
+// 	return true
+// }
 
-//connection event
-func (d *DTM_S) OnClose(c netw.Con) {
-}
+// //connection event
+// func (d *DTM_S) OnClose(c netw.Con) {
+
+// }
 
 //start task by command and special client id.
 //return task id
@@ -499,6 +516,7 @@ func (d *DTM_C) run_cmd(tid, cmds string) error {
 		runner = exec.Command("bash", "-c", cmds)
 	}
 	runner.Dir = cfg.Val2("proc_ws", ".")
+	runner.Env = strings.Split(cfg.Val2("proc_ws", "."), ",")
 	buf := &bytes.Buffer{}
 	runner.Stdout = buf
 	runner.Stderr = buf
@@ -547,7 +565,7 @@ func (d *DTM_C) cmd_do_res(args util.Map, cmds, res string) int {
 		return 0
 	} else {
 		log.E("DTM_C parse json result on command(\n\t%v\n) by data(%v) error->%v", cmds, jval, err)
-		args["res"] = res
+		args["res"] = mres
 		args["err"] = err.Error()
 		return -2
 	}

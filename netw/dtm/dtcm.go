@@ -27,13 +27,14 @@ var NOT_MATCHED = util.Err("not matched command")
 
 //sub process
 type Proc struct {
-	Cid    string  `bson:"cid" json:"cid"`       //runner id
-	Tid    string  `bson:"tid" json:"tid"`       //task id
-	Cmds   string  `bson:"cmds" json:"cmds"`     //commands
-	Done   float32 `bson:"done" json:"done"`     //the complete rate
-	Msg    string  `bson:"msg" json:"msg"`       //the task exit message
-	Time   int64   `bson:"time" json:"time"`     //last update time
-	Status string  `bson:"status" json:"status"` //the task status
+	Cid    string      `bson:"cid" json:"cid"`       //runner id
+	Tid    string      `bson:"tid" json:"tid"`       //task id
+	Cmds   string      `bson:"cmds" json:"cmds"`     //commands
+	Done   float32     `bson:"done" json:"done"`     //the complete rate
+	Msg    string      `bson:"msg" json:"msg"`       //the task exit message
+	Time   int64       `bson:"time" json:"time"`     //last update time
+	Status string      `bson:"status" json:"status"` //the task status
+	Res    interface{} `bson:"res" json:"res"`       //the task status
 }
 
 //task
@@ -129,6 +130,7 @@ type Client struct {
 	Name  string
 	Regs  []*regexp.Regexp
 	Max   int
+	Os    string
 	Token map[string]int
 }
 
@@ -178,6 +180,7 @@ func ParseClients(cfg *util.Fcfg, clients []string) (map[string]*Client, error) 
 			Name:  client,
 			Regs:  regs_,
 			Token: token_m,
+			Os:    cfg.Val("c_os"),
 			Max:   cfg.IntValV(client+"/max", 8),
 		}
 	}
@@ -241,7 +244,7 @@ func (d *DoNoneH) OnStart(dtcm *DTCM_S, task *Task) {
 	log.D("DoNoneH task(%v) is started", task.Id)
 }
 func (d *DoNoneH) OnDone(dtcm *DTCM_S, task *Task) error {
-	log.D("DoNoneH task(%v) is done", task.Id)
+	log.D("DoNoneH task(%v) is done with->\n%v\n", task.Id, util.S2Json(task))
 	return nil
 }
 
@@ -417,6 +420,25 @@ func (d *DTCM_S) AddTask(info interface{}, args ...interface{}) error {
 	return nil
 }
 
+func (d *DTCM_S) AddTaskH(hs *routing.HTTPSession) routing.HResult {
+	var args_s string = hs.RVal("args")
+	if len(args_s) < 1 {
+		return hs.MsgResE3(2, "arg-err", "args argument is empty")
+	}
+	var args_a = []interface{}{}
+	for _, arg := range strings.Split(args_s, ",") {
+		args_a = append(args_a, arg)
+	}
+	var err = d.AddTask(nil, args_a...)
+	if err == nil {
+		return hs.MsgRes("OK")
+	} else {
+		err = util.Err("AddTask error->%v", err)
+		log.E("%v", err)
+		return hs.MsgResErr2(3, "srv-err", err)
+	}
+}
+
 //do task, it will check running
 func (d *DTCM_S) do_task(t *Task) (int, int, int) {
 	d.task_l.Lock()
@@ -445,7 +467,12 @@ func (d *DTCM_S) min_used_cid(t *Task, proc *Proc) string {
 	var tcid string = ""
 	var min int = 999
 	for cid, tc := range d.TaskC {
-		var token = d.MsgC(cid).Kvs().StrVal("token")
+		var msgc = d.MsgC(cid)
+		if msgc == nil {
+			log.E("client not found by id(%v)", cid)
+			continue
+		}
+		var token = msgc.Kvs().StrVal("token")
 		var client = d.T2C[token]
 		if !client.Match(t.Args...) {
 			continue
@@ -532,23 +559,23 @@ func (d *DTCM_S) OnStop(dtm *DTM_S, cid, tid string) {
 	d.DTM_S_Proc.OnStop(dtm, cid, tid)
 	d.task_l.Lock()
 	defer d.task_l.Unlock()
-	d.mark_done(cid, tid, "STOPPED", TKS_COV_ERR)
+	d.mark_done(nil, cid, tid, "STOPPED", TKS_COV_ERR)
 }
 
 //done event
-func (d *DTCM_S) OnDone(dtm *DTM_S, cid, tid string, code int, err string, used int64) {
-	d.DTM_S_Proc.OnDone(dtm, cid, tid, code, err, used)
+func (d *DTCM_S) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int, err string, used int64) {
+	d.DTM_S_Proc.OnDone(dtm, args, cid, tid, code, err, used)
 	d.task_l.Lock()
 	defer d.task_l.Unlock()
 	if code == 0 {
-		d.mark_done(cid, tid, "", TKS_DONE)
+		d.mark_done(args, cid, tid, "", TKS_DONE)
 	} else {
-		d.mark_done(cid, tid, fmt.Sprintf("done error (code:%v,err:%v)", code, err), TKS_COV_ERR)
+		d.mark_done(args, cid, tid, fmt.Sprintf("done error (code:%v,err:%v)", code, err), TKS_COV_ERR)
 	}
 }
 
 //mark task done
-func (d *DTCM_S) mark_done(cid, tid, msg, status string) {
+func (d *DTCM_S) mark_done(res interface{}, cid, tid, msg, status string) {
 	var task = d.tid2task[tid]
 	if task == nil {
 		log.E("DTCM_S stop task error(not found) by tid(%v)", tid)
@@ -561,6 +588,7 @@ func (d *DTCM_S) mark_done(cid, tid, msg, status string) {
 	proc.Time = util.Now()
 	proc.Msg = msg
 	proc.Status = status
+	proc.Res = res
 	delete(d.tid2task, tid)
 	delete(d.tid2proc, tid)
 	var rerr = d.Db.Update(task)
