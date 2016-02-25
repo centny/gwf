@@ -15,6 +15,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -516,7 +517,10 @@ func (d *DTM_C) run_cmd(tid, cmds string) error {
 		runner = exec.Command("bash", "-c", cmds)
 	}
 	runner.Dir = cfg.Val2("proc_ws", ".")
-	runner.Env = strings.Split(cfg.Val2("proc_ws", "."), ",")
+	var env = cfg.Val2("proc_env", "")
+	if len(env) > 0 {
+		runner.Env = append(os.Environ(), strings.Split(env, ",")...)
+	}
 	buf := &bytes.Buffer{}
 	runner.Stdout = buf
 	runner.Stderr = buf

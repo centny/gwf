@@ -116,6 +116,10 @@ func TestDtcm(t *testing.T) {
 			return
 		}
 	}
+	var ats = httptest.NewServer(dtms.AddTaskH)
+	ats.G("?args=%v", "abc.mkv,abc")
+	ats.G("?args=%v", "abcxkk,abc")
+	ats.G("?args=%v", "")
 	for {
 		if len(sh.cc) > 0 {
 			fmt.Println("waiting->", len(sh.cc), "->", ts.URL)
