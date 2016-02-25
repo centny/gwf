@@ -22,7 +22,8 @@ func main() {
 	if len(os.Args) > 2 {
 		fn = os.Args[2]
 	} else {
-		_, fn = filepath.Split(turl.EscapedPath())
+		fn, _ = url.QueryUnescape(turl.Path)
+		_, fn = filepath.Split(fn)
 	}
 	if len(fn) < 1 {
 		fn = "index.html"
