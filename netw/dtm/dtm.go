@@ -17,7 +17,6 @@ import (
 	"github.com/Centny/gwf/util"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -509,13 +508,7 @@ func (d *DTM_C) run_cmd(tid, cmds string) error {
 	cmds = cfg.EnvReplaceV(cmds, false)
 	log.D("DTM_C calling command(\n\t%v\n)", cmds)
 	beg := util.Now()
-	var runner *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		runner = exec.Command("cmd", "/C", cmds)
-	default:
-		runner = exec.Command("bash", "-c", cmds)
-	}
+	var runner = exec.Command(d.Cfg.Val2("bash_c", "bash"), "-c", cmds)
 	runner.Dir = cfg.Val2("proc_ws", ".")
 	var env = cfg.Val2("proc_env", "")
 	if len(env) > 0 {
