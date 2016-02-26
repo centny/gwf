@@ -8,7 +8,6 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
-	"gopkg.in/mgo.v2/bson"
 	"regexp"
 	"strings"
 	"sync"
@@ -23,7 +22,20 @@ const (
 )
 
 //not matched error
-var NOT_MATCHED = util.Err("not matched command")
+// var NOT_MATCHED = util.Err("not matched command")
+
+type NotMatchedErr struct {
+	Msg string
+}
+
+func NewNotMatchedErr(format string, args ...interface{}) *NotMatchedErr {
+	return &NotMatchedErr{
+		Msg: fmt.Sprintf(format, args...),
+	}
+}
+func (n *NotMatchedErr) Error() string {
+	return n.Msg
+}
 
 //sub process
 type Proc struct {
@@ -127,11 +139,11 @@ func ParseCmds(cfg *util.Fcfg, cmds []string) ([]*Cmd, error) {
 }
 
 type Client struct {
-	Name  string
-	Regs  []*regexp.Regexp
-	Max   int
-	Os    string
-	Token map[string]int
+	Name  string           `json:"name"`
+	Regs  []*regexp.Regexp `json:"-"`
+	Max   int              `json:"max"`
+	Os    string           `json:"os"`
+	Token map[string]int   `json:"token"`
 }
 
 func (c *Client) Match(args ...interface{}) bool {
@@ -197,6 +209,8 @@ type DbH interface {
 	Del(t *Task) error
 	//list task from db
 	List() ([]*Task, error)
+	//find task
+	Find(id string) (*Task, error)
 }
 
 //the database creator func
@@ -232,6 +246,9 @@ func (m *MemH) List() ([]*Task, error) {
 		ts = append(ts, task)
 	}
 	return ts, nil
+}
+func (m *MemH) Find(id string) (*Task, error) {
+	return m.Data[id], nil
 }
 
 type DoNoneH struct {
@@ -355,6 +372,7 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 	}
 	var dtm = NewDTM_S(bp, addr, dtcm, rcm, v2b, b2v, na)
 	dtcm.DTM_S = dtm
+	var tokens = []string{}
 	for _, client := range clients_ {
 		for token, v := range client.Token {
 			if oc, ok := dtcm.T2C[token]; ok {
@@ -362,9 +380,10 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 			}
 			dtcm.AddToken3(token, v)
 			dtcm.T2C[token] = client
+			tokens = append(tokens, token)
 		}
 	}
-	log.D("create DTCM_S by cmds(%v),clients(%v), parsing %v commands", cmds, clients, len(cmds_))
+	log.D("create DTCM_S by cmds(%v),clients(%v),tokens(%v) parsing %v commands", cmds, clients, tokens, len(cmds_))
 	return dtcm, nil
 }
 
@@ -374,9 +393,9 @@ func NewDTCM_S_j(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H) (*DTCM
 	return NewDTCM_S(bp, cfg, dbc, h, rcm, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
 }
 
-func (d *DTCM_S) NewTask(info interface{}, args ...interface{}) *Task {
+func (d *DTCM_S) NewTask(id, info interface{}, args ...interface{}) *Task {
 	var task = &Task{
-		Id:   bson.NewObjectId().Hex(),
+		Id:   fmt.Sprintf("%v", id),
 		Args: args,
 		Sid:  d.Sid,
 		Proc: map[string]*Proc{},
@@ -397,11 +416,25 @@ func (d *DTCM_S) NewTask(info interface{}, args ...interface{}) *Task {
 
 //add task by info and arguments
 func (d *DTCM_S) AddTask(info interface{}, args ...interface{}) error {
-	var task = d.NewTask(info, args...)
-	if len(task.Proc) < 1 {
-		return NOT_MATCHED
+	if len(args) < 1 {
+		return util.Err("at least one argumnet is setted")
 	}
-	var err = d.Db.Add(task)
+	return d.AddTaskV(args[0], info, args...)
+}
+func (d *DTCM_S) AddTaskV(id, info interface{}, args ...interface{}) error {
+	var task, err = d.Db.Find(fmt.Sprintf("%v", id))
+	if err != nil {
+		return err
+	}
+	if task != nil {
+		return util.Err("DTCM_S add task fail by id(%v),args(%v)->the task is already exist->%v",
+			id, util.S2Json(args), util.S2Json(task))
+	}
+	task = d.NewTask(id, info, args...)
+	if len(task.Proc) < 1 {
+		return NewNotMatchedErr("not command matched by args->%v", util.S2Json(args))
+	}
+	err = d.Db.Add(task)
 	if err != nil {
 		log.E("DTCM_S add task by args(%v),info(%v) error->%v", args, info, err)
 		return err
@@ -421,6 +454,7 @@ func (d *DTCM_S) AddTask(info interface{}, args ...interface{}) error {
 }
 
 func (d *DTCM_S) AddTaskH(hs *routing.HTTPSession) routing.HResult {
+	var tid string = hs.RVal("tid")
 	var args_s string = hs.RVal("args")
 	if len(args_s) < 1 {
 		return hs.MsgResE3(2, "arg-err", "args argument is empty")
@@ -429,7 +463,10 @@ func (d *DTCM_S) AddTaskH(hs *routing.HTTPSession) routing.HResult {
 	for _, arg := range strings.Split(args_s, ",") {
 		args_a = append(args_a, arg)
 	}
-	var err = d.AddTask(nil, args_a...)
+	if len(tid) < 1 {
+		tid = fmt.Sprintf("%v", args_a[0])
+	}
+	var err = d.AddTaskV(tid, nil, args_a...)
 	if err == nil {
 		return hs.MsgRes("OK")
 	} else {
@@ -463,21 +500,24 @@ func (d *DTCM_S) do_task_(t *Task) (int, int, int) {
 	}
 }
 
-func (d *DTCM_S) min_used_cid(t *Task, proc *Proc) string {
+func (d *DTCM_S) min_used_cid(t *Task, proc *Proc) (string, string) {
 	var tcid string = ""
 	var min int = 999
+	var nm_c, nm_m = 0, 0
 	for cid, tc := range d.TaskC {
 		var msgc = d.MsgC(cid)
 		if msgc == nil {
-			log.E("client not found by id(%v)", cid)
+			log.E("DTCM_S client not found by id(%v)", cid)
 			continue
 		}
 		var token = msgc.Kvs().StrVal("token")
 		var client = d.T2C[token]
 		if !client.Match(t.Args...) {
+			nm_c += 1
 			continue
 		}
 		if tc >= client.Max {
+			nm_m += 1
 			continue
 		}
 		if tc < min {
@@ -485,22 +525,33 @@ func (d *DTCM_S) min_used_cid(t *Task, proc *Proc) string {
 			min = tc
 		}
 	}
-	return tcid
+	if len(tcid) > 0 {
+		//matched
+		return tcid, ""
+	}
+	if nm_m > 0 {
+		//client matched, but busy
+		return "", "all client is busy"
+	} else {
+		//not matched client
+		return "", "not matched client"
+	}
 }
 
 //start task
 func (d *DTCM_S) start_task(t *Task) {
 	var err error
+	var msg string
 	var running bool = false
 	for cmd, proc := range t.Proc {
 		if proc.Status == TKS_DONE {
 			continue
 		}
-		proc.Cid = d.min_used_cid(t, proc)
+		proc.Cid, msg = d.min_used_cid(t, proc)
 		if len(proc.Cid) < 1 {
 			proc.Status = TKS_PENDING
 			proc.Cid = ""
-			log.D("DTCM_S check min used cid is not found, process will be pending")
+			log.D("DTCM_S select min used client fail with %v by args(%v), process will be pending", msg, util.S2Json(t.Args))
 			continue
 		}
 		proc.Tid, err = d.StartTask4(proc.Cid, proc.Cmds)
@@ -542,6 +593,14 @@ func (d *DTCM_S) stop_task(t *Task) {
 	}
 	delete(d.tasks, t.Id)
 	log.D("DTCM_S stop task(%v)", t.Id)
+}
+
+func (d *DTCM_S) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
+	var cid, err = d.DTM_S_Proc.OnLogin(rc, token)
+	if err == nil {
+		log.D("DTCM_S login by token(%v) as client(%v)", token, util.S2Json(d.T2C[token]))
+	}
+	return cid, err
 }
 
 //process event

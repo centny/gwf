@@ -123,6 +123,7 @@ func (d *DTM_S_Proc) OnClose(c netw.Con) {
 	var cid = c.Kvs().StrVal("cid")
 	if len(cid) > 0 {
 		delete(d.TaskC, cid)
+		delete(d.Rates, cid)
 	}
 }
 
@@ -447,6 +448,7 @@ func (d *DTM_C) RunProcH() error {
 		return nil
 	}
 	routing.HFunc("^/proc(\\?.*)?$", d.HandleProc)
+	routing.Shared.Print()
 	log.I("DTM_C RunProcH listen the process handle on addr(%v)", addr)
 	return routing.ListenAndServe(addr)
 }
@@ -553,16 +555,16 @@ func (d *DTM_C) cmd_do_res(args util.Map, cmds, res string) int {
 	var mres = util.ParseSectionF("[", "]", res_a[1])
 	var jval = mres.StrVal("json")
 	if len(jval) < 1 {
-		args["res"] = mres
+		args["data"] = mres
 		return 0
 	}
 	var jval_m, err = util.Json2Map(jval)
 	if err == nil {
-		args["res"] = jval_m
+		args["data"] = jval_m
 		return 0
 	} else {
 		log.E("DTM_C parse json result on command(\n\t%v\n) by data(%v) error->%v", cmds, jval, err)
-		args["res"] = mres
+		args["data"] = mres
 		args["err"] = err.Error()
 		return -2
 	}

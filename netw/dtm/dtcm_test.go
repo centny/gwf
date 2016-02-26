@@ -12,8 +12,8 @@ import (
 )
 
 type Mem_err struct {
-	E1, E2, E3, E4 error
-	Data           map[string]*Task
+	E1, E2, E3, E4, E5 error
+	Data               map[string]*Task
 }
 
 func MemErrDbc(uri, name string) (*Mem_err, error) {
@@ -37,6 +37,9 @@ func (m *Mem_err) List() ([]*Task, error) {
 		ts = append(ts, task)
 	}
 	return ts, m.E4
+}
+func (m *Mem_err) Find(id string) (*Task, error) {
+	return m.Data[id], m.E5
 }
 
 type dtcm_s_h struct {
@@ -103,14 +106,14 @@ func TestDtcm(t *testing.T) {
 	fmt.Println("---->")
 	var rc = 10
 	for i := 0; i < rc; i++ {
-		err = dtms.AddTask(nil, "abc.mkv", "abc")
+		err = dtms.AddTask(nil, fmt.Sprintf("abc_%v.mkv", i), fmt.Sprintf("abc_%v", i))
 		if err != nil {
 			t.Error(err.Error())
 			return
 		}
 	}
 	for i := 0; i < rc; i++ {
-		err = dtms.AddTask(nil, "abc.mp4", "xxx")
+		err = dtms.AddTask(nil, fmt.Sprintf("abc_%v.mp4", i), fmt.Sprintf("xxx_%v", i))
 		if err != nil {
 			t.Error(err.Error())
 			return
