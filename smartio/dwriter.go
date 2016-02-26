@@ -14,9 +14,10 @@ import (
 // }
 
 type DateSwitchWriter struct {
-	ws  string
-	cfn string
-	F   *os.File
+	ws    string
+	cfn   string
+	NameF string
+	F     *os.File
 	io.Writer
 	FMODE os.FileMode
 }
@@ -34,7 +35,10 @@ func NewDateSwitchWriter2(ws string) *DateSwitchWriter {
 }
 
 func (d *DateSwitchWriter) Write(p []byte) (int, error) {
-	fname := time.Now().Format("2006-1-2.log")
+	var fname = time.Now().Format("2006-01-02")
+	if len(d.NameF) > 0 {
+		fname = fmt.Sprintf(d.NameF, fname)
+	}
 	if d.cfn != fname {
 		if d.F != nil {
 			d.F.Close()
@@ -54,7 +58,7 @@ func (d *DateSwitchWriter) Write(p []byte) (int, error) {
 	} else { //if writing error,try again.
 		d.F.Close()
 		d.F = nil
-		fmt.Println("writing data error:" + err.Error())
+		fmt.Fprintln(LOG, "writing data error:"+err.Error())
 		time.Sleep(time.Second)
 		return d.Write(p)
 	}
@@ -68,12 +72,12 @@ func (d *DateSwitchWriter) reopen(fname string) error {
 	f, err := os.OpenFile(fpath, os.O_WRONLY|os.O_APPEND, d.FMODE)
 	d.cfn = fname
 	d.F = f
-	fmt.Println("open file:", fpath)
+	fmt.Fprintln(LOG, "open file:", fpath)
 	return err
 }
 func (d *DateSwitchWriter) Close() {
 	if d.F != nil {
-		fmt.Println("close file:", d.FilePath())
+		fmt.Fprintln(LOG, "close file:", d.FilePath())
 		d.F.Close()
 		d.F = nil
 	}

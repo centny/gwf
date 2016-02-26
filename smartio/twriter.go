@@ -22,8 +22,8 @@ type TimeFlushWriter struct {
 	cdelay  time.Duration
 	rdelay  time.Duration
 	running bool
-	*bufio.Writer
-	LCK sync.RWMutex
+	buf     *bufio.Writer
+	LCK     sync.RWMutex
 }
 
 func NewTWriter(sw io.Writer) *TimeFlushWriter {
@@ -34,7 +34,7 @@ func NewTimeWriter(sw io.Writer, bsize int, cdelay time.Duration) *TimeFlushWrit
 	//
 	fl.bsize = bsize
 	fl.sw = sw
-	fl.Writer = bufio.NewWriterSize(sw, fl.bsize)
+	fl.buf = bufio.NewWriterSize(sw, fl.bsize)
 	//
 	fl.cdelay = cdelay
 	fl.rdelay = 1000
@@ -43,18 +43,22 @@ func NewTimeWriter(sw io.Writer, bsize int, cdelay time.Duration) *TimeFlushWrit
 	//
 	return fl
 }
+func (t *TimeFlushWriter) Write(p []byte) (nn int, err error) {
+	t.LCK.Lock()
+	defer t.LCK.Unlock()
+	return t.buf.Write(p)
+}
 func (t *TimeFlushWriter) runClock() {
 	// fmt.Println("TimeWriter clock start...")
 	wg.Add(1)
 	var ttime time.Duration = 0
 	for t.running {
-		if ttime >= t.cdelay && t.Buffered() > 0 {
+		if ttime >= t.cdelay && t.buf.Buffered() > 0 {
 			t.LCK.Lock()
-			err := t.Flush()
+			err := t.buf.Flush()
 			if err != nil {
-				fmt.Println(fmt.Sprintf(
-					"flush error for wirter(%v) info(%v,%v):%v",
-					t.sw, t.Available(), t.Buffered(), err.Error()))
+				fmt.Fprintf(LOG, "flush error for wirter(%v) info(%v,%v):%v\n",
+					t.sw, t.buf.Available(), t.buf.Buffered(), err.Error())
 			}
 			ttime = 0
 			t.LCK.Unlock()
@@ -67,8 +71,11 @@ func (t *TimeFlushWriter) runClock() {
 }
 func (t *TimeFlushWriter) Stop() {
 	// fmt.Println("Stop TimeWriter")
-	t.Flush()
+	t.buf.Flush()
 	t.running = false
+}
+func (t *TimeFlushWriter) WriteString(s string) (int, error) {
+	return t.buf.WriteString(s)
 }
 func TimeWriterWait() {
 	// fmt.Println("Waiting all TimeWriter stop")

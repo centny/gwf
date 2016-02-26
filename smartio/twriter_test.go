@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/Centny/gwf/util"
 	"os"
 	"sync"
 	"testing"
@@ -87,7 +88,7 @@ func TestNtw(t *testing.T) {
 	fw := NewTWriter(os.Stderr)
 	fw.WriteString("loging \n")
 	fw.WriteString("loging \n")
-	fw.Flush()
+	fw.buf.Flush()
 	fw.Stop()
 	fmt.Println("test new TWriter end ...")
 }
@@ -124,4 +125,24 @@ func TestDTW2(t *testing.T) {
 	tw.Write([]byte("ksjfksdfjksdfjskfjskfsfs:%v\n"))
 	time.Sleep(time.Second)
 	wg.Wait()
+}
+
+func TestRedirect(t *testing.T) {
+	RedirectStdout3("test/out%v.log")
+	RedirectStderr3("test/err%v.log")
+	fmt.Printf("%v", "abc")
+	fmt.Fprintf(os.Stderr, "%v", "abc")
+	time.Sleep(4 * time.Second)
+	if !util.Fexists(fmt.Sprintf("out%v.log", time.Now().Format("2006-01-02"))) {
+		t.Error("error")
+		return
+	}
+	if !util.Fexists(fmt.Sprintf("err%v.log", time.Now().Format("2006-01-02"))) {
+		t.Error("error")
+		return
+	}
+	if RedirectStdout3("/xsss/sdfss%v") == nil {
+		t.Error("error")
+		return
+	}
 }
