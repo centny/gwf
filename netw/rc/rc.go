@@ -278,13 +278,16 @@ func (r *RC_Listener_m) Login_(rc *impl.RCM_Cmd) (interface{}, error) {
 	log.D("RC_Listener_m login by token(%v),old(%v)", token, otk)
 	tval := r.TokenVal(token)
 	if tval < 1 {
+		log.W("RC_Listener_m login by token(%v) fail->token is not found", token)
 		return util.Map{"code": -2, "err": fmt.Sprintf("token(%v) is not found", token)}, nil
 	}
 	if tval == 1 && len(otk) > 0 {
+		log.W("RC_Listener_m login by token(%v) fail->token is logined", token)
 		return util.Map{"code": -3, "err": fmt.Sprintf("token(%v) is logined", token)}, nil
 	}
 	tcid, err := r.LCH.OnLogin(rc, token)
 	if err != nil {
+		log.W("RC_Listener_m login by token(%v) fail->call OnLogin fail->%v", token, err)
 		return util.Map{"code": -4, "err": err.Error()}, nil
 	}
 	r.AddC_rc(tcid, rc)
