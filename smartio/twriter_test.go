@@ -128,16 +128,17 @@ func TestDTW2(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
+	os.RemoveAll("test")
 	RedirectStdout3("test/out%v.log")
 	RedirectStderr3("test/err%v.log")
-	fmt.Printf("%v", "abc")
-	fmt.Fprintf(os.Stderr, "%v", "abc")
+	fmt.Printf("%v\n", "abc")
+	fmt.Fprintf(os.Stderr, "%v\n", "abc")
 	time.Sleep(4 * time.Second)
-	if !util.Fexists(fmt.Sprintf("out%v.log", time.Now().Format("2006-01-02"))) {
+	if !util.Fexists(fmt.Sprintf("test/out%v.log", time.Now().Format("2006-01-02"))) {
 		t.Error("error")
 		return
 	}
-	if !util.Fexists(fmt.Sprintf("err%v.log", time.Now().Format("2006-01-02"))) {
+	if !util.Fexists(fmt.Sprintf("test/err%v.log", time.Now().Format("2006-01-02"))) {
 		t.Error("error")
 		return
 	}
@@ -145,4 +146,9 @@ func TestRedirect(t *testing.T) {
 		t.Error("error")
 		return
 	}
+	fmt.Println("TestRedirect done...")
+	// time.Sleep(4 * time.Second)
+	Stderr.Stop()
+	Stdout.Stop()
+
 }
