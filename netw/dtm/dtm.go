@@ -15,6 +15,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -329,7 +330,9 @@ func (d *DTM_S) WaitTask(cid, tid string) error {
 //new the distributed task manager client impl
 type DTM_C struct {
 	*rc.RC_Runner_m
-	Cfg     *util.Fcfg           //configure
+	Cfg     *util.Fcfg //configure
+	HS      map[string]ProcH
+	Mux     *routing.SessionMux
 	Tasks   map[string]*exec.Cmd //running task
 	tasks_l sync.RWMutex
 	tasks_c map[string]chan string
@@ -342,10 +345,13 @@ type DTM_C struct {
 func NewDTM_C(bp *pool.BytePool, addr string, rcm *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) *DTM_C {
 	ch := &DTM_C{
 		Cfg:     util.NewFcfg3(),
+		HS:      map[string]ProcH{},
+		Mux:     routing.NewSessionMux2(""),
 		Tasks:   map[string]*exec.Cmd{},
 		tasks_l: sync.RWMutex{},
 		tasks_c: map[string]chan string{},
 	}
+	ch.AddProcH(NewNormalProc(ch))
 	cr := rc.NewRC_Runner_m(bp, addr, ch, rcm, v2b, b2v, na)
 	ch.RC_Runner_m = cr
 	cr.AddHFunc("start_task", ch.StartTask)
@@ -440,6 +446,10 @@ func (d *DTM_C) WaitTask(rc *impl.RCM_Cmd) (interface{}, error) {
 	}
 }
 
+func (d *DTM_C) AddProcH(h ProcH) {
+	d.HS[h.Key()] = h
+}
+
 //run the process http handler
 func (d *DTM_C) RunProcH() error {
 	addr := d.Cfg.Val("proc_addr")
@@ -447,31 +457,15 @@ func (d *DTM_C) RunProcH() error {
 		log.I("DTM_C RunProcH listen address configure(proc_addr) is not found, http proccess receiver will not start")
 		return nil
 	}
-	routing.HFunc("^/proc(\\?.*)?$", d.HandleProc)
-	routing.Shared.Print()
+	for key, h := range d.HS {
+		d.Mux.H(key, h)
+	}
+	d.Mux.Print()
 	log.I("DTM_C RunProcH listen the process handle on addr(%v)", addr)
-	return routing.ListenAndServe(addr)
+	return http.ListenAndServe(addr, d.Mux)
 }
 
 //process http handler impl
-func (d *DTM_C) HandleProc(hs *routing.HTTPSession) routing.HResult {
-	log.D("DTM_C HandleProc reiceve process %v", hs.R.URL.Query().Encode())
-	var tid string
-	var rate float64
-	err := hs.ValidCheckVal(`
-		tid,R|S,L:0;
-		`+d.Cfg.Val2("proc_key", "process")+`,R|F,R:-0.001;`, &tid, &rate)
-	if err != nil {
-		hs.W.Write([]byte(fmt.Sprintf("DTM_C HandleProc receive bad arguments->%v", err.Error())))
-		return routing.HRES_RETURN
-	}
-	err = d.NotifyProc(tid, rate)
-	if err != nil {
-		log.E("DTM_C HandleProc send process info by tid(%v),rate(%v) err->%v", tid, rate, err)
-	}
-	hs.W.Write([]byte("OK"))
-	return routing.HRES_RETURN
-}
 
 //notify process to server
 func (d *DTM_C) NotifyProc(tid string, rate float64) error {

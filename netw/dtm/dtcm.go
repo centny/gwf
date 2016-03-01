@@ -8,6 +8,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -35,6 +36,10 @@ func NewNotMatchedErr(format string, args ...interface{}) *NotMatchedErr {
 }
 func (n *NotMatchedErr) Error() string {
 	return n.Msg
+}
+
+func IsNotMatchedErr(err error) bool {
+	return reflect.Indirect(reflect.ValueOf(err)).Type().Name() == "NotMatchedErr"
 }
 
 //sub process
@@ -77,6 +82,25 @@ func (t *Task) IsRunning() bool {
 	return false
 }
 
+func ParseRegs(sec string, cfg *util.Fcfg) ([]*regexp.Regexp, error) {
+	var regs_s = cfg.Val(sec + "/regs")
+	if len(regs_s) < 1 {
+		return nil, util.Err("%v/regs is empty on client(%v)", sec, sec)
+	}
+	var regs = strings.Split(regs_s, "&")
+	var regs_ []*regexp.Regexp
+	for _, reg := range regs {
+		var reg_, err = regexp.Compile(reg)
+		if err == nil {
+			regs_ = append(regs_, reg_)
+			continue
+		} else {
+			return nil, err
+		}
+	}
+	return regs_, nil
+}
+
 //command define
 type Cmd struct {
 	Name string
@@ -110,20 +134,9 @@ func (c *Cmd) ParseCmd(args ...interface{}) string {
 func ParseCmds(cfg *util.Fcfg, cmds []string) ([]*Cmd, error) {
 	var cmds_ []*Cmd
 	for _, cmd := range cmds {
-		var regs_s = cfg.Val(cmd + "/regs")
-		if len(regs_s) < 1 {
-			return nil, util.Err("regs is empty on command(%v)", cmd)
-		}
-		var regs = strings.Split(regs_s, "&")
-		var regs_ []*regexp.Regexp
-		for _, reg := range regs {
-			var reg_, err = regexp.Compile(reg)
-			if err == nil {
-				regs_ = append(regs_, reg_)
-				continue
-			} else {
-				return nil, err
-			}
+		regs_, err := ParseRegs(cmd, cfg)
+		if err != nil {
+			return nil, util.Err("parse regs on command(%v) error->%v", cmd, err)
 		}
 		var cmd_s = cfg.Val(cmd + "/cmds")
 		if len(cmd_s) < 1 {
@@ -162,20 +175,9 @@ func (c *Client) Match(args ...interface{}) bool {
 func ParseClients(cfg *util.Fcfg, clients []string) (map[string]*Client, error) {
 	var clients_ = map[string]*Client{}
 	for _, client := range clients {
-		var regs_s = cfg.Val(client + "/regs")
-		if len(regs_s) < 1 {
-			return nil, util.Err("%v/regs is empty on client(%v)", client, client)
-		}
-		var regs = strings.Split(regs_s, "&")
-		var regs_ []*regexp.Regexp
-		for _, reg := range regs {
-			var reg_, err = regexp.Compile(reg)
-			if err == nil {
-				regs_ = append(regs_, reg_)
-				continue
-			} else {
-				return nil, err
-			}
+		regs_, err := ParseRegs(client, cfg)
+		if err != nil {
+			return nil, util.Err("parse regs on client(%v) error->%v", client, err)
 		}
 		var token_s = cfg.Val(client + "/token")
 		if len(token_s) < 1 {
@@ -197,6 +199,18 @@ func ParseClients(cfg *util.Fcfg, clients []string) (map[string]*Client, error) 
 		}
 	}
 	return clients_, nil
+}
+
+func ParseAbsL(cfg *util.Fcfg, abs_l []string) ([]Abs, error) {
+	var abs = []Abs{}
+	for _, sec := range abs_l {
+		var creator, err = CreateAbs(sec, cfg)
+		if err != nil {
+			return abs, err
+		}
+		abs = append(abs, creator)
+	}
+	return abs, nil
 }
 
 //the database handler
@@ -282,8 +296,10 @@ type DTCM_S struct {
 	Sid     string             //the server id
 	Cmds    []*Cmd             //command list
 	Clients map[string]*Client //client list
-	Cfg     *util.Fcfg         //the configure
-	T2C     map[string]*Client //mapping token to clients
+	AbsL    []Abs              //the argument builder list
+
+	Cfg *util.Fcfg         //the configure
+	T2C map[string]*Client //mapping token to clients
 	//
 	task_l   sync.RWMutex      //task lock
 	tasks    map[string]*Task  //mapping Task.Id to Task
@@ -352,6 +368,14 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 	if err != nil {
 		return nil, err
 	}
+	var abs = []Abs{}
+	var abs_l = cfg.Val("abs_l")
+	if len(abs_l) > 0 {
+		abs, err = ParseAbsL(cfg, strings.Split(abs_l, ","))
+		if err != nil {
+			return nil, err
+		}
+	}
 	//
 	var sid, addr string = cfg.Val("sid"), cfg.Val("addr")
 	var sh = NewDTM_S_Proc()
@@ -362,6 +386,7 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 		Sid:        sid,
 		Cmds:       cmds_,
 		Clients:    clients_,
+		AbsL:       abs,
 		Cfg:        cfg,
 		T2C:        map[string]*Client{},
 		task_l:     sync.RWMutex{},
@@ -421,18 +446,38 @@ func (d *DTCM_S) AddTask(info interface{}, args ...interface{}) error {
 	}
 	return d.AddTaskV(args[0], info, args...)
 }
+func (d *DTCM_S) BuildArgs(id, info interface{}, args ...interface{}) (interface{}, interface{}, []interface{}, error) {
+	for _, abs := range d.AbsL {
+		if abs.Match(d, id, info, args...) {
+			return abs.Build(d, id, info, args...)
+		}
+	}
+	return nil, nil, nil, NewNotMatchedErr("DTCM_S not abs matched by id(%v),info(%v),args(%v)", id, util.S2Json(info), util.S2Json(args))
+}
 func (d *DTCM_S) AddTaskV(id, info interface{}, args ...interface{}) error {
-	var task, err = d.Db.Find(fmt.Sprintf("%v", id))
+	var err error
+	id, info, args, err = d.BuildArgs(id, info, args...)
 	if err != nil {
+		log.E("%v", err)
+		return err
+	}
+	task, err := d.Db.Find(fmt.Sprintf("%v", id))
+	if err != nil {
+		err = util.Err("DTCM_S find task by id(%v) error->%v",
+			id, err)
 		return err
 	}
 	if task != nil {
-		return util.Err("DTCM_S add task fail by id(%v),args(%v)->the task is already exist->%v",
+		err = util.Err("DTCM_S add task fail by id(%v),args(%v)->the task is already exist->%v",
 			id, util.S2Json(args), util.S2Json(task))
+		log.E("%v", err)
+		return err
 	}
 	task = d.NewTask(id, info, args...)
 	if len(task.Proc) < 1 {
-		return NewNotMatchedErr("not command matched by args->%v", util.S2Json(args))
+		err = NewNotMatchedErr("DTCM_S not command matched by id(%v),info(%v),args(%v)", id, util.S2Json(info), util.S2Json(args))
+		log.E("%v", err)
+		return err
 	}
 	err = d.Db.Add(task)
 	if err != nil {

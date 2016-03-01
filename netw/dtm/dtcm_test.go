@@ -66,6 +66,16 @@ func (d *dtcm_s_h) OnDone(dtcm *DTCM_S, task *Task) error {
 	return d.E
 }
 
+type dtcm_t_abs struct {
+}
+
+func (d *dtcm_t_abs) Match(dtcm *DTCM_S, id, info interface{}, args ...interface{}) bool {
+	return false
+}
+func (d *dtcm_t_abs) Build(dtcm *DTCM_S, id, info interface{}, args ...interface{}) (interface{}, interface{}, []interface{}, error) {
+	return nil, nil, nil, nil
+}
+
 func TestDtcm(t *testing.T) {
 	runtime.GOMAXPROCS(util.CPU())
 	bp := pool.NewBytePool(8, 10240000)
@@ -90,7 +100,7 @@ func TestDtcm(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	StartDTM_C(cfg_c)
+	var dtmc = StartDTM_C(cfg_c)
 	//
 	func() {
 		var cfg_c_x = util.NewFcfg3()
@@ -104,6 +114,13 @@ func TestDtcm(t *testing.T) {
 	}()
 	time.Sleep(time.Second)
 	fmt.Println("---->")
+	//for test client not found
+	dtms.TaskC["sdfsfs"] = 1
+	//
+	if !dtms.AbsL[0].Match(dtms, nil, nil, "abc_.mkv") {
+		t.Error("error")
+		return
+	}
 	var rc = 10
 	for i := 0; i < rc; i++ {
 		err = dtms.AddTask(nil, fmt.Sprintf("abc_%v.mkv", i), fmt.Sprintf("abc_%v", i))
@@ -143,6 +160,35 @@ func TestDtcm(t *testing.T) {
 		t.Error("error")
 		return
 	}
+	err = dtms.AddTask(nil)
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	err = dtms.AddTask(nil, "kkksldf.abc")
+	if err != nil {
+		fmt.Println(err.Error())
+		t.Error("error")
+		return
+	}
+	err = dtms.AddTask(nil, "kkksldf.k1")
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	err = dtms.AddTask(nil, "kkksldf.k2")
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	ovL := dtms.AbsL
+	dtms.AbsL = []Abs{&dtcm_t_abs{}}
+	err = dtms.AddTask(nil, "xxds", "sd")
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	dtms.AbsL = ovL
 	err = dtms.AddTask(nil, "xxds.xx", "sd")
 	if err != nil {
 		t.Error(err.Error())
@@ -221,15 +267,39 @@ func TestDtcm(t *testing.T) {
 		t.Error("error")
 		return
 	}
-	fmt.Println("test error...2")
-	tdb.E1 = util.Err("mock error")
 	err = dtms.AddTask(nil, "abc.mkv", "fsf")
 	if err == nil {
 		t.Error("error")
 		return
 	}
+	fmt.Println("test error...2")
+	tdb.E1 = util.Err("mock error")
+	err = dtms.AddTask(nil, "axddsbc.mkv", "fsf")
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	//
 	//
 	fmt.Println("test error...3")
+	ov := cfg.Val("AbsC/regs")
+	cfg.SetVal("AbsC/regs", "kjk[sdf")
+	_, err = NewDTCM_S_j(bp, cfg, MemDbc, &dtcm_s_h{})
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	cfg.SetVal("AbsC/regs", ov)
+	//
+	ov = cfg.Val("AbsC/cmds")
+	cfg.SetVal("AbsC/cmds", "")
+	_, err = NewDTCM_S_j(bp, cfg, MemDbc, &dtcm_s_h{})
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	cfg.SetVal("AbsC/cmds", ov)
+	//
 	_, err = NewDTCM_S_j(bp, cfg, func(uri, name string) (DbH, error) {
 		return nil, util.Err("error")
 	}, &dtcm_s_h{})
@@ -266,7 +336,19 @@ func TestDtcm(t *testing.T) {
 			},
 		},
 	})
-
+	tdb.E5 = util.Err("error")
+	err = dtms.AddTask(nil, "abc.mkv", "fsf")
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	//
+	dtmc.Cfg.SetVal("bash_c", "kkdsf")
+	err = dtmc.run_cmd("1122", "sdfsf")
+	if err == nil {
+		t.Error("error")
+		return
+	}
 	//
 	var xx = &Cmd{}
 	xx.Match()
@@ -463,4 +545,43 @@ func TestDoNone(t *testing.T) {
 	dnh := NewDoNoneH()
 	dnh.OnStart(nil, &Task{})
 	dnh.OnDone(nil, &Task{})
+}
+
+func TestCreatAbsErr(t *testing.T) {
+	var fcfg = util.NewFcfg3()
+	fcfg.InitWithData(`
+[Abs1]
+#the regex for mathec task key
+regs=^.*\.k2$
+cmds=echo
+args=1 2 3
+envs=xx=1,bb=2
+wdir=.
+[Abs2]
+#the regex for mathec task key
+regs=^.*\.k2$
+type=CMDXX
+cmds=echo
+args=1 2 3
+envs=xx=1,bb=2
+wdir=.
+		`)
+	var _, err = CreateAbs("Abs1", fcfg)
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	_, err = CreateAbs("Abs2", fcfg)
+	if err == nil {
+		t.Error("error")
+		return
+	}
+	AddCreator("nkk", nil)
+}
+
+func TestIsNotMatchedErr(t *testing.T) {
+	if !IsNotMatchedErr(NewNotMatchedErr("xx")) {
+		t.Error("error")
+		return
+	}
 }
