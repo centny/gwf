@@ -231,11 +231,13 @@ type DbH interface {
 type DB_C func(uri, name string) (DbH, error)
 
 type MemH struct {
+	Errs map[string]error
 	Data map[string]*Task
 }
 
 func NewMemH() *MemH {
 	return &MemH{
+		Errs: map[string]error{},
 		Data: map[string]*Task{},
 	}
 }
@@ -244,25 +246,25 @@ func MemDbc(uri, name string) (DbH, error) {
 }
 func (m *MemH) Add(t *Task) error {
 	m.Data[t.Id] = t
-	return nil
+	return m.Errs["Add"]
 }
 func (m *MemH) Update(t *Task) error {
 	m.Data[t.Id] = t
-	return nil
+	return m.Errs["Update"]
 }
 func (m *MemH) Del(t *Task) error {
 	delete(m.Data, t.Id)
-	return nil
+	return m.Errs["Del"]
 }
 func (m *MemH) List() ([]*Task, error) {
 	var ts []*Task
 	for _, task := range m.Data {
 		ts = append(ts, task)
 	}
-	return ts, nil
+	return ts, m.Errs["List"]
 }
 func (m *MemH) Find(id string) (*Task, error) {
-	return m.Data[id], nil
+	return m.Data[id], m.Errs["Find"]
 }
 
 type DoNoneH struct {
@@ -476,7 +478,7 @@ func (d *DTCM_S) AddTaskV(id, info interface{}, args ...interface{}) error {
 	task = d.NewTask(id, info, args...)
 	if len(task.Proc) < 1 {
 		err = NewNotMatchedErr("DTCM_S not command matched by id(%v),info(%v),args(%v)", id, util.S2Json(info), util.S2Json(args))
-		log.E("%v", err)
+		// log.E("%v", err)
 		return err
 	}
 	err = d.Db.Add(task)
