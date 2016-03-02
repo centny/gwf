@@ -147,6 +147,13 @@ func (f *Fcfg) PrintSec(sec string) {
 	}
 	fmt.Println(sdata)
 }
+func (f *Fcfg) Range(sec string, cb func(key string, val interface{})) {
+	for k, v := range f.Map {
+		if strings.HasPrefix(k, sec) {
+			cb(strings.TrimPrefix(k, sec+"/"), v)
+		}
+	}
+}
 
 //set the value by key and value.
 func (f *Fcfg) SetVal(key string, val string) *Fcfg {
