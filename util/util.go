@@ -69,6 +69,7 @@ func FWrite(path, data string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	_, err = f.WriteString(data)
 	return err
 }
@@ -77,7 +78,17 @@ func FWrite2(path string, data []byte) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	_, err = f.Write(data)
+	return err
+}
+func FWrite3(path string, buf io.Reader) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = io.Copy(f, buf)
 	return err
 }
 func FAppend(path, data string) error {
@@ -85,6 +96,7 @@ func FAppend(path, data string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	_, err = f.WriteString(data)
 	return err
 }
@@ -352,6 +364,10 @@ func Copyp2(dst string, src io.Reader) (written int64, sha_ []byte, md5_ []byte,
 	}
 	defer dst_.Close()
 	return Copy(dst_, src)
+}
+func Copyp3(dst string, src io.Reader) (written int64, sha string, md5 string, err error) {
+	written, sha_, md5_, err := Copyp2(dst, src)
+	return written, fmt.Sprintf("%x", sha_), fmt.Sprintf("%x", md5_), err
 }
 func Sha1(fn string) (string, error) {
 	f, err := os.Open(fn)
