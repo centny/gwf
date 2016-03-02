@@ -794,3 +794,8 @@ func (d *DTCM_S) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 		"err":     err,
 	})
 }
+
+func (d *DTCM_S) Hand(pre string, mux *routing.SessionMux) {
+	mux.HFunc("^"+pre+"/addTask(\\?.*)?", d.AddTaskH)
+	mux.H("^"+pre+"/status(\\?.*)?", d)
+}
