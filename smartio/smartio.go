@@ -80,3 +80,21 @@ func RedirectStderr2(path_f string, bsize int, cdelay int64) error {
 func RedirectStderr3(path_f string) error {
 	return RedirectStderr2(path_f, 1024, 3000)
 }
+
+func ResetStd() {
+	if Stdout != nil {
+		Stdout.Stop()
+		if cs, ok := Stdout.sw.(io.Closer); ok {
+			cs.Close()
+		}
+		Stdout = nil
+	}
+	if Stderr != nil {
+		Stderr.Stop()
+		if cs, ok := Stderr.sw.(io.Closer); ok {
+			cs.Close()
+		}
+		Stderr = nil
+	}
+	os.Stdout, os.Stderr = SysOut, SysErr
+}
