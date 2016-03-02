@@ -67,6 +67,8 @@ func NewDTM_S_Proc() *DTM_S_Proc {
 
 //process event
 func (d *DTM_S_Proc) OnProc(dtm *DTM_S, cid, tid string, rate float64) {
+	d.proc_l.Lock()
+	defer d.proc_l.Unlock()
 	if _, ok := d.Rates[cid]; ok {
 		d.Rates[cid][tid] = rate
 	}
