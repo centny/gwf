@@ -307,6 +307,13 @@ func (n *NIM_Rh) writev_ce(c netw.Cmd, err string) int {
 	})
 	return 0
 }
+func (n *NIM_Rh) writev_ce2(c netw.Cmd, code int, err string) int {
+	c.Writev(util.Map{
+		"err":  err,
+		"code": code,
+	})
+	return 0
+}
 func (n *NIM_Rh) LI(r netw.Cmd) int {
 	defer r.Done()
 	if r.Closed() {
@@ -318,10 +325,10 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 		log.W("LI V fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
-	rv, token, ct, err := n.Db.OnLogin(r, &args)
+	code, rv, token, ct, err := n.Db.OnLogin(r, &args)
 	if err != nil {
 		log.W("LI OnLogin fail:%v", err.Error())
-		return n.writev_ce(r, err.Error())
+		return n.writev_ce2(r, code, err.Error())
 	}
 	con := &Con{
 		Sid:   n.SS.Id(),

@@ -82,7 +82,7 @@ type DbH interface {
 	//
 	//
 	//user login,return user R.
-	OnLogin(c netw.Cmd, args *util.Map) (string, string, int, error)
+	OnLogin(c netw.Cmd, args *util.Map) (int, string, string, int, error)
 	OnLogout(c netw.Cmd, args *util.Map) (string, string, int, bool, error)
 	//
 	//
