@@ -199,7 +199,7 @@ func (h *HTTPSession) UintVal(key string) uint64 {
 	case reflect.Uint64:
 		return v.(uint64)
 	default:
-		return 0
+		return uint64(h.IntVal(key))
 	}
 }
 func (h *HTTPSession) IntVal(key string) int64 {
@@ -220,7 +220,7 @@ func (h *HTTPSession) IntVal(key string) int64 {
 	case reflect.Int64:
 		return v.(int64)
 	default:
-		return 0
+		return int64(h.FloatVal(key))
 	}
 }
 func (h *HTTPSession) FloatVal(key string) float64 {
