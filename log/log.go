@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/smartio"
 	"io"
 	"log"
 	"os"
@@ -130,4 +131,24 @@ func (t *Log) log_(l LogLevel, d int, format string, v ...interface{}) {
 		return
 	}
 	t.Output(d+3, fmt.Sprintf(format, v...)+"\n")
+}
+
+func Redirect(out_l, err_l string) {
+	// var out_l = fcfg.Val2("out_l", "")
+	// var err_l = fcfg.Val2("err_l", "")
+	if len(out_l) < 1 && len(err_l) < 1 {
+		return
+	}
+	fmt.Printf("redirect stdout to file(%v) and stderr to file(%v)\n", out_l, err_l)
+	if len(out_l) > 0 {
+		smartio.RedirectStdout3(out_l)
+	}
+	if len(err_l) > 0 {
+		smartio.RedirectStderr3(err_l)
+	}
+	SetWriter(os.Stdout)
+}
+
+func ResetStd() {
+	smartio.ResetStd()
 }
