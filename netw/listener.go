@@ -45,7 +45,7 @@ func (l *Listener) Listen() error {
 		return err
 	}
 	l.L = ln
-	log.I("listen tcp on port:%s", l.Port)
+	log.I("Server(%v) listen tcp on port:%s", l.Name, l.Port)
 	return nil
 }
 

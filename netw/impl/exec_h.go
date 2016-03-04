@@ -142,12 +142,24 @@ func NewRC_Con(con netw.Con, bc *RC_C) *RC_Con {
 func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
 	return r.Exec_(0, false, args, dest)
 }
+func (r *RC_Con) Exec2(args interface{}) ([]byte, error) {
+	return r.ExecV(0, false, args)
+}
+
 func (r *RC_Con) Execm(m byte, args interface{}, dest interface{}) (interface{}, error) {
 	return r.Exec_(m, true, args, dest)
 }
+func (r *RC_Con) Exec_(m byte, bs bool, args interface{}, dest interface{}) (interface{}, error) {
+	var bys, err = r.ExecV(m, bs, args)
+	if err == nil {
+		return r.B2V()(bys, dest)
+	} else {
+		return nil, err
+	}
+}
 
 //execute one command.
-func (r *RC_Con) Exec_(m byte, bs bool, args interface{}, dest interface{}) (interface{}, error) {
+func (r *RC_Con) ExecV(m byte, bs bool, args interface{}) ([]byte, error) {
 	if args == nil {
 		return nil, util.Err("arg val is nil")
 	}
@@ -173,9 +185,9 @@ func (r *RC_Con) Exec_(m byte, bs bool, args interface{}, dest interface{}) (int
 	if tc.Err == nil {
 		defer tc.Back.Done()
 		if bs {
-			return r.B2V()(tc.Back.Data()[1:], dest)
+			return tc.Back.Data()[1:], nil
 		} else {
-			return r.B2V()(tc.Back.Data(), dest)
+			return tc.Back.Data(), nil
 		}
 	} else {
 		return nil, tc.Err
@@ -296,7 +308,7 @@ func (r *RC_C_H) OnConn(c netw.Con) bool {
 /*
 
 
-*/
+ */
 //the remote command server handler.
 type RC_S struct {
 	H netw.CmdHandler

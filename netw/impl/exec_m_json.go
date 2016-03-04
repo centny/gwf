@@ -16,7 +16,11 @@ func Json_NAV(rc *RCM_Con, name string, args interface{}) (interface{}, error) {
 }
 
 func Json_V2B(v interface{}) ([]byte, error) {
-	return json.Marshal(v)
+	if sv, ok := v.(string); ok {
+		return []byte(sv), nil
+	} else {
+		return json.Marshal(v)
+	}
 }
 
 func Json_B2V(bys []byte, v interface{}) (interface{}, error) {
@@ -30,7 +34,7 @@ func Json_B2V(bys []byte, v interface{}) (interface{}, error) {
 
 /*
 
-*/
+ */
 func Json_ND() interface{} {
 	return &util.Map{}
 }

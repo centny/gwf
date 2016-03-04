@@ -410,6 +410,7 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 			tokens = append(tokens, token)
 		}
 	}
+	dtcm.Name = "DTCM_S"
 	log.D("create DTCM_S by cmds(%v),clients(%v),tokens(%v) parsing %v commands", cmds, clients, tokens, len(cmds_))
 	return dtcm, nil
 }

@@ -136,6 +136,7 @@ type F_DAIL func(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPo
 //
 type RC_Runner_m struct {
 	*RCM_Con
+	Name      string
 	Addr      string
 	BP        *pool.BytePool
 	L         *netw.NConPool
@@ -200,7 +201,7 @@ func (r *RC_Runner_m) Run() error {
 }
 func (r *RC_Runner_m) OnConn(c netw.Con) bool {
 	c.SetWait(true)
-	log.D("RC Runner connect to %v success", r.Addr)
+	log.D("RC Runner(%v) connect to %v success", r.Name, r.Addr)
 	return true
 }
 func (r *RC_Runner_m) Try() {
@@ -265,6 +266,14 @@ func (r *RC_Runner_m) VExec_m(name string, args interface{}) (util.Map, error) {
 	var res util.Map
 	_, err := r.VExec(name, args, &res)
 	return res, err
+}
+func (r *RC_Runner_m) VExec_s(name string, args interface{}) (string, error) {
+	err := r.Valid()
+	if err == nil {
+		return r.Exec_s(name, args)
+	} else {
+		return "", err
+	}
 }
 func (r *RC_Runner_m) Timeout() {
 	var i int32

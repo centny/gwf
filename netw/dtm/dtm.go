@@ -173,6 +173,7 @@ func NewDTM_S(bp *pool.BytePool, addr string, h DTM_S_H, rcm *impl.RCM_S, v2b ne
 	lm := rc.NewRC_Listener_m(bp, addr, netw.NewCCH(h, obdh), rcm, v2b, b2v, na)
 	lm.LCH = h
 	sh.RC_Listener_m = lm
+	lm.Name = "DTM_S"
 	return sh
 }
 
@@ -359,6 +360,7 @@ func NewDTM_C(bp *pool.BytePool, addr string, rcm *impl.RCM_S, v2b netw.V2Byte, 
 	cr.AddHFunc("start_task", ch.StartTask)
 	cr.AddHFunc("wait_task", ch.WaitTask)
 	cr.AddHFunc("stop_task", ch.StopTask)
+	ch.Name = "DTM_C"
 	return ch
 }
 

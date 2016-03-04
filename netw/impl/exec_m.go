@@ -30,6 +30,13 @@ func (r *RCM_Con) Exec(name string, args interface{}, dest interface{}) (interfa
 	}
 	return r.RC_Con.Exec(vv, dest)
 }
+func (r *RCM_Con) Exec2(name string, args interface{}) ([]byte, error) {
+	vv, err := r.NAV(r, name, args)
+	if err != nil {
+		return nil, err
+	}
+	return r.RC_Con.Exec2(vv)
+}
 func (r *RCM_Con) ExecRes(name string, args interface{}) (*RCM_CRes, error) {
 	var crs RCM_CRes
 	_, err := r.Exec(name, args, &crs)
@@ -39,6 +46,10 @@ func (r *RCM_Con) Exec_m(name string, args interface{}) (util.Map, error) {
 	var res util.Map
 	_, err := r.Exec(name, args, &res)
 	return res, err
+}
+func (r *RCM_Con) Exec_s(name string, args interface{}) (string, error) {
+	var bys, err = r.Exec2(name, args)
+	return string(bys), err
 }
 
 /*
