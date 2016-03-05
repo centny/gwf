@@ -327,7 +327,7 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	}
 	code, rv, token, ct, err := n.Db.OnLogin(r, &args)
 	if err != nil {
-		log.W("LI OnLogin fail:%v", err.Error())
+		log.W("LI OnLogin fail:code:%v,err:%v", err.Error())
 		return n.writev_ce2(r, code, err.Error())
 	}
 	con := &Con{
