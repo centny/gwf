@@ -800,3 +800,21 @@ func (d *DTCM_S) Hand(pre string, mux *routing.SessionMux) {
 	mux.HFunc("^"+pre+"/addTask(\\?.*)?", d.AddTaskH)
 	mux.H("^"+pre+"/status(\\?.*)?", d)
 }
+
+func (d *DTCM_S) TaskRate(id string) (float64, map[string]float64, error) {
+	var task = d.tasks[id]
+	if task == nil {
+		return 0, nil, util.Err("DTCM_S task is not found by id(%v)", id)
+	}
+	var total float64 = 0
+	var res = map[string]float64{}
+	for key, proc := range task.Proc {
+		var rate = d.DTM_S.H.Rate(d.DTM_S, proc.Cid, proc.Tid)
+		total += rate
+		res[key] = rate
+	}
+	if len(res) > 0 {
+		total = total / float64(len(res))
+	}
+	return total, res, nil
+}

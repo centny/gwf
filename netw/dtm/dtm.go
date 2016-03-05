@@ -42,6 +42,8 @@ type DTM_S_H interface {
 	OnDone(d *DTM_S, args util.Map, cid, tid string, code int, err string, used int64)
 	//check and return minial used client id
 	MinUsedCid(d *DTM_S, args ...interface{}) string
+	//
+	Rate(d *DTM_S, cid, tid string) float64
 }
 
 //the default DTM process handler
@@ -141,6 +143,14 @@ func (d *DTM_S_Proc) MinUsedCid(dtm *DTM_S, args ...interface{}) string {
 		}
 	}
 	return tcid
+}
+func (d *DTM_S_Proc) Rate(dtm *DTM_S, cid, tid string) float64 {
+	if cv, ok := d.Rates[cid]; ok {
+		if tv, ok := cv[tid]; ok {
+			return tv
+		}
+	}
+	return 0
 }
 
 //total count

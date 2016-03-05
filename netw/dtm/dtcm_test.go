@@ -43,6 +43,7 @@ func (m *Mem_err) Find(id string) (*Task, error) {
 }
 
 type dtcm_s_h struct {
+	dcc int
 	cc  map[string]int
 	lck sync.RWMutex
 	E   error
@@ -63,6 +64,7 @@ func (d *dtcm_s_h) OnDone(dtcm *DTCM_S, task *Task) error {
 	d.lck.Lock()
 	defer d.lck.Unlock()
 	delete(d.cc, task.Id)
+	d.dcc += 1
 	return d.E
 }
 
@@ -121,27 +123,34 @@ func TestDtcm(t *testing.T) {
 		t.Error("error")
 		return
 	}
-	var rc = 10
+	var rc = 5
 	for i := 0; i < rc; i++ {
 		err = dtms.AddTask(nil, fmt.Sprintf("abc_%v.mkv", i), fmt.Sprintf("abc_%v", i))
 		if err != nil {
 			t.Error(err.Error())
 			return
 		}
+		total, detail, _ := dtms.TaskRate(fmt.Sprintf("abc_%v.mkv", i))
+		fmt.Printf("----->\n\ttotal:%v\n\tdetail:%v\n\n", total, util.S2Json(detail))
+		time.Sleep(time.Second)
 	}
-	for i := 0; i < rc; i++ {
+	for i := 0; i < rc*10; i++ {
 		err = dtms.AddTask(nil, fmt.Sprintf("abc_%v.mp4", i), fmt.Sprintf("xxx_%v", i))
 		if err != nil {
 			t.Error(err.Error())
 			return
 		}
 	}
+	time.Sleep(2 * time.Second)
 	var ats = httptest.NewServer(dtms.AddTaskH)
 	ats.G("?args=%v", "abc.mkv,abc")
 	ats.G("?args=%v", "abcxkk,abc")
 	ats.G("?args=%v", "")
+	dtms.TaskRate("sdsd")
 	for {
-		if len(sh.cc) > 0 {
+		total, detail, _ := dtms.TaskRate(fmt.Sprintf("abc_%v.mp4", 9))
+		fmt.Printf("----->\n\ttotal:%v\n\tdetail:%v\n\n", total, util.S2Json(detail))
+		if len(sh.cc) > 0 || sh.dcc < rc*11 {
 			fmt.Println("waiting->", len(sh.cc), "->", ts.URL)
 			time.Sleep(2 * time.Second)
 		} else {
