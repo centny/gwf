@@ -142,11 +142,11 @@ func (p *Parser) ParseDir(root string, inc, exc []string) error {
 	if len(dirs) < 1 {
 		return util.Err("filter root dir(%v) is empty", root)
 	}
-	return p.Parse(dirs...)
+	return p.Parse(root, dirs...)
 }
 
 //parser all directory
-func (p *Parser) Parse(dirs ...string) error {
+func (p *Parser) Parse(root string, dirs ...string) error {
 	var fs = token.NewFileSet()
 	for _, dir := range dirs {
 		pkgs, err := parser.ParseDir(fs, dir, func(f os.FileInfo) bool {
@@ -159,7 +159,7 @@ func (p *Parser) Parse(dirs ...string) error {
 			return err
 		}
 	}
-	log.D("parse success with dirs(%v)", len(dirs))
+	log.D("parse success with dirs(%v) on root(%v)", len(dirs), root)
 	return nil
 }
 
