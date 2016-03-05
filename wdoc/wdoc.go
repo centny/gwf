@@ -114,14 +114,26 @@ func NewParser() *Parser {
 
 //loop parse root directory by delay and include/exclude
 func (p *Parser) LoopParse(root string, inc, exc []string, delay time.Duration) {
+	p.LoopParseL(strings.Split(root, ","), inc, exc, delay)
+}
+func (p *Parser) LoopParseL(root []string, inc, exc []string, delay time.Duration) {
 	p.Running = true
 	for p.Running {
-		err := p.ParseDir(root, inc, exc)
+		err := p.ParseDirL(root, inc, exc)
 		if err != nil {
 			log.E("loop parse dir(%v),inc(%v),exc(%v) error->%v", root, inc, exc, err)
 		}
 		time.Sleep(delay * time.Millisecond)
 	}
+}
+func (p *Parser) ParseDirL(roots []string, inc, exc []string) error {
+	for _, root := range roots {
+		err := p.ParseDir(root, inc, exc)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 //parser root and child directory by include/exclude.
