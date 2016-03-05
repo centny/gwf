@@ -225,8 +225,15 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 	sort.Sort(items_l(arg.Items))
 	if sidx > -1 {
 		var ctext = ""
+		var matched = false
 		for i := sidx; i < len(lines); i++ {
-			ctext += "\n" + lines[i]
+			var line = strings.Trim(lines[i], " \t\n")
+			if !(matched || strings.HasPrefix(line, "[") || strings.HasPrefix(line, "{")) {
+				//fine the first line to matche json data.
+				continue
+			}
+			ctext += "\n" + line
+			matched = true
 		}
 		ctext = strings.Trim(ctext, " \t\n")
 		ctext = strings.TrimPrefix(ctext, "样例")
