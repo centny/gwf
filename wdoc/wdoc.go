@@ -241,7 +241,8 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 		for i := sidx; i < len(lines); i++ {
 			var line = strings.Trim(lines[i], " \t\n")
 			if !(matched || strings.HasPrefix(line, "[") || strings.HasPrefix(line, "{")) {
-				//fine the first line to matche json data.
+				//remove fist line is not json
+				matched = true
 				continue
 			}
 			ctext += "\n" + line
