@@ -98,3 +98,9 @@ func ResetStd() {
 	}
 	os.Stdout, os.Stderr = SysOut, SysErr
 }
+
+func NewNamedWriter(ws, name_f string, bsize int, cdelay int64) *TimeFlushWriter {
+	var sw = NewDateSwitchWriter2(ws)
+	sw.NameF = name_f
+	return NewTimeWriter(sw, bsize, time.Duration(cdelay))
+}
