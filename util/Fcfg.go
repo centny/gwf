@@ -199,12 +199,15 @@ func (f *Fcfg) InitWithFilePath(fp string) error {
 }
 func (f *Fcfg) InitWithFilePath2(fp string, wait bool) error {
 	f.slog("loading local configure->%v", fp)
-	turl, _ := nurl.Parse(fp)
-	qs := turl.Query()
-	for k, _ := range qs {
-		f.SetVal(k, qs.Get(k))
+	var fps = strings.Split(fp, "?")
+	fp = fps[0]
+	if len(fps) > 1 {
+		turl, _ := nurl.Parse("/abc?" + fps[1])
+		qs := turl.Query()
+		for k, _ := range qs {
+			f.SetVal(k, qs.Get(k))
+		}
 	}
-	fp = turl.Path
 	for !Fexists(fp) {
 		if wait {
 			f.slog("file(%v) not found", fp)

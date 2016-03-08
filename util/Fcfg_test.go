@@ -107,6 +107,11 @@ func TestSection(t *testing.T) {
 	if err != nil {
 		fmt.Println("error:", err)
 	}
+	if f.Val("ukk") != "123" {
+		fmt.Println(f.Val("ukk"))
+		t.Error("not right")
+		return
+	}
 	if f.Val("abc/txabc") != "1" {
 		t.Error("not right")
 		return
