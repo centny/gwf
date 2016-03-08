@@ -25,6 +25,7 @@ type Fcfg struct {
 	Lines   []string
 	Seces   []string
 	SecLn   map[string]int
+	Base    string
 }
 
 func NewFcfg(uri string) (*Fcfg, error) {
@@ -230,6 +231,9 @@ func (f *Fcfg) InitWithReader(reader *bufio.Reader) error {
 	return f.InitWithReader2("", reader)
 }
 func (f *Fcfg) InitWithReader2(base string, reader *bufio.Reader) error {
+	if len(base) > 0 {
+		f.Base = base
+	}
 	for {
 		//read one line
 		bys, err := ReadLine(reader, 10000, false)
@@ -328,6 +332,10 @@ func (f *Fcfg) load(base, line string) error {
 func (f *Fcfg) InitWithFile(tfile *os.File) error {
 	reader := bufio.NewReader(tfile)
 	dir, _ := filepath.Split(tfile.Name())
+	if len(dir) < 1 {
+		dir = "."
+	}
+	dir, _ = filepath.Abs(dir)
 	return f.InitWithReader2(dir, reader)
 }
 
@@ -379,6 +387,8 @@ func (f *Fcfg) EnvReplaceV(val string, empty bool) string {
 		for _, key := range keys {
 			if f.Exist(key) {
 				rval = f.Val(key)
+			} else if key == "C_PWD" {
+				rval = f.Base
 			} else {
 				rval = os.Getenv(key)
 			}

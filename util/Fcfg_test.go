@@ -159,4 +159,5 @@ func TestSectionMerge(t *testing.T) {
 		t.Error("error")
 		return
 	}
+	fmt.Println(cfga.EnvReplaceV("${C_PWD}", false))
 }
