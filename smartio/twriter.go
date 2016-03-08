@@ -49,11 +49,12 @@ func (t *TimeFlushWriter) Write(p []byte) (nn int, err error) {
 	return t.buf.Write(p)
 }
 func (t *TimeFlushWriter) runClock() {
-	// fmt.Println("TimeWriter clock start...")
+	slog("TimeWriter clock start...")
 	wg.Add(1)
 	var ttime time.Duration = 0
 	for t.running {
 		if ttime >= t.cdelay && t.buf.Buffered() > 0 {
+			slog("TimeWriter do flush...")
 			t.LCK.Lock()
 			err := t.buf.Flush()
 			if err != nil {
@@ -67,7 +68,7 @@ func (t *TimeFlushWriter) runClock() {
 		time.Sleep(t.rdelay * time.Millisecond)
 	}
 	wg.Done()
-	// fmt.Println("TimeWriter clock end...")
+	slog("TimeWriter clock end...")
 }
 func (t *TimeFlushWriter) Stop() {
 	// fmt.Println("Stop TimeWriter")

@@ -1,6 +1,7 @@
 package smartio
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,6 +14,14 @@ var LOG io.Writer = os.Stdout
 
 var Stdout *TimeFlushWriter = nil
 var Stderr *TimeFlushWriter = nil
+
+var ShowLog bool = false
+
+func slog(format string, args ...interface{}) {
+	if ShowLog {
+		fmt.Fprintf(LOG, format, args...)
+	}
+}
 
 func NewRedirect(ws, name_f string, bsize int, cdelay int64, sys *os.File) (*os.File, *TimeFlushWriter, error) {
 	if len(ws) > 0 {
@@ -99,8 +108,8 @@ func ResetStd() {
 	os.Stdout, os.Stderr = SysOut, SysErr
 }
 
-func NewNamedWriter(ws, name_f string, bsize int, cdelay int64) *TimeFlushWriter {
+func NewNamedWriter(ws, name_f string, bsize int, cdelay int64) (*DateSwitchWriter, *TimeFlushWriter) {
 	var sw = NewDateSwitchWriter2(ws)
 	sw.NameF = name_f
-	return NewTimeWriter(sw, bsize, time.Duration(cdelay))
+	return sw, NewTimeWriter(sw, bsize, time.Duration(cdelay))
 }
