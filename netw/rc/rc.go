@@ -275,25 +275,25 @@ func (r *RC_Listener_m) Login_(rc *impl.RCM_Cmd) (interface{}, error) {
 		return nil, err
 	}
 	otk := rc.Kvs().StrVal("token")
-	log.D("RC_Listener_m login by token(%v),old(%v)", token, otk)
+	log.D("RC_Listener_m(%v) login by token(%v),old(%v)", r.Name, token, otk)
 	tval := r.TokenVal(token)
 	if tval < 1 {
-		log.W("RC_Listener_m login by token(%v) fail->token is not found", token)
+		log.W("RC_Listener_m(%v) login by token(%v) fail->token is not found", r.Name, token)
 		return util.Map{"code": -2, "err": fmt.Sprintf("token(%v) is not found", token)}, nil
 	}
 	if tval == 1 && len(otk) > 0 {
-		log.W("RC_Listener_m login by token(%v) fail->token is logined", token)
+		log.W("RC_Listener_m(%v) login by token(%v) fail->token is logined", r.Name, token)
 		return util.Map{"code": -3, "err": fmt.Sprintf("token(%v) is logined", token)}, nil
 	}
 	tcid, err := r.LCH.OnLogin(rc, token)
 	if err != nil {
-		log.W("RC_Listener_m login by token(%v) fail->call OnLogin fail->%v", token, err)
+		log.W("RC_Listener_m(%v) login by token(%v) fail->call OnLogin fail->%v", r.Name, token, err)
 		return util.Map{"code": -4, "err": err.Error()}, nil
 	}
 	r.AddC_rc(tcid, rc)
 	rc.Kvs().SetVal("token", token)
 	rc.Kvs().SetVal("cid", tcid)
-	log.D("RC_Listener_m login by token(%v),old(%v) success with cid(%v)", token, otk, tcid)
+	log.D("RC_Listener_m(%v) login by token(%v),old(%v) success with cid(%v)", r.Name, token, otk, tcid)
 	return util.Map{"code": 0}, nil
 }
 
