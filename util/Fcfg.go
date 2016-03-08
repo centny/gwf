@@ -336,6 +336,9 @@ func (f *Fcfg) InitWithFile(tfile *os.File) error {
 		dir = "."
 	}
 	dir, _ = filepath.Abs(dir)
+	if !strings.HasSuffix(dir, "/") {
+		dir += string(filepath.Separator)
+	}
 	return f.InitWithReader2(dir, reader)
 }
 
