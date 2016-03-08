@@ -345,6 +345,7 @@ func NewRC_Runner_m_j(p *pool.BytePool, addr string, h netw.CCHandler) *RC_Runne
 
 //dail to server and create remote command connection.
 func (r *RC_Runner_m) Dail(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *impl.RCM_Con, error) {
+	log.I("RC_Runner_m(%v) start connect to addr(%v)", r.Name, addr)
 	cch := netw.NewCCH(netw.NewQueueConH(h, r.CC), r.CH)
 	np := netw.NewNConPool2(p, cch)
 	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
@@ -388,6 +389,7 @@ func (r *RC_Runner_m) Writev2(bys []byte, val interface{}) (int, error) {
 }
 
 func (r *RC_Runner_m) Login_(token string) error {
+	log.I("RC_Runner_m(%v) login by token(%v)", r.Name, token)
 	res, err := r.VExec_m("login_", util.Map{
 		"token": token,
 	})
