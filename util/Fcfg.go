@@ -406,11 +406,20 @@ func (f *Fcfg) Merge(t *Fcfg) {
 	for k, v := range t.Map {
 		f.Map[k] = v
 	}
+	for _, s := range t.Seces {
+		if _, ok := f.SecLn[s]; ok {
+			continue
+		}
+		f.Seces = append(f.Seces, s)
+	}
 }
 
 func (f *Fcfg) Merge2(sec string, t *Fcfg) {
 	for k, v := range t.Map {
 		f.Map[sec+"/"+k] = v
+	}
+	if _, ok := f.SecLn[sec]; !ok {
+		f.Seces = append(f.Seces, sec)
 	}
 }
 

@@ -145,3 +145,18 @@ func TestCfgEscape(t *testing.T) {
 	cfg.Print()
 	fmt.Println(cfg.Val("kk"))
 }
+
+func TestSectionMerge(t *testing.T) {
+	var cfga, cfgb = NewFcfg3(), NewFcfg3()
+	cfga.InitWithFilePath2("fcfg_a.properties", true)
+	cfgb.InitWithFilePath2("fcfg_b.properties", true)
+	if len(cfga.Seces) != 2 {
+		t.Error("error")
+		return
+	}
+	cfga.Merge(cfgb)
+	if len(cfga.Seces) != 4 {
+		t.Error("error")
+		return
+	}
+}
