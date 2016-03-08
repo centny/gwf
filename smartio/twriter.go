@@ -49,7 +49,7 @@ func (t *TimeFlushWriter) Write(p []byte) (nn int, err error) {
 	return t.buf.Write(p)
 }
 func (t *TimeFlushWriter) runClock() {
-	slog("TimeWriter clock start by rdelay(%v),cdelay(%v)...\n", t.rdelay, t.cdelay)
+	slog("TimeWriter clock start by rdelay(%v),cdelay(%v)...\n", int64(t.rdelay), int64(t.cdelay))
 	wg.Add(1)
 	var ttime time.Duration = 0
 	for t.running {
