@@ -395,8 +395,10 @@ func (r *RC_Runner_m) Login_(token string) error {
 		return err
 	}
 	if res.IntVal("code") == 0 {
+		log.I("RC_Runner_m(%v) login success by token(%v)", r.Name, token)
 		return nil
 	} else {
+		log.I("RC_Runner_m(%v) login fail by token(%v)->%v", r.Name, token, util.S2Json(res))
 		return util.Err("login error->%v", res.StrVal("err"))
 	}
 }
