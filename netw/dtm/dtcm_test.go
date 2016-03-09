@@ -31,7 +31,7 @@ func (m *Mem_err) Del(t *Task) error {
 	delete(m.Data, t.Id)
 	return m.E3
 }
-func (m *Mem_err) List() ([]*Task, error) {
+func (m *Mem_err) List(status string) ([]*Task, error) {
 	var ts []*Task
 	for _, task := range m.Data {
 		ts = append(ts, task)

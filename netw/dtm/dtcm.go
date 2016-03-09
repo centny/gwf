@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -49,6 +50,7 @@ type Proc struct {
 	Cmds   string      `bson:"cmds" json:"cmds"`     //commands
 	Done   float32     `bson:"done" json:"done"`     //the complete rate
 	Msg    string      `bson:"msg" json:"msg"`       //the task exit message
+	Try    int32       `bson:"try" json:"try"`       //the task try time
 	Time   int64       `bson:"time" json:"time"`     //last update time
 	Status string      `bson:"status" json:"status"` //the task status
 	Res    interface{} `bson:"res" json:"res"`       //the task status
@@ -56,11 +58,12 @@ type Proc struct {
 
 //task
 type Task struct {
-	Id   string           `bson:"_id" json:"id"`    //the id.
-	Args []interface{}    `bson:"args" json:"args"` //source file
-	Sid  string           `bson:"sid" json:"sid"`   //the server id.
-	Proc map[string]*Proc `bson:"proc" json:"proc"` //the proc status
-	Info interface{}      `bson:"info" json:"info"` //the task exit message
+	Id     string           `bson:"_id" json:"id"`        //the id.
+	Args   []interface{}    `bson:"args" json:"args"`     //source file
+	Sid    string           `bson:"sid" json:"sid"`       //the server id.
+	Proc   map[string]*Proc `bson:"proc" json:"proc"`     //the proc status
+	Info   interface{}      `bson:"info" json:"info"`     //the task exit message
+	Status string           `bson:"status" json:"status"` //the task try time
 }
 
 //check if task is done
@@ -71,6 +74,21 @@ func (t *Task) IsDone() bool {
 		}
 	}
 	return true
+}
+
+func (t *Task) CheckDone() (int, bool) {
+	var max_try int32 = -1
+	for _, proc := range t.Proc {
+		if proc.Status == TKS_PENDING || proc.Status == TKS_RUNNING {
+			return 0, false
+		}
+		if proc.Status == TKS_COV_ERR {
+			if max_try < proc.Try {
+				max_try = proc.Try
+			}
+		}
+	}
+	return int(max_try), max_try < 0
 }
 
 func (t *Task) IsRunning() bool {
@@ -222,7 +240,7 @@ type DbH interface {
 	//delete task to db
 	Del(t *Task) error
 	//list task from db
-	List() ([]*Task, error)
+	List(status string) ([]*Task, error)
 	//find task
 	Find(id string) (*Task, error)
 }
@@ -256,10 +274,12 @@ func (m *MemH) Del(t *Task) error {
 	delete(m.Data, t.Id)
 	return m.Errs["Del"]
 }
-func (m *MemH) List() ([]*Task, error) {
+func (m *MemH) List(status string) ([]*Task, error) {
 	var ts []*Task
 	for _, task := range m.Data {
-		ts = append(ts, task)
+		if task.Status == status || len(status) < 1 {
+			ts = append(ts, task)
+		}
 	}
 	return ts, m.Errs["List"]
 }
@@ -423,11 +443,12 @@ func NewDTCM_S_j(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H) (*DTCM
 
 func (d *DTCM_S) NewTask(id, info interface{}, args ...interface{}) *Task {
 	var task = &Task{
-		Id:   fmt.Sprintf("%v", id),
-		Args: args,
-		Sid:  d.Sid,
-		Proc: map[string]*Proc{},
-		Info: info,
+		Id:     fmt.Sprintf("%v", id),
+		Args:   args,
+		Sid:    d.Sid,
+		Proc:   map[string]*Proc{},
+		Info:   info,
+		Status: TKS_RUNNING,
 	}
 	for _, cmd := range d.Cmds {
 		if !cmd.Match(args...) {
@@ -696,6 +717,7 @@ func (d *DTCM_S) mark_done(res interface{}, cid, tid, msg, status string) {
 	proc.Msg = msg
 	proc.Status = status
 	proc.Res = res
+	atomic.AddInt32(&proc.Try, 1)
 	delete(d.tid2task, tid)
 	delete(d.tid2proc, tid)
 	var rerr = d.Db.Update(task)
@@ -716,10 +738,21 @@ func (d *DTCM_S) check_done(task *Task) {
 		return
 	}
 	delete(d.tasks, task.Id)
-	if !task.IsDone() {
+	mtry, done := task.CheckDone()
+	if done {
+		d.do_done(task)
 		return
 	}
-	d.do_done(task)
+	cmtry := d.Cfg.IntValV("max_try", 100)
+	if mtry < cmtry {
+		return
+	}
+	log.E("DTCM_S convert task(%v) error->too many try times(%v/%v)", util.S2Json(task), mtry, cmtry)
+	task.Status = TKS_COV_ERR
+	var rerr = d.Db.Update(task)
+	if rerr != nil {
+		log.E("DTCM_S update task error by %v ->%v", util.S2Json(task), rerr)
+	}
 }
 
 //do done
@@ -764,7 +797,7 @@ func (d *DTCM_S) loop_checker(delay int64) {
 func (d *DTCM_S) do_checker() {
 	d.task_l.Lock()
 	defer d.task_l.Unlock()
-	ts, err := d.Db.List()
+	ts, err := d.Db.List(TKS_RUNNING)
 	if err != nil {
 		log.E("DTCM_S do check error->%v", err)
 		return
@@ -787,7 +820,7 @@ func (d *DTCM_S) do_checker() {
 }
 
 func (d *DTCM_S) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
-	var ts, err = d.Db.List()
+	var ts, err = d.Db.List("")
 	return hs.JRes(util.Map{
 		"proc":    d.DTM_S_Proc,
 		"tasks":   ts,
