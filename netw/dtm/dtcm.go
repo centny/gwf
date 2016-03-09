@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	TKS_PENDING = "PENDING" //pending
-	TKS_RUNNING = "RUNNING" //converting
-	TKS_COV_ERR = "COV_ERR" //convert error
-	TKS_DONE    = "DONE"    //done
+	TKS_PENDING  = "PENDING"  //pending
+	TKS_RUNNING  = "RUNNING"  //converting
+	TKS_COV_ERR  = "COV_ERR"  //convert error
+	TKS_DONE     = "DONE"     //done
+	TKS_DONE_ERR = "DONE_ERR" //done error
 )
 
 //not matched error
@@ -759,13 +760,18 @@ func (d *DTCM_S) check_done(task *Task) {
 //do done
 func (d *DTCM_S) do_done(task *Task) {
 	var err = d.H.OnDone(d, task)
-	if err != nil {
-		log.E("DTCM_S on done error by %v ->%v", util.S2Json(task), err)
+	if err == nil {
+		err = d.Db.Del(task)
+		if err != nil {
+			log.E("DTCM_S delete task error by %v ->%v", util.S2Json(task), err)
+		}
 		return
 	}
-	err = d.Db.Del(task)
-	if err != nil {
-		log.E("DTCM_S delete task error by %v ->%v", util.S2Json(task), err)
+	log.E("DTCM_S on done error by %v ->%v", util.S2Json(task), err)
+	task.Status = TKS_DONE_ERR
+	var rerr = d.Db.Update(task)
+	if rerr != nil {
+		log.E("DTCM_S update task error by %v ->%v", util.S2Json(task), rerr)
 	}
 }
 
