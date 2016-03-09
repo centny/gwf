@@ -161,3 +161,12 @@ func TestSectionMerge(t *testing.T) {
 	}
 	fmt.Println(cfga.EnvReplaceV("${C_PWD}", false))
 }
+
+func TestFileMode(t *testing.T) {
+	var cfg = NewFcfg3()
+	cfg.SetVal("abc", "0644")
+	cfg.SetVal("abc2", "06l44")
+	fmt.Println(cfg.FileModeV("abc", os.ModePerm))
+	fmt.Println(cfg.FileModeV("xx", os.ModePerm))
+	fmt.Println(cfg.FileModeV("abc2", os.ModePerm))
+}

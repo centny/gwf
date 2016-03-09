@@ -131,6 +131,17 @@ func (f *Fcfg) FloatValV(key string, d float64) float64 {
 	return val
 }
 
+func (f *Fcfg) FileModeV(key string, d os.FileMode) os.FileMode {
+	if !f.Exist(key) {
+		return d
+	}
+	val, err := strconv.ParseUint(f.Val(key), 8, 32)
+	if err != nil {
+		return d
+	}
+	return os.FileMode(val)
+}
+
 //
 func (f *Fcfg) Show() string {
 	return f.String()
