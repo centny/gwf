@@ -700,7 +700,7 @@ func (d *DTCM_S) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int, er
 	} else {
 		d.mark_done(args, cid, tid, fmt.Sprintf("done error (code:%v,err:%v)", code, err), TKS_COV_ERR)
 	}
-	d.do_checker_(1)
+	go d.do_checker_(1)
 }
 
 //mark task done
