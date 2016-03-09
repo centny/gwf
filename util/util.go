@@ -354,11 +354,14 @@ func Copyp(dst string, src io.Reader) (written int64, err error) {
 	return io.Copy(dst_, src)
 }
 func Copyp2(dst string, src io.Reader) (written int64, sha_ []byte, md5_ []byte, err error) {
+	return Copyp2_(dst, src, os.ModePerm)
+}
+func Copyp2_(dst string, src io.Reader, mode os.FileMode) (written int64, sha_ []byte, md5_ []byte, err error) {
 	fp, _ := filepath.Split(dst)
 	if !Fexists(fp) {
 		os.MkdirAll(fp, os.ModePerm)
 	}
-	dst_, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	dst_, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -367,6 +370,10 @@ func Copyp2(dst string, src io.Reader) (written int64, sha_ []byte, md5_ []byte,
 }
 func Copyp3(dst string, src io.Reader) (written int64, sha string, md5 string, err error) {
 	written, sha_, md5_, err := Copyp2(dst, src)
+	return written, fmt.Sprintf("%x", sha_), fmt.Sprintf("%x", md5_), err
+}
+func Copyp4(dst string, src io.Reader, mode os.FileMode) (written int64, sha string, md5 string, err error) {
+	written, sha_, md5_, err := Copyp2_(dst, src, mode)
 	return written, fmt.Sprintf("%x", sha_), fmt.Sprintf("%x", md5_), err
 }
 func Sha1(fn string) (string, error) {

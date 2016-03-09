@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -26,6 +27,9 @@ type MultipartValues struct {
 }
 
 func (h *HTTPSession) RecMultipart(sha bool, save_path_f func(*multipart.Part) string) (*MultipartValues, error) {
+	return h.RecMultipartV(sha, save_path_f, os.ModePerm)
+}
+func (h *HTTPSession) RecMultipartV(sha bool, save_path_f func(*multipart.Part) string, mode os.FileMode) (*MultipartValues, error) {
 	mr, err := h.R.MultipartReader()
 	if err != nil {
 		return nil, util.Err("MultipartReader err(%v)", err.Error())
@@ -63,7 +67,7 @@ func (h *HTTPSession) RecMultipart(sha bool, save_path_f func(*multipart.Part) s
 		var w int64
 		var sha_, md5_ []byte
 		if sha {
-			w, sha_, md5_, err = util.Copyp2(tfile, part)
+			w, sha_, md5_, err = util.Copyp2_(tfile, part, mode)
 		} else {
 			w, err = util.Copyp(tfile, part)
 		}
@@ -127,13 +131,16 @@ func (h *HTTPSession) RecFvN(name, tfile string) (fn string, w int64, sha_ []byt
 	})
 }
 func (h *HTTPSession) RecFvV(sha bool, name string, tfile_f func(*multipart.Part) string) (fn string, w int64, sha_ []byte, md5_ []byte, err error) {
-	res, err := h.RecMultipart(sha, func(part *multipart.Part) string {
+	return h.RecFvV_(sha, name, tfile_f, os.ModePerm)
+}
+func (h *HTTPSession) RecFvV_(sha bool, name string, tfile_f func(*multipart.Part) string, mode os.FileMode) (fn string, w int64, sha_ []byte, md5_ []byte, err error) {
+	res, err := h.RecMultipartV(sha, func(part *multipart.Part) string {
 		if name == part.FormName() {
 			return tfile_f(part)
 		} else {
 			return ""
 		}
-	})
+	}, mode)
 	if err != nil {
 		return "", 0, nil, nil, err
 	}
@@ -146,5 +153,10 @@ func (h *HTTPSession) RecFvV(sha bool, name string, tfile_f func(*multipart.Part
 
 func (h *HTTPSession) RecFvV2(name string, tfile_f func(*multipart.Part) string) (fn string, w int64, sha_ string, md5_ string, err error) {
 	fn, w, sh, md, err := h.RecFvV(true, name, tfile_f)
+	return fn, w, fmt.Sprintf("%x", sh), fmt.Sprintf("%x", md), err
+}
+
+func (h *HTTPSession) RecFvV3(name string, tfile_f func(*multipart.Part) string, mode os.FileMode) (fn string, w int64, sha_ string, md5_ string, err error) {
+	fn, w, sh, md, err := h.RecFvV_(true, name, tfile_f, mode)
 	return fn, w, fmt.Sprintf("%x", sh), fmt.Sprintf("%x", md), err
 }
