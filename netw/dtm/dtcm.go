@@ -240,7 +240,7 @@ type DbH interface {
 	//delete task to db
 	Del(t *Task) error
 	//list task from db
-	List(status string) ([]*Task, error)
+	List(running []string, status string, skip, limit int) (int, []*Task, error)
 	//find task
 	Find(id string) (*Task, error)
 }
@@ -274,14 +274,14 @@ func (m *MemH) Del(t *Task) error {
 	delete(m.Data, t.Id)
 	return m.Errs["Del"]
 }
-func (m *MemH) List(status string) ([]*Task, error) {
+func (m *MemH) List(running []string, status string, skip, limit int) (int, []*Task, error) {
 	var ts []*Task
 	for _, task := range m.Data {
 		if task.Status == status || len(status) < 1 {
 			ts = append(ts, task)
 		}
 	}
-	return ts, m.Errs["List"]
+	return len(m.Data), ts, m.Errs["List"]
 }
 func (m *MemH) Find(id string) (*Task, error) {
 	return m.Data[id], m.Errs["Find"]
@@ -700,6 +700,7 @@ func (d *DTCM_S) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int, er
 	} else {
 		d.mark_done(args, cid, tid, fmt.Sprintf("done error (code:%v,err:%v)", code, err), TKS_COV_ERR)
 	}
+	d.do_checker_(1)
 }
 
 //mark task done
@@ -795,9 +796,17 @@ func (d *DTCM_S) loop_checker(delay int64) {
 
 //do checker
 func (d *DTCM_S) do_checker() {
+	var max = d.Cfg.IntValV("max", 100)
+	d.do_checker_(max)
+}
+func (d *DTCM_S) do_checker_(max int) {
 	d.task_l.Lock()
 	defer d.task_l.Unlock()
-	ts, err := d.Db.List(TKS_RUNNING)
+	var rids = []string{}
+	for rid, _ := range d.tasks {
+		rids = append(rids, rid)
+	}
+	total, ts, err := d.Db.List(rids, TKS_RUNNING, 0, max)
 	if err != nil {
 		log.E("DTCM_S do check error->%v", err)
 		return
@@ -806,7 +815,7 @@ func (d *DTCM_S) do_checker() {
 		log.D("DTCM_S do check succes and task is empty")
 		return
 	}
-	log.D("DTCM_S do check succes and %v task found", len(ts))
+	log.D("DTCM_S do check succes and %v task found, will try run %v task", total, max)
 	for _, task := range ts {
 		if _, ok := d.tasks[task.Id]; ok {
 			continue
@@ -820,10 +829,12 @@ func (d *DTCM_S) do_checker() {
 }
 
 func (d *DTCM_S) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
-	var ts, err = d.Db.List("")
+	var max = d.Cfg.IntValV("max", 100)
+	var total, ts, err = d.Db.List(nil, "", 0, max)
 	return hs.JRes(util.Map{
 		"proc":    d.DTM_S_Proc,
 		"tasks":   ts,
+		"total":   total,
 		"running": d.tasks,
 		"err":     err,
 	})

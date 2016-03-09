@@ -31,12 +31,12 @@ func (m *Mem_err) Del(t *Task) error {
 	delete(m.Data, t.Id)
 	return m.E3
 }
-func (m *Mem_err) List(status string) ([]*Task, error) {
+func (m *Mem_err) List(rids []string, status string, skip, limit int) (int, []*Task, error) {
 	var ts []*Task
 	for _, task := range m.Data {
 		ts = append(ts, task)
 	}
-	return ts, m.E4
+	return len(m.Data), ts, m.E4
 }
 func (m *Mem_err) Find(id string) (*Task, error) {
 	return m.Data[id], m.E5
