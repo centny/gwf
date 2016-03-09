@@ -836,7 +836,7 @@ func (d *DTCM_S) do_checker_(max int) {
 
 func (d *DTCM_S) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	var max = d.Cfg.IntValV("max", 100)
-	var total, ts, err = d.Db.List(nil, "", 0, max)
+	var total, ts, err = d.Db.List(nil, hs.RVal("status"), 0, max)
 	return hs.JRes(util.Map{
 		"proc":    d.DTM_S_Proc,
 		"tasks":   ts,
