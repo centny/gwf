@@ -95,8 +95,14 @@ func (h *HClient) HPost(url string, fields map[string]string) (string, error) {
 	return h.HPostF(url, fields, "", "")
 }
 func (h *HClient) HPostF(url string, fields map[string]string, fkey string, fp string) (string, error) {
-	_, str, err := h.HPostF_H(url, fields, map[string]string{}, fkey, fp)
-	return str, err
+	code, str, err := h.HPostF_H(url, fields, map[string]string{}, fkey, fp)
+	if err != nil {
+		return str, err
+	}
+	if code != 200 {
+		return str, Err("the response code is %v", code)
+	}
+	return str, nil
 }
 func (h *HClient) HPostF_H(url string, fields map[string]string, header map[string]string, fkey string, fp string) (int, string, error) {
 	code, bys, err := h.HPostF_Hv(url, fields, header, fkey, fp)
@@ -198,8 +204,11 @@ func (h *HClient) HPost2(url string, fields map[string]string) (Map, error) {
 }
 func (h *HClient) HPostF2(url string, fields map[string]string, fkey string, fp string) (Map, error) {
 	data, err := h.HPostF(url, fields, fkey, fp)
-	if len(data) < 1 || err != nil {
+	if err != nil {
 		return nil, err
+	}
+	if len(data) < 1 {
+		return nil, Err("the response data is empty")
 	}
 	return Json2Map(data)
 }
