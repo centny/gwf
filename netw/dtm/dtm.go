@@ -127,6 +127,7 @@ func (d *DTM_S_Proc) OnClose(c netw.Con) {
 	defer d.proc_l.Unlock()
 	var cid = c.Kvs().StrVal("cid")
 	if len(cid) > 0 {
+		d.AllC -= d.TaskC[cid]
 		delete(d.TaskC, cid)
 		delete(d.Rates, cid)
 	}
