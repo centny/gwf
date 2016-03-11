@@ -111,7 +111,7 @@ func (d *DTM_S_Proc) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 	d.proc_l.Lock()
 	defer d.proc_l.Unlock()
 	cid := atomic.AddInt64(&d.cid, 1)
-	cid_ := fmt.Sprintf("N-%v", cid)
+	cid_ := fmt.Sprintf("C-%v", cid)
 	d.TaskC[cid_] = 0
 	return cid_, nil
 }

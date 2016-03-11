@@ -876,15 +876,20 @@ func (d *DTCM_S) do_checker_(max int) {
 }
 
 func (d *DTCM_S) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
-	var max = d.Cfg.IntValV("max", 100)
-	var total, ts, err = d.Db.List(nil, hs.RVal("status"), 0, max)
-	return hs.JRes(util.Map{
-		"proc":    d.DTM_S_Proc,
-		"tasks":   ts,
-		"total":   total,
-		"running": d.tasks,
-		"err":     err,
-	})
+	var total, ts, err = d.Db.List(nil, hs.RVal("status"), 0, d.Cfg.IntValV("max", 100))
+	var res = util.Map{
+		"proc":      d.DTM_S_Proc,
+		"total":     total,
+		"running_c": len(d.tasks),
+		"err":       err,
+	}
+	if hs.RVal("tasks") == "1" {
+		res["tasks"] = ts
+	}
+	if hs.RVal("running") == "1" {
+		res["running"] = d.tasks
+	}
+	return hs.JRes(res)
 }
 
 func (d *DTCM_S) Hand(pre string, mux *routing.SessionMux) {
