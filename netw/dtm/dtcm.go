@@ -704,6 +704,29 @@ func (d *DTCM_S) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int, er
 	go d.do_checker_(1)
 }
 
+func (d *DTCM_S) OnClose(c netw.Con) {
+	defer d.DTM_S_Proc.OnClose(c)
+	var cid = c.Kvs().StrVal("cid")
+	var trs = d.Rates[cid]
+	if trs == nil || len(trs) < 1 {
+		return
+	}
+	log.W("DTCM_S client(%v) is closed, will clear %v running process", cid, len(trs))
+	var tids = map[string][]string{}
+	var tasks = map[string]*Task{}
+	for tid, _ := range trs {
+		var task = d.tid2task[tid]
+		if task == nil {
+			continue
+		}
+		tasks[task.Id] = task
+		tids[task.Id] = append(tids[task.Id], tid)
+	}
+	for tid, task := range tasks {
+		d.mark_done_v(nil, cid, task, tids[tid], "Runner Closed", TKS_COV_ERR)
+	}
+}
+
 //mark task done
 func (d *DTCM_S) mark_done(res interface{}, cid, tid, msg, status string) {
 	var task = d.tid2task[tid]
@@ -712,16 +735,24 @@ func (d *DTCM_S) mark_done(res interface{}, cid, tid, msg, status string) {
 		return
 	}
 	log.D("DTCM_S runner(%v/%v) is done on task(%v)", tid, cid, task.Id)
-	var proc = task.Proc[d.tid2proc[tid]]
-	proc.Cid = ""
-	proc.Tid = ""
-	proc.Time = util.Now()
-	proc.Msg = msg
-	proc.Status = status
-	proc.Res = res
-	atomic.AddInt32(&proc.Try, 1)
-	delete(d.tid2task, tid)
-	delete(d.tid2proc, tid)
+	d.mark_done_v(res, cid, task, []string{tid}, msg, status)
+}
+func (d *DTCM_S) mark_done_v(res interface{}, cid string, task *Task, tids []string, msg, status string) {
+	for _, tid := range tids {
+		var proc = task.Proc[d.tid2proc[tid]]
+		if proc == nil {
+			continue
+		}
+		proc.Cid = ""
+		proc.Tid = ""
+		proc.Time = util.Now()
+		proc.Msg = msg
+		proc.Status = status
+		proc.Res = res
+		atomic.AddInt32(&proc.Try, 1)
+		delete(d.tid2task, tid)
+		delete(d.tid2proc, tid)
+	}
 	var rerr = d.Db.Update(task)
 	if rerr == nil {
 		d.check_done(task)
@@ -807,7 +838,17 @@ func (d *DTCM_S) do_checker() {
 }
 func (d *DTCM_S) do_checker_(max int) {
 	d.task_l.Lock()
-	defer d.task_l.Unlock()
+	defer func() {
+		d.task_l.Unlock()
+		var err = recover()
+		if err != nil {
+			log.E("DTCM_S receive panic error->%v", err)
+		}
+	}()
+	if len(d.TaskC) < 1 {
+		log.D("DTCM_S do check success, but active client is empty")
+		return
+	}
 	var rids = []string{}
 	for rid, _ := range d.tasks {
 		rids = append(rids, rid)

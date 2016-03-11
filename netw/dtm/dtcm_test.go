@@ -3,6 +3,7 @@ package dtm
 import (
 	"fmt"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/routing/httptest"
 	"github.com/Centny/gwf/util"
 	"runtime"
@@ -258,6 +259,25 @@ func TestDtcm(t *testing.T) {
 		return
 	}
 	//
+	//
+	//test stop
+	err = dtms.AddTask(nil, fmt.Sprintf("abc_%v.mkv", 10), fmt.Sprintf("abc_%v", 10))
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	dtmc.Stop()
+	time.Sleep(2 * time.Second)
+	// if true {
+	// 	return
+	// }
+	//
+	//
+	dtmc = StartDTM_C(cfg_c)
+	//
+	//
+	//test db error
+	//
 	tdb, _ := MemErrDbc("", "")
 	dtms.Db = tdb
 	fmt.Println("test error...1")
@@ -363,6 +383,8 @@ func TestDtcm(t *testing.T) {
 	xx.Match()
 	//
 	dtms.StopChecker()
+	dtms.Rate(dtms.DTM_S, "cid", "tid")
+	dtms.Hand("", routing.Shared)
 	//
 	fmt.Println("done...")
 }
@@ -594,3 +616,7 @@ func TestIsNotMatchedErr(t *testing.T) {
 		return
 	}
 }
+
+// func TestTaskCheckDone(t *testing.T) {
+
+// }
