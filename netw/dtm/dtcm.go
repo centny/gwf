@@ -705,6 +705,8 @@ func (d *DTCM_S) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int, er
 }
 
 func (d *DTCM_S) OnClose(c netw.Con) {
+	d.task_l.Lock()
+	defer d.task_l.Unlock()
 	defer d.DTM_S_Proc.OnClose(c)
 	var cid = c.Kvs().StrVal("cid")
 	var trs = d.Rates[cid]
