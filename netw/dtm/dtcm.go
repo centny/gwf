@@ -825,11 +825,12 @@ func (d *DTCM_S) loop_checker(delay int64) {
 	for d.running {
 		d.do_checker()
 		var tdelay = delay
-		for tdelay > 0 {
+		for tdelay > 0 && d.running {
 			time.Sleep(200 * time.Millisecond)
 			tdelay -= 200
 		}
 	}
+	log.D("DTCM_S the checker loop is done")
 	d.run_c <- 0
 }
 
@@ -875,6 +876,7 @@ func (d *DTCM_S) do_checker_(max int) {
 			d.start_task(task)
 		}
 	}
+	log.D("DTCM_S do check done...")
 }
 
 func (d *DTCM_S) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
