@@ -5,6 +5,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -63,7 +64,7 @@ type NConRunner struct {
 	CmdH    CmdHandler
 	ShowLog bool //setting the ShowLog to Con_
 	TickLog bool //if show the tick log.
-	WC      chan int
+	wg      sync.WaitGroup
 }
 
 func (n *NConRunner) OnConn(c Con) bool {
@@ -77,26 +78,32 @@ func (n *NConRunner) OnClose(c Con) {
 		n.ConH.OnClose(c)
 	}
 	if n.Running {
+		n.wg.Add(1)
 		go n.Try()
+	} else {
+		n.wg.Done()
 	}
 }
 func (n *NConRunner) StartRunner() {
+	n.wg.Add(1)
 	go n.Try()
 	go n.StartTick()
 	log.D("starting runner...")
 }
 func (n *NConRunner) StopRunner() {
+	n.wg.Add(1)
 	n.Running = false
 	if n.NConPool != nil {
 		n.NConPool.Close()
 	}
 	log.D("stopping runner...")
-	n.WC <- 0
+	n.wg.Wait()
 }
 func (n *NConRunner) StartTick() {
 	if len(n.TickData) < 1 {
 		return
 	}
+	n.wg.Add(1)
 	go n.RunTick_()
 }
 func (n *NConRunner) write_tick() {
@@ -125,6 +132,7 @@ func (n *NConRunner) RunTick_() {
 		}
 	}
 	log.I("tick to server(%v) will stop", n.Addr)
+	n.wg.Done()
 }
 func (n *NConRunner) Try() {
 	n.Running = true
@@ -137,6 +145,7 @@ func (n *NConRunner) Try() {
 		log.D("try connect to server(%v) err:%v,will retry after %v ms", n.Addr, err.Error(), int64(n.Retry))
 		time.Sleep(n.Retry * time.Millisecond)
 	}
+	n.wg.Done()
 	// log.D("connect try stopped")
 }
 func (n *NConRunner) Dail() error {
@@ -161,7 +170,7 @@ func NewNConRunnerN(bp *pool.BytePool, addr string, h CmdHandler, ncf NewConF) *
 		Retry:    5000,
 		Tick:     30000,
 		TickData: []byte("Tick\n"),
-		WC:       make(chan int),
+		wg:       sync.WaitGroup{},
 	}
 }
 func NewNConRunner(bp *pool.BytePool, addr string, h CmdHandler) *NConRunner {

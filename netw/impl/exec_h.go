@@ -7,6 +7,7 @@ import (
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/util"
 	"math"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -128,6 +129,7 @@ type RC_Con struct {
 	//
 	running bool
 	err     error
+	wg      sync.WaitGroup
 }
 
 //new on remote command caller.
@@ -137,6 +139,7 @@ func NewRC_Con(con netw.Con, bc *RC_C) *RC_Con {
 		Con:   con,
 		bc:    bc,
 		req_c: make(chan *chan_c, 10000),
+		wg:    sync.WaitGroup{},
 	}
 }
 func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
@@ -204,6 +207,7 @@ func (r *RC_Con) ExecV(m byte, bs bool, args interface{}) ([]byte, error) {
 //run the process of send/receive command(async).
 func (r *RC_Con) Start() {
 	log_d("RC_Con starting...")
+	r.wg.Add(1)
 	go r.Run_()
 }
 
@@ -211,10 +215,12 @@ func (r *RC_Con) Start() {
 func (r *RC_Con) Stop() {
 	r.running = false
 	log_d("RC_Con stopping...")
+	r.wg.Wait()
 }
 
 //run the process of send/receive command(sync).
 func (r *RC_Con) Run_() {
+	defer r.wg.Done()
 	if r.running {
 		log.W("RC_Con already running....")
 		return

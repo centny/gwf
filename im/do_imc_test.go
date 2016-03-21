@@ -6,6 +6,8 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/routing/httptest"
+	"github.com/Centny/gwf/tutil"
+	"github.com/Centny/gwf/util"
 	"net/http"
 	"runtime"
 	"testing"
@@ -13,6 +15,10 @@ import (
 )
 
 func TestDoImc(t *testing.T) {
+	run_do_imc_(t, 1, 1)
+}
+
+func run_do_imc_(t *testing.T, total, tc int) {
 	ShowLog = true
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	db := NewMemDbH()
@@ -65,18 +71,41 @@ func TestDoImc(t *testing.T) {
 	time.Sleep(time.Second)
 	//
 	purl := ts.URL + "?s=%v&r=%v&c=%v&t=%v"
-	db.Grp["G-x"] = []string{"U-1", "U-2", "U-3", "U-abc"}
-	di := NewDoImc(":9780", false, []string{"a", "b", "c"}, []string{"G-x"}, 8, purl, "U-4")
-	err = di.Do()
+	tutil.DoPerfV(total, tc, "", func(i int) {
+		run_do_imc_c(i, db, purl, t)
+	})
+	fmt.Println("all done...")
+}
+func run_do_imc_c(i int, db *MemDbH, purl string, t *testing.T) {
+	ga := fmt.Sprintf("G-%v", i)
+	ua, ub, uc, ud := fmt.Sprintf("U-%v-%v", i, 1), fmt.Sprintf("U-%v-%v", i, 2),
+		fmt.Sprintf("U-%v-%v", i, 3), fmt.Sprintf("U-%v-%v", i, 4)
+	ta, tb, tc := fmt.Sprintf("T-%v-%v", i, 1), fmt.Sprintf("T-%v-%v", i, 2), fmt.Sprintf("T-%v-%v", i, 3)
+	db.AddGrp(ga, []string{
+		ua, ub, uc,
+		"U-abc",
+	})
+	db.AddTokens(map[string]string{
+		ta: ua,
+		tb: ub,
+		tc: uc,
+	})
+	di := NewDoImc(":9780", false, []string{ta, tb, tc}, []string{ga}, 8, purl, ud)
+	err := di.Do()
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
-	err = di.Check2(1000, 10000)
+	err = di.Check2(1000, 100000)
 	if err != nil {
 		t.Error(err.Error())
 		fmt.Println(di.Res)
 		return
 	}
-	fmt.Println(di.Res)
+	di.Release()
+}
+
+func TestDoImcV(t *testing.T) {
+	runtime.GOMAXPROCS(util.CPU())
+	run_do_imc_(t, 20000000, 2000)
 }

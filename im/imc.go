@@ -31,6 +31,7 @@ type IMC struct {
 	HBT     time.Duration
 	RC      uint64 //receive message count.
 	HbLog   bool
+	wg      sync.WaitGroup
 }
 
 func NewIMC(srv, token string) *IMC {
@@ -45,6 +46,7 @@ func NewIMC(srv, token string) *IMC {
 		P:     p,
 		Token: token,
 		HBT:   1000 * time.Millisecond,
+		wg:    sync.WaitGroup{},
 	}
 	imc.obdh.AddH(MK_NRC, imc.tc)
 	imc.obdh.AddH(MK_NIM, imc)
@@ -207,9 +209,11 @@ func (i *IMC) rhb(delay time.Duration) {
 		}
 	}
 	log.D("HB is stopped...")
+	i.wg.Done()
 }
 func (i *IMC) StartHB() {
 	log.D("IMC starting HB by delay(%v)", i.HBT)
+	i.wg.Add(1)
 	go i.rhb(i.HBT)
 }
 func (i *IMC) SMS(s string, t int, c string) (int, error) {
@@ -235,11 +239,13 @@ func (i *IMC) Logined() bool {
 	return i.logined
 }
 func (i *IMC) Close() {
-	if i.C != nil {
-		i.C.Stop()
-	}
+	i.hbing = false
 	if i.NConRunner != nil {
 		i.StopRunner()
 	}
+	if i.C != nil {
+		i.C.Stop()
+	}
 	log.D("IMC closing...")
+	i.wg.Wait()
 }

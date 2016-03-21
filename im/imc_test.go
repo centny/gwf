@@ -98,9 +98,6 @@ func TestIMC(t *testing.T) {
 	fmt.Println(ur)
 	fmt.Println("\n\n\n")
 	fmt.Println(db.Show())
-	go imc.Close()
-	<-imc.WC
-	go imc2.Close()
-	<-imc2.WC
+	imc.Close()
 	fmt.Println("all done ....")
 }

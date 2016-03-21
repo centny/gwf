@@ -22,6 +22,7 @@ type DoImc struct {
 	Res     map[string]map[string]interface{}
 	//
 	m_lck sync.RWMutex
+	imcs  map[string]*IMC
 }
 
 func NewDoImc(srv string, srvl bool, tokens []string, gs []string, mc int, purl, pusr string) *DoImc {
@@ -34,6 +35,7 @@ func NewDoImc(srv string, srvl bool, tokens []string, gs []string, mc int, purl,
 		PushUrl: purl,
 		PushUsr: pusr,
 		Res:     map[string]map[string]interface{}{},
+		imcs:    map[string]*IMC{},
 	}
 }
 func (d *DoImc) Do() error {
@@ -45,7 +47,7 @@ func (d *DoImc) Do() error {
 	if len(d.Tokens) < 1 {
 		return util.Err("not user token")
 	}
-	imcs := map[string]*IMC{}
+	// imcs := map[string]*IMC{}
 	imcs_ := []*IMC{}
 	aurs := []string{}
 	var imc *IMC
@@ -56,10 +58,10 @@ func (d *DoImc) Do() error {
 		if err != nil {
 			return err
 		}
-		if _, ok := imcs[imc.IC.R]; ok {
+		if _, ok := d.imcs[imc.IC.R]; ok {
 			return util.Err("having repeat token or having two token belong to one user")
 		}
-		imcs[imc.IC.R] = imc
+		d.imcs[imc.IC.R] = imc
 		imcs_ = append(imcs_, imc)
 		aurs = append(aurs, imc.IC.R)
 		d.Res[imc.IC.R] = map[string]interface{}{
@@ -88,7 +90,7 @@ func (d *DoImc) Do() error {
 	}
 	log.D("sending %v message to %v group", d.Mc, len(gss))
 	for gr, urs := range gss {
-		d.sms_g(imcs, gr, urs)
+		d.sms_g(d.imcs, gr, urs)
 	}
 	return d.push(aurs)
 	// return nil
@@ -195,6 +197,13 @@ func (d *DoImc) Check2(delay, timeout int64) error {
 		}
 	}
 	return nil
+}
+
+func (d *DoImc) Release() {
+	log.D("clear all imc")
+	for _, imc := range d.imcs {
+		imc.Close()
+	}
 }
 
 // func (d *DoImc) Assert() error {

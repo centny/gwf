@@ -30,15 +30,18 @@ type MemDbH struct {
 	Usr   map[string]byte
 	u_lck sync.RWMutex
 	Grp   map[string][]string
+	//
+	Tokens map[string]string
 }
 
 func NewMemDbH() *MemDbH {
 	return &MemDbH{
-		Cons: map[string]*Con{},
-		Srvs: map[string]*Srv{},
-		Ms:   map[string]*Msg{},
-		Grp:  map[string][]string{},
-		Usr:  map[string]byte{},
+		Cons:   map[string]*Con{},
+		Srvs:   map[string]*Srv{},
+		Ms:     map[string]*Msg{},
+		Grp:    map[string][]string{},
+		Usr:    map[string]byte{},
+		Tokens: map[string]string{},
 	}
 }
 func (m *MemDbH) OnConn(c netw.Con) bool {
@@ -180,7 +183,12 @@ func (m *MemDbH) OnLogin(r netw.Cmd, args *util.Map) (int, string, string, int, 
 	m.u_lck.Lock()
 	defer m.u_lck.Unlock()
 	if args.Exist("token") {
-		ur := fmt.Sprintf("U-%v", atomic.AddUint64(&m.u_cc, 1))
+		var ur string
+		if tr, ok := m.Tokens[args.StrVal("token")]; ok {
+			ur = tr
+		} else {
+			ur = fmt.Sprintf("U-%v", atomic.AddUint64(&m.u_cc, 1))
+		}
 		m.Usr[ur] = 1
 		log.D("user login by R(%v)", ur)
 		r.Kvs().SetVal("R", ur)
@@ -383,6 +391,20 @@ func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []Con, error) {
 		}
 	}
 	return msg, cons, nil
+}
+
+func (m *MemDbH) AddGrp(grp string, users []string) {
+	m.u_lck.Lock()
+	defer m.u_lck.Unlock()
+	m.Grp[grp] = users
+}
+
+func (m *MemDbH) AddTokens(tokens map[string]string) {
+	m.u_lck.Lock()
+	defer m.u_lck.Unlock()
+	for token, tr := range tokens {
+		m.Tokens[token] = tr
+	}
 }
 
 // func (m *MemDbH) ListPcm(sid string) ([]*PCM, error) {
