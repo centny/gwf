@@ -188,7 +188,6 @@ func run() int {
 	if fc != nil {
 		go fc()
 	}
-	<-imc.WC
 	imc = nil
 	return 0
 }
