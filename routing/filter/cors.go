@@ -67,3 +67,15 @@ func NewCORS2(site string) *CORS {
 	}
 	return cors
 }
+
+func NewCORS_GET_POST(site string) *CORS {
+	cors := NewCORS()
+	cors.AddSite(site)
+	cors.Methods = []string{"GET", "POST"}
+	cors.Headers = []string{"Origin", "X-Requested-With", "Content-Type", "Accept"}
+	return cors
+}
+
+func NewCORS_All() *CORS {
+	return NewCORS_GET_POST("*")
+}

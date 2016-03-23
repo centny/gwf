@@ -1,11 +1,11 @@
 package cookie
 
 import (
-	"code.google.com/p/go.net/publicsuffix"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/Centny/gwf/routing"
+	"golang.org/x/net/publicsuffix"
 	"net/http"
 	"net/http/cookiejar"
 	"testing"

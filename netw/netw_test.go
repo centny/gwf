@@ -1,12 +1,12 @@
 package netw
 
 import (
-	"code.google.com/p/go.net/websocket"
 	"encoding/binary"
 	"fmt"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing/httptest"
 	"github.com/Centny/gwf/util"
+	"golang.org/x/net/websocket"
 	"math"
 	"net"
 	"net/http"

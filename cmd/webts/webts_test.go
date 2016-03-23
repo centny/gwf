@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
-	"code.google.com/p/go.net/publicsuffix"
 	"fmt"
 	"github.com/Centny/gwf/routing/httptest"
 	"github.com/Centny/gwf/util"
+	"golang.org/x/net/publicsuffix"
 	"net/http/cookiejar"
 	"net/url"
 	"os"

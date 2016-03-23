@@ -5,7 +5,6 @@ import (
 	"github.com/Centny/gwf/util"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"strings"
 	"testing"
 )
@@ -265,8 +264,8 @@ func TestOrder(t *testing.T) {
 	}
 }
 
-func TestPrintRef(t *testing.T) {
-	// var val = reflect.Indirect()
-	var val = reflect.ValueOf(HFunc)
-	fmt.Println(reflect.Method(val))
-}
+// func TestPrintRef(t *testing.T) {
+// 	// var val = reflect.Indirect()
+// 	var val = reflect.ValueOf(HFunc)
+// 	fmt.Println(reflect.Method(val))
+// }

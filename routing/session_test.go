@@ -2,11 +2,11 @@ package routing
 
 import (
 	"bytes"
-	"code.google.com/p/go.net/publicsuffix"
 	"errors"
 	"fmt"
 	"github.com/Centny/gwf/hooks"
 	"github.com/Centny/gwf/util"
+	"golang.org/x/net/publicsuffix"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"

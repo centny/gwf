@@ -14,7 +14,6 @@ Websocket protocol is `command+"^-^"+arguments+"\n".` for example:
 package im
 
 import (
-	"code.google.com/p/go-uuid/uuid"
 	"fmt"
 	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
@@ -350,7 +349,7 @@ func (l *Listener) Run() error {
 		WsAddr:  l.WsAddr,
 		PubHost: l.PubHost,
 		PubPort: l.PubPort,
-		Token:   uuid.New(),
+		Token:   util.UUID(),
 	})
 	if err != nil {
 		l.DIP.Close()

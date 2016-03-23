@@ -8,12 +8,12 @@ package netw
 import (
 	"bufio"
 	"bytes"
-	"code.google.com/p/go.net/websocket"
 	"encoding/binary"
 	"fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
+	"golang.org/x/net/websocket"
 	"net"
 	"runtime"
 	"sync"

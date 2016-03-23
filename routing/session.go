@@ -1,7 +1,6 @@
 package routing
 
 import (
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/util"
 	"net/http"
@@ -79,7 +78,7 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 	ncookie := func() {
 		c = &http.Cookie{}
 		c.Name = s.CookieKey
-		c.Value = uuid.New()
+		c.Value = util.UUID()
 		c.Path = s.Path
 		c.Domain = s.Domain
 		c.MaxAge = 10 * 24 * 60 * 60
