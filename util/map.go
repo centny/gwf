@@ -167,9 +167,16 @@ func MapVal(v interface{}) Map {
 func AryVal(v interface{}) []interface{} {
 	if vals, ok := v.([]interface{}); ok {
 		return vals
-	} else {
+	}
+	vals := reflect.ValueOf(v)
+	if vals.Kind() != reflect.Slice {
 		return nil
 	}
+	var vs = []interface{}{}
+	for i := 0; i < vals.Len(); i++ {
+		vs = append(vs, vals.Index(i).Interface())
+	}
+	return vs
 }
 
 func AryMapVal(v interface{}) []Map {

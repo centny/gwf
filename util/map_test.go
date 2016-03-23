@@ -300,3 +300,22 @@ func TestAryMapVal(t *testing.T) {
 	mv.AryMapValP("/ary_3")
 	mv.AryStrValP("/ary_2")
 }
+
+func TestAryMapVal2(t *testing.T) {
+	var data = Map{}
+	data.SetVal("abc", []Map{
+		Map{
+			"a": 1,
+		},
+	})
+	fmt.Println(reflect.ValueOf([]int{1, 2}).Kind())
+	var vals = data.AryMapVal("abc")
+	if len(vals) < 1 {
+		t.Error("error")
+		return
+	}
+	if vals[0].IntVal("a") != 1 {
+		t.Error("error")
+		return
+	}
+}
