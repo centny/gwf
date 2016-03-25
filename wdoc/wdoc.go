@@ -240,6 +240,9 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 		var matched = false
 		for i := sidx; i < len(lines); i++ {
 			var line = strings.Trim(lines[i], " \t\n")
+			if len(ctext) < 1 && len(line) < 1 {
+				continue
+			}
 			if !(matched || strings.HasPrefix(line, "[") || strings.HasPrefix(line, "{")) {
 				//remove fist line is not json
 				matched = true
