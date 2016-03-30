@@ -464,3 +464,25 @@ func TestBysSize(t *testing.T) {
 	fmt.Println(BysSize(1024 * 1024 * 1024 * 1024 * 1024))
 	fmt.Println(BysSize(1024*1024*1024*1024*1024 + 1))
 }
+
+func TestTrimAryS(t *testing.T) {
+	vals := TrimAryS([]string{"xa", " ", "xb", "\t", "xc", "", "xa"}, " \t")
+	if len(vals) != 4 {
+		t.Error("error")
+		return
+	}
+	if vals[0] != "xa" || vals[1] != "xb" || vals[2] != "xc" || vals[3] != "xa" {
+		t.Error("error")
+		return
+	}
+	vals = TrimAryS_V([]string{"xa", " ", "xb", "\t", "xc", "xb", "", "xa"}, " \t", true)
+	if len(vals) != 3 {
+		t.Error("error")
+		return
+	}
+	if vals[0] != "xa" || vals[1] != "xb" || vals[2] != "xc" {
+		t.Error("error")
+		return
+	}
+	fmt.Println("done...")
+}

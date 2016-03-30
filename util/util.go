@@ -298,6 +298,26 @@ func SplitThree(bys []byte, idxa, idxb int) ([]byte, []byte, []byte) {
 	return bys[:idxa], bys[idxa:idxb], bys[idxb:]
 }
 
+func TrimAryS_V(vals []string, cutset string, repeat bool) []string {
+	var exist = map[string]bool{}
+	var res = []string{}
+	for _, val := range vals {
+		val = strings.Trim(val, cutset)
+		if len(val) < 1 {
+			continue
+		}
+		if exist[val] && repeat {
+			continue
+		}
+		res = append(res, val)
+		exist[val] = true
+	}
+	return res
+}
+func TrimAryS(vals []string, cutset string) []string {
+	return TrimAryS_V(vals, cutset, false)
+}
+
 func Crc32(v []byte) string {
 	uv := crc32.ChecksumIEEE(v)
 	bv := make([]byte, 4)
