@@ -48,26 +48,26 @@ const (
 
 //connection
 type Con struct {
-	Id    string `json:"-" bson:"_id"` //the bson id
-	Sid   string `json:"-"`            //server id
-	Cid   string `json:"-"`            //connection id
-	R     string `json:"r"`            //the receive SN
-	S     string `json:"s"`            //the IM receiver status.
-	T     byte   `json:"t"`            //the connection type in TCP/WS.
-	C     int    `json:"c"`            //the connect category
-	Token string `json:"token"`        //the login token
-	Time  int64  `json:"time"`         //the login time.
+	Id        string `json:"-" bson:"_id"`                 //the bson id
+	Sid       string `json:"-" bson:"sid"`                 //server id
+	Cid       string `json:"-" bson:"cid"`                 //connection id
+	Uid       string `json:"uid" bson:"uid"`               //the receiver SN
+	Status    string `json:"status" bson:"status"`         //the IM receiver status.
+	ConType   byte   `json:"con_type" bson:"con_type"`     //the connection type in TCP/WS.
+	LoginType int    `json:"login_type" bson:"login_type"` //the connect category
+	Token     string `json:"token" bson:"token"`           //the login token
+	Time      int64  `json:"time" bson:"time"`             //the login time.
 }
 
 //online server
 type Srv struct {
-	Sid     string `bson:"_id" json:"sid"` //server id
-	Host    string `json:"host"`           //server addr
-	Port    int    `json:"port"`           //server port.
-	WsAddr  string `json:"ws_addr"`        //server port.
-	PubHost string `json:"pub_host"`       //server public port.
-	PubPort int    `json:"pub_port"`       //server public port.
-	Token   string `json:"token"`          //server login token
+	Sid     string `bson:"_id" json:"sid"`           //server id
+	Host    string `bson:"hoost" json:"host"`        //server addr
+	Port    int    `bson:"port" json:"port"`         //server port.
+	WsAddr  string `bson:"ws_addr" json:"ws_addr"`   //server port.
+	PubHost string `bson:"pub_host" json:"pub_host"` //server public port.
+	PubPort int    `bson:"pub_port" json:"pub_port"` //server public port.
+	Token   string `bson:"token" json:"token"`       //server login token
 }
 
 func (s *Srv) Addr() string {

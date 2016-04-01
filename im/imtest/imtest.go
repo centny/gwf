@@ -1,35 +1,42 @@
-package im
+package main
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/im"
+	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/routing/httptest"
 	"github.com/Centny/gwf/tutil"
+	"github.com/Centny/gwf/util"
 	"net/http"
+	_ "net/http/pprof"
 	"runtime"
-	"testing"
 	"time"
 )
 
-func TestDoImc(t *testing.T) {
-	run_do_imc_(t, 5, 5)
+func main() {
+	// var bys = []byte{50, 50, 55, 18, 5, 85, 45, 49, 45, 52, 26, 5, 85, 45, 49, 45, 49, 26, 5, 85, 45, 49, 45, 50, 26, 5, 85, 45, 49, 45, 51, 32, 0, 42, 5, 85, 45, 49, 45, 51, 50, 6, 80, 117, 115, 104, 45, 62, 58, 5, 85, 45, 49, 45, 52, 64, 187, 253, 241, 244, 186, 42}
+	// fmt.Println("xxx")
+	// fmt.Println(string(bys), "--->")
+	log.Redirect("logs/out_%v.log", "logs/err_%v.log")
+	runtime.GOMAXPROCS(util.CPU())
+	go http.ListenAndServe(":2345", nil)
+	run_do_imc_(100000, 1)
+	// time.Sleep(100000 * time.Second)
 }
 
-func run_do_imc_(t *testing.T, total, tc int) {
-	ShowLog = true
-	netw.ShowLog_C = true
-	netw.ShowLog = true
+func run_do_imc_(total, tc int) {
+	im.ShowLog = true
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
-	db := NewMemDbH()
+	db := im.NewMemDbH()
 	p := pool.NewBytePool(8, 102400)
-	psrv := NewPushSrv(p, ":5498", "Push", netw.NewDoNotH(), db)
+	psrv := im.NewPushSrv(p, ":5498", "Push", netw.NewDoNotH(), db)
 	psrv.TickLog = false
 	err := psrv.Run()
 	if err != nil {
-		t.Error(err.Error())
-		return
+		panic(err)
 	}
 	ts := httptest.NewServer(func(hs *routing.HTTPSession) routing.HResult {
 		var r, c, s string
@@ -50,7 +57,7 @@ func run_do_imc_(t *testing.T, total, tc int) {
 			return hs.MsgResErr2(1, "srv-err", err)
 		}
 	})
-	l := NewListner3(db, fmt.Sprintf("S-vv-%v", 0), p, 9780, 1000000)
+	l := im.NewListner3(db, fmt.Sprintf("S-vv-%v", 0), p, 9780, 1000000)
 	l.WsAddr = fmt.Sprintf(":%v", 9770)
 	l.PushSrvAddr = "127.0.0.1:5498"
 	l.PushSrvTickLog = false
@@ -65,25 +72,27 @@ func run_do_imc_(t *testing.T, total, tc int) {
 	}()
 	err = l.Run()
 	if err != nil {
-		t.Error(err.Error())
-		return
+		panic(err)
 	}
 	<-rc
 	time.Sleep(time.Second)
-	pool.BP = pool.NewBytePool(8, 10240000)
 	//
 	purl := ts.URL + "?s=%v&r=%v&c=%v&t=%v"
-	tutil.DoPerfV(total, tc, "", func(i int) {
-		run_do_imc_c(i, db, purl, t)
+	// var idx = 0
+	http.HandleFunc("/abc", func(w http.ResponseWriter, r *http.Request) {
+		// run_do_imc_c(idx, db, purl)
+		// idx++
 	})
-	if len(db.Ms) > 0 || len(db.Cons) > 0 || len(db.Usr) > 0 ||
-		len(db.Grp) > 0 || len(db.Tokens) > 0 || len(db.U2M) > 0 {
-		t.Error("error")
-		return
-	}
+	// for i := 0; i < total; i++ {
+	tutil.DoPerfV(total, tc, "", func(idx int) {
+		run_do_imc_c(idx, db, purl)
+	})
+	fmt.Println("one done...\n\n\n\n\n\n")
+	// }
 	fmt.Println("all done...")
 }
-func run_do_imc_c(i int, db *MemDbH, purl string, t *testing.T) {
+
+func run_do_imc_c(i int, db *im.MemDbH, purl string) {
 	ga := fmt.Sprintf("G-%v", i)
 	ua, ub, uc, ud := fmt.Sprintf("U-%v-%v", i, 1), fmt.Sprintf("U-%v-%v", i, 2),
 		fmt.Sprintf("U-%v-%v", i, 3), fmt.Sprintf("U-%v-%v", i, 4)
@@ -97,21 +106,19 @@ func run_do_imc_c(i int, db *MemDbH, purl string, t *testing.T) {
 		tb: ub,
 		tc: uc,
 	})
-	di := NewDoImc(pool.BP, ":9780", false, []string{ta, tb, tc}, []string{ga}, 8, purl, ud)
-
+	di := im.NewDoImc(pool.BP, ":9780", false, []string{ta, tb, tc}, []string{ga}, 8, purl, ud)
+	di.Name = fmt.Sprintf("I%v", i)
 	err := di.Do()
 	if err != nil {
-		t.Error(err.Error())
-		return
+		panic(err)
 	}
-	err = di.Check2(1000, 10000)
+	err = di.Check2(100, 100000)
 	if err != nil {
-		t.Error(err.Error())
-		fmt.Println(di.Res)
-		return
+		panic(err)
 	}
 	di.Release()
 	db.DelTokens([]string{ta, tb, tc})
 	db.DelGrp(ga)
 	db.ClearMsg([]string{ua, ub, uc, ud})
+	fmt.Printf("\n\nclient %v done...\n\n\n", i)
 }

@@ -1,10 +1,12 @@
 package impl
 
 import (
+	"container/list"
 	"encoding/binary"
 	"fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
+	// "github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"math"
 	"sync"
@@ -22,9 +24,11 @@ type RC_Err struct {
 }
 
 func new_rc_err(code int, data []byte) *RC_Err {
+	var tdata = make([]byte, len(data))
+	copy(tdata, data)
 	return &RC_Err{
 		Code: code,
-		Data: data,
+		Data: tdata,
 	}
 }
 func (r *RC_Err) Error() string {
@@ -102,6 +106,9 @@ func (r *RC_C) OnCmd(c netw.Cmd) int {
 	}
 	return 0
 }
+func (r *RC_C) Close() {
+	close(r.back_c)
+}
 
 //the chan command for each calling.
 type chan_c struct {
@@ -126,20 +133,29 @@ type RC_Con struct {
 	bc *RC_C //remote command back chan.
 	//
 	req_c chan *chan_c //require chan.
+	req_l sync.RWMutex
+	//
+	close_c chan int //
+	start_c chan int
 	//
 	running bool
 	err     error
 	wg      sync.WaitGroup
+	run_c   *list.List
+	run_l   sync.RWMutex
 }
 
 //new on remote command caller.
 func NewRC_Con(con netw.Con, bc *RC_C) *RC_Con {
 	return &RC_Con{
-		Sleep: 100,
-		Con:   con,
-		bc:    bc,
-		req_c: make(chan *chan_c, 10000),
-		wg:    sync.WaitGroup{},
+		Sleep:   100,
+		Con:     con,
+		bc:      bc,
+		req_c:   make(chan *chan_c, 10000),
+		close_c: make(chan int, 2),
+		start_c: make(chan int, 2),
+		wg:      sync.WaitGroup{},
+		run_c:   list.New(),
 	}
 }
 func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
@@ -163,35 +179,56 @@ func (r *RC_Con) Exec_(m byte, bs bool, args interface{}, dest interface{}) (int
 
 //execute one command.
 func (r *RC_Con) ExecV(m byte, bs bool, args interface{}) ([]byte, error) {
+	r.req_l.Lock()
+	//defer r.req_l.Unlock()
+	if !r.running {
+		r.req_l.Unlock()
+		return nil, util.Err("RC is not running")
+	}
 	if args == nil {
+		r.req_l.Unlock()
 		return nil, util.Err("arg val is nil")
 	}
 	if r.Con == nil {
+		r.req_l.Unlock()
 		return nil, util.Err("not connected")
 	}
 	if r.exec_c >= math.MaxUint16 {
+		r.req_l.Unlock()
 		return nil, util.Err("two many exector")
 	}
 	bys, err := r.V2B()(args)
 	if err != nil {
+		r.req_l.Unlock()
 		return nil, err
 	}
 	tc := &chan_c{
 		B:    m,
 		BS:   bs,
-		C:    make(chan bool),
+		C:    make(chan bool, 2),
 		Data: bys,
 	}
 	r.req_c <- tc
+	r.run_l.Lock()
+	var tc_e = r.run_c.PushBack(tc)
+	r.run_l.Unlock()
+	r.req_l.Unlock()
 	<-tc.C
+	r.run_l.Lock()
+	r.run_c.Remove(tc_e)
+	r.run_l.Unlock()
 	close(tc.C)
 	if tc.Err == nil {
-		defer tc.Back.Done()
+		var buf []byte
 		if bs {
-			return tc.Back.Data()[1:], nil
+			buf = tc.Back.Data()[1:]
 		} else {
-			return tc.Back.Data(), nil
+			buf = tc.Back.Data()
 		}
+		tmp := make([]byte, len(buf))
+		copy(tmp, buf)
+		tc.Back.Done()
+		return tmp, nil
 	} else {
 		return nil, tc.Err
 	}
@@ -209,11 +246,15 @@ func (r *RC_Con) Start() {
 	log_d("RC_Con starting...")
 	r.wg.Add(1)
 	go r.Run_()
+	<-r.start_c
 }
 
 //stop gorutine
 func (r *RC_Con) Stop() {
+	r.req_l.Lock()
 	r.running = false
+	r.close_c <- 1
+	r.req_l.Unlock()
 	log_d("RC_Con stopping...")
 	r.wg.Wait()
 }
@@ -228,11 +269,15 @@ func (r *RC_Con) Run_() {
 	cm := map[uint16]*chan_c{}
 	buf := make([]byte, 3)
 	r.running = true
-	var trun bool = true
-	tk := time.Tick(r.Sleep * time.Millisecond)
-	for trun {
+	r.start_c <- 1
+	// var trun bool = true
+	// tk := pool.NewTick(r.Sleep * time.Millisecond)
+	for r.running {
 		select {
 		case cmd := <-r.bc.back_c:
+			if cmd == nil {
+				break
+			}
 			// log.D("cmd ->%p->%v", r, cmd)
 			tid := binary.BigEndian.Uint16(cmd.rid)
 			if tc, ok := cm[tid]; ok {
@@ -244,12 +289,16 @@ func (r *RC_Con) Run_() {
 				} else {
 					tc.Err = new_rc_err(int(cmd.mark), cmd.Data())
 					tc.C <- false
+					cmd.Done()
 				}
 			} else {
 				cmd.Done()
 				log.W("back chan not found by id(%v) on %v", tid, cm)
 			}
 		case tc := <-r.req_c:
+			if tc == nil {
+				break
+			}
 			con := r.Con
 			// log.D("tc ->%p->%v", r, tc)
 			r.exec_id++
@@ -267,17 +316,26 @@ func (r *RC_Con) Run_() {
 				r.err = tc.Err
 				tc.C <- false
 			}
-		case <-tk:
-			trun = r.running && r.Con != nil
+		case <-r.close_c:
+			break
+			// 	trun = r.running && r.Con != nil
 		}
 	}
-	log.D("clearing all waiting exec(%v),err(%v)", len(cm), r.err)
+	// fmt.Println("xx0")
+	// pool.PutTick(r.Sleep*time.Millisecond, tk)
 	//clear all waiting.
-	for _, tc := range cm {
+	r.run_l.Lock()
+	for ele := r.run_c.Front(); ele != nil; ele = ele.Next() {
+		tc := ele.Value.(*chan_c)
 		tc.Err = util.Err("stopped")
 		tc.C <- false
 	}
+	r.run_l.Unlock()
 	r.running = false
+	close(r.req_c)
+	close(r.start_c)
+	close(r.close_c)
+	log.D("clearing all waiting exec(%v),err(%v)", len(cm), r.err)
 }
 
 type RC_C_H struct {

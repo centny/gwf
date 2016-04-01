@@ -38,11 +38,11 @@ func TestIMC(t *testing.T) {
 		return
 	}
 	fmt.Println("imc--->01-00")
-	imc := NewIMC3(srvs, "token")
+	imc := NewIMC3(pool.BP, srvs, "token")
 	// imc.ShowLog = true
 	imc.TickData = []byte{}
 	imc.Start()
-	imc2, err := NewIMC4(ts.URL, "token")
+	imc2, err := NewIMC4(pool.BP, ts.URL, "token")
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -65,8 +65,8 @@ func TestIMC(t *testing.T) {
 	fmt.Println("\n\n\n")
 	time.Sleep(time.Second)
 	for i := 0; i < 10; i++ {
-		imc.SMS(imc2.IC.R, 0, "imc1-00--->")
-		imc2.SMS(imc.IC.R, 0, "imc2-00--->")
+		imc.SMS(imc2.IC.Uid, 0, "imc1-00--->")
+		imc2.SMS(imc.IC.Uid, 0, "imc2-00--->")
 	}
 	fmt.Println("imc--->01-03")
 	for imc.RC < 10 || imc2.RC < 10 {
@@ -78,8 +78,8 @@ func TestIMC(t *testing.T) {
 	time.Sleep(time.Second)
 	imc.LC.Wait()
 	for i := 0; i < 10; i++ {
-		imc.SMS(imc2.IC.R, 0, "imc1-00--->")
-		imc2.SMS(imc.IC.R, 0, "imc2-00--->")
+		imc.SMS(imc2.IC.Uid, 0, "imc1-00--->")
+		imc2.SMS(imc.IC.Uid, 0, "imc2-00--->")
 	}
 	for imc.RC < 20 || imc2.RC < 20 {
 		time.Sleep(300 * time.Millisecond)

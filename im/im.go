@@ -53,11 +53,11 @@ type DbH interface {
 	//
 	//
 	AddCon(c *Con) error
-	DelCon(sid, cid, r string, t byte, ct int) (*Con, error)
-	DelConT(sid, cid, token string, t byte) (*Con, error)
-	OnCloseCon(c netw.Con, sid, cid string, t byte) error
+	DelCon(sid, cid, uid string, con_type byte, login_type int) (*Con, error)
+	DelConT(sid, cid, token string, con_type byte) (*Con, error)
+	OnCloseCon(c netw.Con, sid, cid string, con_type byte) error
 	//list all connection by target R
-	ListCon(rs []string) ([]Con, error)
+	ListCon(uids []string) ([]Con, error)
 	//list push task by server id and message id.
 	ListPushTask(sid, mid string) (*Msg, []Con, error)
 	//
@@ -67,9 +67,9 @@ type DbH interface {
 	//
 	// FindUsrR(uid int64) (string, error)
 	//list all user R by group R,if gr is nil return all online user R.
-	ListUsrR(gr []string) (map[string][]string, error)
-	//sift the R to group R and user R.
-	Sift(rs []string) ([]string, []string, error)
+	ListUsrR(gids []string) (map[string][]string, error)
+	//sift the R to group id and user id.
+	Sift(ids []string) ([]string, []string, error)
 	//
 	//
 	AddSrv(srv *Srv) error
@@ -81,8 +81,8 @@ type DbH interface {
 	//
 	//
 	//user login,return user R.
-	OnLogin(c netw.Cmd, args *util.Map) (int, string, string, int, error)
-	OnLogout(c netw.Cmd, args *util.Map) (string, string, int, bool, error)
+	OnLogin(c netw.Cmd, args *util.Map) (code int, uid string, token string, login_type int, err error)
+	OnLogout(c netw.Cmd, args *util.Map) (uid string, token string, login_type int, wait bool, err error)
 	//
 	//
 	NewMid() string
@@ -90,9 +90,9 @@ type DbH interface {
 	// Update(mid string, rs map[string]string) error
 	//store mesage
 	Store(m *Msg) error
-	MarkRecv(r, a string, mids []string) error
+	MarkRecv(uid, avaliable string, mids []string) error
 	//send unread message
-	ListUnread(r string, ct int) ([]Msg, error)
+	ListUnread(uid string, login_type int) ([]Msg, error)
 }
 
 //

@@ -31,11 +31,11 @@ type IMC struct {
 	HBT     time.Duration
 	RC      uint64 //receive message count.
 	HbLog   bool
-	wg      sync.WaitGroup
+	hb_wg   sync.WaitGroup
+	chanh   *impl.ChanH
 }
 
-func NewIMC(srv, token string) *IMC {
-	p := pool.NewBytePool(8, 1024000)
+func NewIMC(p *pool.BytePool, srv, token string) *IMC {
 	imc := &IMC{
 		OnM: func(i *IMC, c netw.Cmd, m *pb.ImMsg) int {
 			go i.MR(m.GetA(), m.GetI())
@@ -46,25 +46,26 @@ func NewIMC(srv, token string) *IMC {
 		P:     p,
 		Token: token,
 		HBT:   1000 * time.Millisecond,
-		wg:    sync.WaitGroup{},
+		hb_wg: sync.WaitGroup{},
 	}
+	imc.chanh = impl.NewChanH2(imc.obdh, 5)
 	imc.obdh.AddH(MK_NRC, imc.tc)
 	imc.obdh.AddH(MK_NIM, imc)
-	imc.NConRunner = netw.NewNConRunnerN(p, srv, impl.NewChanH2(imc.obdh, 5), IM_NewCon)
+	imc.NConRunner = netw.NewNConRunnerN(p, srv, imc.chanh, IM_NewCon)
 	imc.NConRunner.TickData = []byte{}
 	imc.ConH = imc
 	imc.C = impl.NewRC_Con(nil, imc.tc) //initial con after connected.
 	log_d("creating IMC by %v", srv)
 	return imc
 }
-func NewIMC2(srv *Srv, token string) *IMC {
-	return NewIMC(srv.Addr(), token)
+func NewIMC2(p *pool.BytePool, srv *Srv, token string) *IMC {
+	return NewIMC(p, srv.Addr(), token)
 }
-func NewIMC3(srvs []Srv, token string) *IMC {
+func NewIMC3(p *pool.BytePool, srvs []Srv, token string) *IMC {
 	srv := srvs[rand.Intn(len(srvs))]
-	return NewIMC2(&srv, token)
+	return NewIMC2(p, &srv, token)
 }
-func NewIMC4(sl, token string) (*IMC, error) {
+func NewIMC4(p *pool.BytePool, sl, token string) (*IMC, error) {
 	ssm, err := util.HGet2(sl)
 	if err != nil {
 		return nil, err
@@ -77,13 +78,13 @@ func NewIMC4(sl, token string) (*IMC, error) {
 	if len(ssl) < 1 {
 		return nil, util.Err("im server not found on listSrv(%v) by %v", sl, ssm)
 	}
-	return NewIMC3(ssl, token), nil
+	return NewIMC3(p, ssl, token), nil
 }
-func NewIMC5(srv string, ls bool, token string) (*IMC, error) {
+func NewIMC5(p *pool.BytePool, srv string, ls bool, token string) (*IMC, error) {
 	if ls {
-		return NewIMC4(srv, token)
+		return NewIMC4(p, srv, token)
 	} else {
-		return NewIMC(srv, token), nil
+		return NewIMC(p, srv, token), nil
 	}
 }
 func (i *IMC) hblog(f string, args ...interface{}) {
@@ -97,6 +98,7 @@ func (i *IMC) Start() {
 	i.NConRunner.StartRunner()
 }
 func (i *IMC) OnCmd(c netw.Cmd) int {
+	defer c.Done()
 	var msg pb.ImMsg
 	_, err := c.V(&msg)
 	if err != nil {
@@ -198,22 +200,22 @@ func (i *IMC) rhb(delay time.Duration) {
 	i.hbing = true
 	log.D("running HB by delay(%v)...", delay)
 	for i.hbing {
+		time.Sleep(times_ * delay)
 		d, err := i.HB("D->")
 		if err == nil && d == "D->" {
 			times_++
 			i.hblog("HB(%v) success, will retry after %v", d, times_*delay)
-			time.Sleep(times_ * delay)
 		} else {
 			times_ = 0
 			log.W("HB(D->) error->%v", err)
 		}
 	}
 	log.D("HB is stopped...")
-	i.wg.Done()
+	i.hb_wg.Done()
 }
 func (i *IMC) StartHB() {
 	log.D("IMC starting HB by delay(%v)", i.HBT)
-	i.wg.Add(1)
+	i.hb_wg.Add(1)
 	go i.rhb(i.HBT)
 }
 func (i *IMC) SMS(s string, t int, c string) (int, error) {
@@ -239,6 +241,7 @@ func (i *IMC) Logined() bool {
 	return i.logined
 }
 func (i *IMC) Close() {
+	log.D("IMC closing...")
 	i.hbing = false
 	if i.NConRunner != nil {
 		i.StopRunner()
@@ -246,6 +249,8 @@ func (i *IMC) Close() {
 	if i.C != nil {
 		i.C.Stop()
 	}
-	log.D("IMC closing...")
-	i.wg.Wait()
+	i.chanh.Stop()
+	i.chanh.Wait()
+	i.tc.Close()
+	i.hb_wg.Wait()
 }

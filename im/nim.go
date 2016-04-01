@@ -207,17 +207,17 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 	sr_ed := map[string]byte{} //already exec
 	sender := mc.GetS()
 	for _, con := range cons { //do online user
-		if con.R == sender {
+		if con.Uid == sender {
 			continue
 		}
-		sr_ed[con.R] = 1
+		sr_ed[con.Uid] = 1
 		if con.Sid == c_sid { //in current server
 			log_d("sending message(%v) to con(%v)", mc.ImMsg, con)
-			mc.D = &con.R
+			mc.D = &con.Uid
 			mc.A = &r                           //setting current receive user R.
 			err = n.SS.Send(con.Cid, &mc.ImMsg) //send message to client.
 			if err != nil {
-				log.E("sending message(%v) to R(%v) err:%v", mc.ImMsg, con.R, err.Error())
+				log.E("sending message(%v) to R(%v) err:%v", mc.ImMsg, con.Uid, err.Error())
 				// atomic.AddUint64(&n.DC, 1)
 				// mc.Ms[con.R] = MS_DONE //mark done
 				// mc.Ms[con.R] = MS_PENDING + MS_SEQ + r //mark done
@@ -225,7 +225,7 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 			// mc.ams(con.R, &MSS{R: r, S: MS_PENDING})
 		} else { //in other distribution server
 			// mc.ams(con.R, &MSS{R: r, S: MS_PENDING})
-			tr, tc := con.R, con.Cid
+			tr, tc := con.Uid, con.Cid
 			if _, ok := dr_rc[con.Sid]; ok {
 				dr_rc[con.Sid] = append(dr_rc[con.Sid],
 					&pb.RC{
@@ -331,14 +331,14 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 		return n.writev_ce2(r, code, err.Error())
 	}
 	con := &Con{
-		Sid:   n.SS.Id(),
-		Cid:   r.Id(),
-		R:     rv,
-		S:     "N",
-		T:     CT_TCP,
-		C:     ct,
-		Token: token,
-		Time:  util.Now(),
+		Sid:       n.SS.Id(),
+		Cid:       r.Id(),
+		Uid:       rv,
+		Status:    "N",
+		ConType:   CT_TCP,
+		LoginType: ct,
+		Token:     token,
+		Time:      util.Now(),
 	}
 	err = n.Db.AddCon(con)
 	if err != nil {
@@ -370,7 +370,7 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 		return n.writev_ce(r, err.Error())
 	}
 	if !w {
-		r.SetWait(false)
+		defer r.SetWait(false)
 	}
 	var con *Con
 	if len(rv) > 0 {
@@ -422,13 +422,14 @@ func (n *NIM_Rh) Push(mid string) {
 	n.PushChan <- mid
 }
 func (n *NIM_Rh) StartPushTask(gc int) {
+	log.I("starting %v push task-->", gc)
 	for i := 0; i < gc; i++ {
 		go n.LoopPush()
 	}
 }
 func (n *NIM_Rh) LoopPush() {
 	n.Running = true
-	log.I("starting push task-->")
+	//log.I("starting push task-->")
 	for n.Running {
 		select {
 		case mid := <-n.PushChan:
@@ -456,8 +457,8 @@ func (n *NIM_Rh) DoPush_(mid string) (int, int, error) {
 	sc := 0
 	// mv := map[string]string{}
 	for _, con := range cons {
-		msg.D = &con.R
-		for _, mss := range msg.Ms[con.R] {
+		msg.D = &con.Uid
+		for _, mss := range msg.Ms[con.Uid] {
 			if mss.S == MS_DONE {
 				continue
 			}

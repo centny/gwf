@@ -5,6 +5,7 @@ import (
 	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
+	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"strings"
 	"sync"
@@ -12,6 +13,8 @@ import (
 )
 
 type DoImc struct {
+	Name    string
+	P       *pool.BytePool
 	Srv     string
 	SrvL    bool
 	Tokens  []string
@@ -25,8 +28,9 @@ type DoImc struct {
 	imcs  map[string]*IMC
 }
 
-func NewDoImc(srv string, srvl bool, tokens []string, gs []string, mc int, purl, pusr string) *DoImc {
+func NewDoImc(p *pool.BytePool, srv string, srvl bool, tokens []string, gs []string, mc int, purl, pusr string) *DoImc {
 	return &DoImc{
+		P:       p,
 		Srv:     srv,
 		SrvL:    srvl,
 		Tokens:  tokens,
@@ -39,7 +43,10 @@ func NewDoImc(srv string, srvl bool, tokens []string, gs []string, mc int, purl,
 	}
 }
 func (d *DoImc) Do() error {
-	log.D("do imc by srv(%v),srvl(%v),tokens(%v),gs(%v),mc(%v),purl(%v),pusr(%v)",
+	return d.DoV(1)
+}
+func (d *DoImc) DoV(tc int) error {
+	log_d("do imc by srv(%v),srvl(%v),tokens(%v),gs(%v),mc(%v),purl(%v),pusr(%v)",
 		d.Srv, d.SrvL, d.Tokens, d.Gs, d.Mc, d.PushUrl, d.PushUsr)
 	if len(d.Srv) < 1 {
 		return util.Err("the server addres is empty")
@@ -52,50 +59,60 @@ func (d *DoImc) Do() error {
 	aurs := []string{}
 	var imc *IMC
 	var err error
-	log.D("start %v connection to server", len(d.Tokens))
+	log_d("start %v connection to server", len(d.Tokens))
 	for _, token := range d.Tokens {
 		imc, err = d.New(token)
 		if err != nil {
+			log.E("DoImc new IMC fail with %v", err)
 			return err
 		}
-		if _, ok := d.imcs[imc.IC.R]; ok {
+		if _, ok := d.imcs[imc.IC.Uid]; ok {
 			return util.Err("having repeat token or having two token belong to one user")
 		}
-		d.imcs[imc.IC.R] = imc
+		d.imcs[imc.IC.Uid] = imc
 		imcs_ = append(imcs_, imc)
-		aurs = append(aurs, imc.IC.R)
-		d.Res[imc.IC.R] = map[string]interface{}{
+		aurs = append(aurs, imc.IC.Uid)
+		d.m_lck.Lock()
+		d.Res[imc.IC.Uid] = map[string]interface{}{
 			"Token": token,
 		}
+		d.m_lck.Unlock()
 	}
-	log.D("list group user by (%v)", d.Gs)
+	log_d("list group user by (%v)", d.Gs)
 	gss, err := imc.GR(d.Gs)
 	if err != nil {
+		log.E("DoImc do GR fail with %v", err)
 		return err
 	}
 	if len(gss) != len(d.Gs) {
-		fmt.Println(len(gss), len(d.Gs))
 		return util.Err("having invalid group by(%v),res(%v)", d.Gs, gss)
 	}
-	// send the other
-	log.D("sending %v message to each other", d.Mc)
-	clen := len(imcs_)
-	for i := 0; i < clen; i++ {
-		for j := 0; j < clen; j++ {
-			if i == j {
-				continue
+	for x := 0; x < tc; x++ {
+		// send the other
+		log_d("sending %v message to each other", d.Mc)
+		clen := len(imcs_)
+		for i := 0; i < clen; i++ {
+			for j := 0; j < clen; j++ {
+				if i == j {
+					continue
+				}
+				d.sms(imcs_[i], imcs_[j])
 			}
-			d.sms(imcs_[i], imcs_[j])
+		}
+		log_d("sending %v message to %v group", d.Mc, len(gss))
+		for gr, urs := range gss {
+			d.sms_g(d.imcs, gr, urs)
+		}
+		err = d.push(aurs)
+		if err != nil {
+			return err
 		}
 	}
-	log.D("sending %v message to %v group", d.Mc, len(gss))
-	for gr, urs := range gss {
-		d.sms_g(d.imcs, gr, urs)
-	}
-	return d.push(aurs)
-	// return nil
+	return nil
 }
 func (d *DoImc) sms_g(imcs map[string]*IMC, gr string, urs []string) {
+	d.m_lck.Lock()
+	defer d.m_lck.Unlock()
 	sc := 0
 	for _, ur := range urs {
 		imc, ok := imcs[ur]
@@ -105,10 +122,10 @@ func (d *DoImc) sms_g(imcs map[string]*IMC, gr string, urs []string) {
 		for i := 0; i < d.Mc; i++ {
 			imc.SMS(gr, 0, fmt.Sprintf("%v->%v", gr, i))
 		}
-		d.Res[imc.IC.R][fmt.Sprintf("S->%v", gr)] = d.Mc
+		d.Res[imc.IC.Uid][fmt.Sprintf("S->%v", gr)] = d.Mc
 		sc++
 	}
-	sc--
+	sc-- //exclude self
 	log_d("sending %v message to R(%v)", sc*d.Mc, gr)
 	if sc < 1 {
 		return
@@ -121,17 +138,19 @@ func (d *DoImc) sms_g(imcs map[string]*IMC, gr string, urs []string) {
 }
 func (d *DoImc) sms(a *IMC, b *IMC) {
 	for i := 0; i < d.Mc; i++ {
-		a.SMS(b.IC.R, 0, fmt.Sprintf("%v->%v", b.IC.R, i))
+		a.SMS(b.IC.Uid, 0, fmt.Sprintf("%v->%v", b.IC.Uid, i))
 	}
-	d.Res[a.IC.R][fmt.Sprintf("S->%v", b.IC.R)] = d.Mc
-	d.Res[b.IC.R][fmt.Sprintf("A->%v", a.IC.R)] = d.Mc
-	log_d("sending %v messaget S(%v),R(%v)", d.Mc, a.IC.R, b.IC.R)
+	d.m_lck.Lock()
+	d.Res[a.IC.Uid][fmt.Sprintf("S->%v", b.IC.Uid)] = d.Mc
+	d.Res[b.IC.Uid][fmt.Sprintf("A->%v", a.IC.Uid)] = d.Mc
+	d.m_lck.Unlock()
+	log_d("sending %v messaget S(%v),R(%v)", d.Mc, a.IC.Uid, b.IC.Uid)
 }
 func (d *DoImc) push(aurs []string) error {
 	if len(d.PushUrl) < 1 {
 		return nil
 	}
-	log.D("doing push by url(%v),usr(%v)", d.PushUrl, d.PushUsr)
+	log_d("doing push by url(%v),usr(%v)", d.PushUrl, d.PushUsr)
 	for i := 0; i < d.Mc; i++ {
 		res, err := util.HGet2(d.PushUrl, d.PushUsr, strings.Join(aurs, ","), "Push->", 0)
 		if err != nil {
@@ -141,23 +160,25 @@ func (d *DoImc) push(aurs []string) error {
 			return util.Err("do push to %v err:%v", d.PushUrl, res)
 		}
 	}
-	log.D("push %v message to %v user", d.Mc, len(aurs))
+	log_d("push %v message to %v user", d.Mc, len(aurs))
+	d.m_lck.Lock()
 	for _, ur := range aurs {
 		d.Res[ur][fmt.Sprintf("A->%v", d.PushUsr)] = d.Mc
 	}
+	d.m_lck.Unlock()
 	return nil
 }
 func (d *DoImc) OnM(i *IMC, c netw.Cmd, m *pb.ImMsg) int {
 	d.m_lck.Lock()
 	defer d.m_lck.Unlock()
-	log_d("receive message R(%v),A(%v)", i.IC.R, m.GetA())
-	v, _ := d.Res[i.IC.R][fmt.Sprintf("R->%v", m.GetA())].(int)
-	d.Res[i.IC.R][fmt.Sprintf("R->%v", m.GetA())] = v + 1
+	log_d("receive message R(%v),A(%v)", i.IC.Uid, m.GetA())
+	v, _ := d.Res[i.IC.Uid][fmt.Sprintf("R->%v", m.GetA())].(int)
+	d.Res[i.IC.Uid][fmt.Sprintf("R->%v", m.GetA())] = v + 1
 	return 0
 }
 func (d *DoImc) New(token string) (*IMC, error) {
 	log_d("New IMC by srv(%v),srvl(%v),token(%v)", d.Srv, d.SrvL, token)
-	imc, err := NewIMC5(d.Srv, d.SrvL, token)
+	imc, err := NewIMC5(d.P, d.Srv, d.SrvL, token)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +201,7 @@ func (d *DoImc) Check() bool {
 			}
 			tr := strings.TrimPrefix(rk, "A->")
 			if v != res[fmt.Sprintf("R->%v", tr)] {
-				log_d("checking R(%v),A(%v)->S(%v),R(%v)", sr, tr, v, res[fmt.Sprintf("R->%v", tr)])
+				log.D("DoImc(%v) checking R(%v),A(%v)->S(%v),R(%v)", d.Name, sr, tr, v, res[fmt.Sprintf("R->%v", tr)])
 				return false
 			}
 		}

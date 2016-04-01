@@ -15,3 +15,9 @@ var BP *BytePool = nil
 func init() {
 	BP = NewBytePool(8, 102400)
 }
+
+func SetBytePoolMax(max int) {
+	if BP.End < max {
+		BP = NewBytePool(8, max)
+	}
+}

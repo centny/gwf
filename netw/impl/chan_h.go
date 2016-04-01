@@ -64,23 +64,28 @@ func (ch *ChanH) run_c() {
 	atomic.AddInt32(&ch.count_, 1)
 	ch.running = true
 	var cmd netw.Cmd = nil
-	tk := time.Tick(ch.Sleep * time.Millisecond)
+	//tk := pool.NewTick(ch.Sleep * time.Millisecond)
 	for ch.running {
 		select {
 		case cmd = <-ch.cc:
+			if cmd == nil {
+				break
+			}
 			ch.H.OnCmd(cmd)
-		case <-tk:
+			//case <-tk:
 		}
 	}
 	atomic.AddInt32(&ch.count_, -1)
 	if ch.count_ < 1 {
 		ch.running = false
 	}
+	//pool.PutTick(ch.Sleep*time.Millisecond, tk)
 }
 
 //stop gorutine
 func (ch *ChanH) Stop() {
 	ch.running = false
+	close(ch.cc)
 }
 
 //wait gorutine done.

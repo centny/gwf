@@ -26,10 +26,13 @@ type MemDbH struct {
 	srv_l sync.RWMutex
 	Ms    map[string]*Msg
 	ms_l  sync.RWMutex
+	U2M   map[string][]string
+	u2m_l sync.RWMutex
 	//
 	Usr   map[string]byte
 	u_lck sync.RWMutex
 	Grp   map[string][]string
+	g_lck sync.RWMutex
 	//
 	Tokens map[string]string
 }
@@ -39,6 +42,7 @@ func NewMemDbH() *MemDbH {
 		Cons:   map[string]*Con{},
 		Srvs:   map[string]*Srv{},
 		Ms:     map[string]*Msg{},
+		U2M:    map[string][]string{},
 		Grp:    map[string][]string{},
 		Usr:    map[string]byte{},
 		Tokens: map[string]string{},
@@ -52,6 +56,14 @@ func (m *MemDbH) OnConn(c netw.Con) bool {
 func (m *MemDbH) OnClose(c netw.Con) {
 }
 func (m *MemDbH) OnCloseCon(c netw.Con, sid, cid string, t byte) error {
+	m.con_l.Lock()
+	defer m.con_l.Unlock()
+	var pre = fmt.Sprintf("%v%v", sid, cid)
+	for key, _ := range m.Cons {
+		if strings.HasPrefix(key, pre) {
+			delete(m.Cons, key)
+		}
+	}
 	return nil
 }
 func (m *MemDbH) AddCon(c *Con) error {
@@ -60,7 +72,7 @@ func (m *MemDbH) AddCon(c *Con) error {
 	}
 	m.con_l.Lock()
 	defer m.con_l.Unlock()
-	m.Cons[fmt.Sprintf("%v%v%v%v", c.Sid, c.Cid, c.R, c.T)] = c
+	m.Cons[fmt.Sprintf("%v%v%v%v", c.Sid, c.Cid, c.Uid, c.ConType)] = c
 	log.D("adding connection %v", c)
 	return nil
 }
@@ -71,6 +83,7 @@ func (m *MemDbH) DelCon(sid, cid, r string, t byte, ct int) (*Con, error) {
 	c := m.Cons[key]
 	delete(m.Cons, key)
 	log.D("delete connection %v", c)
+	panic("sss")
 	return c, nil
 }
 func (m *MemDbH) DelConT(sid, cid, token string, t byte) (*Con, error) {
@@ -82,13 +95,15 @@ func (m *MemDbH) ListCon(rs []string) ([]Con, error) {
 	if m == nil {
 		panic(nil)
 	}
+	m.con_l.Lock()
+	defer m.con_l.Unlock()
 	rsm := map[string]byte{}
 	for _, r := range rs {
 		rsm[r] = 1
 	}
 	ccs := []Con{}
 	for _, cc := range m.Cons {
-		if _, ok := rsm[cc.R]; ok {
+		if _, ok := rsm[cc.Uid]; ok {
 			ccs = append(ccs, *cc)
 		}
 	}
@@ -107,6 +122,8 @@ func (m *MemDbH) FUsrR(c netw.Cmd) string {
 
 //list all user R by group R
 func (m *MemDbH) ListUsrR(gr []string) (map[string][]string, error) {
+	m.g_lck.Lock()
+	defer m.g_lck.Unlock()
 	trs := map[string][]string{}
 	for _, g := range gr {
 		if rs, ok := m.Grp[g]; ok {
@@ -116,6 +133,8 @@ func (m *MemDbH) ListUsrR(gr []string) (map[string][]string, error) {
 	return trs, nil
 }
 func (m *MemDbH) ListR() ([]string, error) {
+	m.u_lck.Lock()
+	defer m.u_lck.Unlock()
 	var usrs []string = []string{}
 	for r, _ := range m.Usr {
 		usrs = append(usrs, r)
@@ -234,9 +253,14 @@ func (m *MemDbH) NewMid() string {
 
 //store mesage
 func (m *MemDbH) Store(ms *Msg) error {
+	m.u2m_l.Lock()
 	m.ms_l.Lock()
-	defer m.ms_l.Unlock()
+	defer func() {
+		m.ms_l.Unlock()
+		m.u2m_l.Unlock()
+	}()
 	m.Ms[ms.GetI()] = ms
+	m.U2M[ms.GetS()] = append(m.U2M[ms.GetS()], ms.GetI())
 	// if len(ms.Ms) < 1 {
 	// 	panic("message MS is empty")
 	// }
@@ -369,6 +393,12 @@ func (m *MemDbH) ListUnread(r string, ct int) ([]Msg, error) {
 	return []Msg{msg}, nil
 }
 func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []Con, error) {
+	m.con_l.Lock()
+	m.ms_l.Lock()
+	defer func() {
+		m.ms_l.Unlock()
+		m.con_l.Unlock()
+	}()
 	msg, ok := m.Ms[mid]
 	if !ok {
 		return nil, nil, util.Err("message not found by id(%v)", mid)
@@ -385,7 +415,7 @@ func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []Con, error) {
 			continue
 		}
 		for _, cc := range m.Cons {
-			if cc.R == r && cc.Sid == sid {
+			if cc.Uid == r && cc.Sid == sid {
 				cons = append(cons, *cc)
 			}
 		}
@@ -398,12 +428,44 @@ func (m *MemDbH) AddGrp(grp string, users []string) {
 	defer m.u_lck.Unlock()
 	m.Grp[grp] = users
 }
-
+func (m *MemDbH) DelGrp(grp string) {
+	m.u_lck.Lock()
+	defer m.u_lck.Unlock()
+	delete(m.Grp, grp)
+}
 func (m *MemDbH) AddTokens(tokens map[string]string) {
 	m.u_lck.Lock()
 	defer m.u_lck.Unlock()
 	for token, tr := range tokens {
 		m.Tokens[token] = tr
+	}
+}
+func (m *MemDbH) DelTokens(tokens []string) {
+	m.u_lck.Lock()
+	defer m.u_lck.Unlock()
+	for _, token := range tokens {
+		delete(m.Tokens, token)
+	}
+}
+func (m *MemDbH) ClearMsg(urs []string) {
+	m.u_lck.Lock()
+	m.u2m_l.Lock()
+	m.ms_l.Lock()
+	defer func() {
+		m.ms_l.Unlock()
+		m.u2m_l.Unlock()
+		m.u_lck.Unlock()
+	}()
+	for _, ur := range urs {
+		var mids = m.U2M[ur]
+		if len(mids) < 1 {
+			continue
+		}
+		for _, mid := range mids {
+			delete(m.Ms, mid)
+		}
+		delete(m.Usr, ur)
+		delete(m.U2M, ur)
 	}
 }
 

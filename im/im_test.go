@@ -3,7 +3,6 @@ package im
 import (
 	"bufio"
 	"bytes"
-	"code.google.com/p/go.net/websocket"
 	"fmt"
 	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
@@ -11,6 +10,7 @@ import (
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
+	"golang.org/x/net/websocket"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -573,4 +573,18 @@ func testIm(t *testing.T) {
 			m != m_cc_c, d != r_cc_c, s_cc_c != r_cc_c, r < s_cc_c))
 	}
 	time.Sleep(time.Second)
+}
+
+func TestB2V(t *testing.T) {
+	fmt.Println("sss")
+	var bys = []byte{50, 50, 55, 18, 5, 85, 45, 49, 45, 52, 26, 5, 85, 45, 49, 45, 49, 26, 5, 85, 45, 49, 45, 50, 26, 5, 85, 45, 49, 45, 51, 32, 0, 42, 5, 85, 45, 49, 45, 51, 50, 6, 80, 117, 115, 104, 45, 62, 58, 5, 85, 45, 49, 45, 52, 64, 187, 253, 241, 244, 186, 42}
+	var mv = util.Map{}
+	fmt.Println("xxx")
+	var _, err = IM_B2V(bys, mv)
+	fmt.Println("xxxkkk")
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(mv)
+	fmt.Println("done")
 }
