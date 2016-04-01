@@ -91,6 +91,10 @@ func NewP3P(options []string) *P3P {
 	return p3p
 }
 
+func NewP3P2() *P3P {
+	return NewP3P([]string{"OTI", "DSP", "COR", "IVA", "OUR", "IND", "COM"})
+}
+
 func (p *P3P) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	hs.W.Header().Set("P3P", p.val)
 	return routing.HRES_CONTINUE
