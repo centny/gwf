@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Centny/gwf/routing"
+	"github.com/Centny/gwf/routing/filter"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -38,6 +39,7 @@ func main() {
 		}
 
 	}
+	mux.HFilter("^.*$", filter.NewP3P2())
 	mux.HFunc("^/_echo_.*$", func(hs *routing.HTTPSession) routing.HResult {
 		hs.R.ParseForm()
 		fmt.Println("---Header---")
