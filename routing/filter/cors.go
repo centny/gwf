@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"fmt"
 	"strings"
 	// "github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/routing"
@@ -78,4 +79,23 @@ func NewCORS_GET_POST(site string) *CORS {
 
 func NewCORS_All() *CORS {
 	return NewCORS_GET_POST("*")
+}
+
+type P3P struct {
+	val string
+}
+
+func NewP3P(options []string) *P3P {
+	var p3p = &P3P{}
+	p3p.SetOptions(options)
+	return p3p
+}
+
+func (p *P3P) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
+	hs.W.Header().Set("P3P", p.val)
+	return routing.HRES_CONTINUE
+}
+
+func (p *P3P) SetOptions(options []string) {
+	p.val = fmt.Sprintf("CP=\" %v \"", strings.Join(options, " "))
 }
