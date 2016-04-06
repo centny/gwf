@@ -78,6 +78,12 @@ type ActionHook interface {
 	Call(v interface{}, args ...interface{}) (interface{}, error)
 }
 
+type ActionHookF func(v interface{}, args ...interface{}) (interface{}, error)
+
+func (a ActionHookF) Call(v interface{}, args ...interface{}) (interface{}, error) {
+	return a(v, args)
+}
+
 func NewNameHooks() *NameHooks {
 	nh := &NameHooks{}
 	nh.Actions = map[string][]ActionHook{}
