@@ -46,6 +46,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	defer file.Close()
 	var buf = bufio.NewReader(file)
 	var reg = regexp.MustCompile("[ \t]+")
 	var p, q, r, s uint8
