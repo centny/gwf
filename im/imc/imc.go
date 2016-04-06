@@ -7,6 +7,7 @@ import (
 	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
+	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
 	"os"
 	"runtime"
@@ -125,9 +126,9 @@ func run() int {
 		}
 	}
 	if len(s) > 0 {
-		imc = im.NewIMC(s, t)
+		imc = im.NewIMC(pool.BP, s, t)
 	} else if len(l) > 0 {
-		imc_, err := im.NewIMC4(l, t)
+		imc_, err := im.NewIMC4(pool.BP, l, t)
 		if err != nil {
 			fmt.Println(err.Error())
 			return 1
@@ -206,7 +207,7 @@ func run_do_imc(s, l, t, g, P, p string, c int, timeout int64) error {
 	if len(g) > 0 {
 		gs = strings.Split(g, ",")
 	}
-	di := im.NewDoImc(srv, len(l) > 1, strings.Split(t, ","), gs, c, P, p)
+	di := im.NewDoImc(pool.BP, srv, len(l) > 1, strings.Split(t, ","), gs, c, P, p)
 	err := di.Do()
 	if err != nil {
 		return err
