@@ -134,6 +134,10 @@ func (t *Log) log_(l LogLevel, d int, format string, v ...interface{}) {
 }
 
 func Redirect(out_l, err_l string) {
+	RedirectV(out_l, err_l, true)
+}
+
+func RedirectV(out_l, err_l string, sys bool) {
 	// var out_l = fcfg.Val2("out_l", "")
 	// var err_l = fcfg.Val2("err_l", "")
 	if len(out_l) < 1 && len(err_l) < 1 {
@@ -141,10 +145,10 @@ func Redirect(out_l, err_l string) {
 	}
 	fmt.Printf("redirect stdout to file(%v) and stderr to file(%v)\n", out_l, err_l)
 	if len(out_l) > 0 {
-		smartio.RedirectStdout3(out_l)
+		smartio.RedirectStdout4(out_l, sys)
 	}
 	if len(err_l) > 0 {
-		smartio.RedirectStderr3(err_l)
+		smartio.RedirectStderr4(err_l, sys)
 	}
 	SetWriter(os.Stdout)
 }

@@ -67,6 +67,11 @@ func RedirectStdout3(path_f string) error {
 	return RedirectStdout2(path_f, 1024, 3000)
 }
 
+func RedirectStdout4(path_f string, sys bool) error {
+	var ws, name_f = filepath.Split(path_f)
+	return RedirectStdoutV(ws, name_f, 1024, 3000, sys)
+}
+
 func RedirectStderrV(ws, name_f string, bsize int, cdelay int64, sys bool) error {
 	var sys_err *os.File = nil
 	if sys {
@@ -88,6 +93,11 @@ func RedirectStderr2(path_f string, bsize int, cdelay int64) error {
 
 func RedirectStderr3(path_f string) error {
 	return RedirectStderr2(path_f, 1024, 3000)
+}
+
+func RedirectStderr4(path_f string, sys bool) error {
+	var ws, name_f = filepath.Split(path_f)
+	return RedirectStderrV(ws, name_f, 1024, 3000, sys)
 }
 
 func ResetStd() {
