@@ -59,13 +59,11 @@ func main() {
 		}
 		strs := reg.Split(string(bys), 5)
 		if len(strs) < 4 {
-			fmt.Println(string(bys))
 			continue
 		}
 		lbuf := bytes.NewBufferString(strs[2])
 		lres, err := fmt.Fscanf(lbuf, "%2x%2x%2x%2x:%x", &p, &q, &r, &s, &port)
 		if err != nil || lres != 5 {
-			fmt.Println(lres, err)
 			continue
 		}
 		laddr := fmt.Sprintf("%v.%v.%v.%v:%v", s, r, q, p, port)
