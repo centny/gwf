@@ -70,6 +70,7 @@ func (l *Listener) LoopAccept() {
 			log.I("accept %s error->%s", l.Port, err.Error())
 			break
 		}
+		l.Increase()
 		con.(*net.TCPConn).SetNoDelay(true)
 		// con.(*net.TCPConn).SetWriteBuffer(5)
 		// con.(*net.TCPConn).SetWriteDeadline(t)

@@ -92,6 +92,7 @@ type CCHandler interface {
 }
 
 type wsConn struct {
+	L *LConPool
 	*websocket.Conn
 	net.Addr
 }
@@ -101,6 +102,10 @@ func (w *wsConn) RemoteAddr() net.Addr {
 }
 func (w *wsConn) String() string {
 	return w.Request().RemoteAddr
+}
+func (w *wsConn) Close() error {
+	w.L.Descrease()
+	return w.Conn.Close()
 }
 
 /*
@@ -232,6 +237,7 @@ func (c *Con_) Closed() bool {
 }
 func (c *Con_) Close() error {
 	c.closed_ = true
+	c.CP_.(Counter).Descrease()
 	return c.Conn.Close()
 }
 func (c *Con_) Mod() string {
@@ -426,6 +432,13 @@ type LConPool struct {
 	Err_    CmdErrF
 	Id_     string
 	Delay_  time.Duration //the write delay.
+	RC      int64
+}
+
+type Counter interface {
+	Increase()
+	Descrease()
+	Current() int64
 }
 
 //new connection pool.
@@ -488,6 +501,19 @@ func (l *LConPool) Handler() CCHandler {
 }
 func (l *LConPool) Runner() ConRunner {
 	return l.Runner_
+}
+
+func (l *LConPool) Increase() {
+	atomic.AddInt64(&l.RC, 1)
+	log_d("Pool(%v/%v) current count is %v", l.Name, l.Id(), l.RC)
+}
+
+func (l *LConPool) Descrease() {
+	atomic.AddInt64(&l.RC, -1)
+}
+
+func (l *LConPool) Current() int64 {
+	return l.RC
 }
 
 //close all connection
@@ -595,7 +621,9 @@ func (l *LConPool) Writev2(bys []byte, val interface{}) int {
 	return len(l.cons)
 }
 func (l *LConPool) accept_ws(wc *websocket.Conn) {
+	l.Increase()
 	con := &wsConn{
+		L:    l,
 		Conn: wc,
 		Addr: wc.RemoteAddr(),
 	}
@@ -603,6 +631,8 @@ func (l *LConPool) accept_ws(wc *websocket.Conn) {
 	tcon := l.NewCon(l, l.P, con)
 	if l.H.OnConn(tcon) {
 		l.RunC_(tcon)
+	} else {
+		tcon.Close()
 	}
 }
 
