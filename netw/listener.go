@@ -77,6 +77,9 @@ func (l *Listener) LoopAccept() {
 		tcon := l.NewCon(l, l.P, con)
 		if l.H.OnConn(tcon) {
 			l.RunC(tcon)
+		} else {
+			log.W("Pool(%v/%v) rejecting tcp connection from %v", l.Name, l.Id(), con.RemoteAddr().String())
+			tcon.Close()
 		}
 	}
 	l.Running = false
