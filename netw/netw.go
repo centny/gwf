@@ -632,6 +632,7 @@ func (l *LConPool) accept_ws(wc *websocket.Conn) {
 	if l.H.OnConn(tcon) {
 		l.RunC_(tcon)
 	} else {
+		log.W("Pool(%v/%v) rejecting tcp connection from %v", l.Name, l.Id(), con.RemoteAddr().String())
 		tcon.Close()
 	}
 }
