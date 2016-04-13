@@ -35,6 +35,7 @@ func (m *MD_H) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 		hs.R.URL.Path = path
 	}
 	path = filepath.Join(m.Base, path)
+	log.D("MD_H doing path %v", path)
 	if !m.Reg.MatchString(path) {
 		m.H.ServeHTTP(hs.W, hs.R)
 		return routing.HRES_RETURN
