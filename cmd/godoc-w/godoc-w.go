@@ -69,7 +69,7 @@ func main() {
 			ef(1)
 			return
 		}
-		var res = pars.ToM(prefix)
+		var res = pars.ToM()
 		res.RateV()
 		bys, _ := res.Marshal()
 		err = ioutil.WriteFile(out, bys, os.ModePerm)
