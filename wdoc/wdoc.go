@@ -340,10 +340,14 @@ func (p *Parser) do_see(pkg_path, text string, see *See) {
 		vals[0] = pkg_path + strings.TrimPrefix(vals[0], ".")
 	}
 	see.Pkg, see.Name = path.Split(vals[0])
+	if len(see.Pkg) < 1 {
+		see.Pkg = pkg_path
+	}
 	var pkgs = strings.SplitN(see.Pkg, "src/", 2)
 	if len(pkgs) > 1 {
 		see.Pkg = pkgs[1]
 	}
+	see.Pkg = strings.Trim(see.Pkg, "/ ")
 	if len(vals) > 1 {
 		see.Desc = vals[1]
 	}
