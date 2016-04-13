@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Centny/gwf/routing"
+	"github.com/Centny/gwf/routing/filter"
 	"github.com/Centny/gwf/util"
 	"github.com/Centny/gwf/wdoc"
 	"io/ioutil"
@@ -23,6 +24,7 @@ func main() {
 	var prefix string = ""
 	var delay int64 = 100000
 	var out string = ""
+	var cmdf string = "pandoc %v -s --highlight-style tango"
 	_, options, path := util.Args()
 	err := options.ValidF(`
 		inc,O|S,L:0;
@@ -32,7 +34,8 @@ func main() {
 		delay,O|I,R:0;
 		out,O|S,L:0;
 		www,O|S,L:0;
-		`, &inc, &exc, &addr, &prefix, &delay, &out, &www)
+		cmdf,O|S,L:0;
+		`, &inc, &exc, &addr, &prefix, &delay, &out, &www, &cmdf)
 	if err != nil {
 		fmt.Println(err.Error())
 		usage()
@@ -51,12 +54,12 @@ func main() {
 	if len(exc) > 0 {
 		exc_ = strings.Split(exc, ",")
 	}
-	pars := wdoc.NewParser()
-	pars.Pre = prefix
+	pars := wdoc.NewParser(prefix, "/doc", cmdf)
 	if len(addr) > 0 {
 		go pars.LoopParse(wd, inc_, exc_, time.Duration(delay))
 		mux := routing.NewSessionMux2("")
-		mux.H("^/doc(\\?.*)?$", pars)
+		mux.H("^.*$", filter.NewCORS2("*"))
+		mux.H("^/doc.*$", pars)
 		mux.Handler("^.*$", http.FileServer(http.Dir(www)))
 		fmt.Println(http.ListenAndServe(addr, mux))
 	} else if len(out) > 0 {
