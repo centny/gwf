@@ -1,7 +1,7 @@
 Web API文档编写说明
 ===
 ###格式
-```
+```{.go .numberLines}
 
 //接口标题(第一行)
 //接口详细描述（可以多行）
@@ -57,7 +57,7 @@ func XXV(hs *routing.HTTPSession) routing.HResult { //也可以是golang默认�
 ###例子
 * 以json数据作为请求body的例子
 
-```
+```{.go .numberLines}
 
 type User struct {
 	Id     string `json:"id"`
@@ -124,7 +124,7 @@ func AddUser_j(hs *routing.HTTPSession) routing.HResult {
 ```
 * 普通GET请求的例子
 
-```
+```{.go .numberLines}
 //添加用户(Query)
 //通过用户、密码、别名、性别创建用户
 //

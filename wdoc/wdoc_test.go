@@ -5,13 +5,16 @@ import (
 	"github.com/Centny/gwf/routing/httptest"
 	"github.com/Centny/gwf/util"
 	"os"
+	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 )
 
 func TestParser(t *testing.T) {
-	pp := NewParser()
+	os.Setenv("PATH", os.Getenv("PATH")+":/usr/local/bin")
+	pp := NewParser("", "/doc", "/usr/local/bin/pandoc %v -s --highlight-style tango")
 	var wait = make(chan int)
 	go func() {
 		pp.LoopParse(os.Getenv("GOPATH")+"/src/github.com/Centny/gwf/wdoc", nil, nil, 1000)
@@ -22,6 +25,10 @@ func TestParser(t *testing.T) {
 	<-wait
 	var res = pp.ToMv("", "x1", "test,x")
 	if len(res.Pkgs) < 1 {
+		t.Error("error")
+		return
+	}
+	if len(pp.Web.HS) < 1 {
 		t.Error("error")
 		return
 	}
@@ -43,13 +50,30 @@ func TestParser(t *testing.T) {
 	//
 	fmt.Println(util.S2Json(res))
 	//
-	ts := httptest.NewServer2(pp)
-	ts.G("")
+	ts := httptest.NewMuxServer()
+	ts.Mux.H("^/doc.*$", pp)
+	// ts.Mux.HFunc("^/html/.*$", pp.LoadHtml)
+	ts.G("/doc")
+
+	hres, err := ts.G("/doc/html/readme_cn")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if len(hres) < 50 {
+		fmt.Println(hres)
+		t.Error("errror")
+		return
+	}
+	fmt.Println("xxxx->")
+	fmt.Println(hres)
+	fmt.Println(ts.G("/doc/html/readme_cn/t.sh"))
+	fmt.Println(ts.G("/doc/html/readme_cn/xxx.go"))
 	//
 	//
 	//test error
-	NewParser().Parse("/sdfk/sds")
-	NewParser().ParseDir("/sdfk/sds", nil, nil)
+	NewParser("", "", "").Parse("/sdfk/sds")
+	NewParser("", "", "").ParseDir("/sdfk/sds", nil, nil)
 	go pp.LoopParse("/dsfsfd", nil, nil, 1000)
 	time.Sleep(2 * time.Second)
 	pp.Running = false
@@ -121,6 +145,7 @@ func TestCmd(t *testing.T) {
 
 @tag,用户,登录
 @author,wensh,2016-01-31
+@html,readme_cn,README_cn.md,the read me
 	`
 	var xx = `
 {
@@ -198,3 +223,14 @@ func TestCmd(t *testing.T) {
 // 	bys, _ := wdoc.Marshal()
 // 	fmt.Println(string(bys))
 // }
+
+func TestMarkDown(t *testing.T) {
+	cmds := exec.Command("bash", "-c", "./t.sh")
+	// cmds.Env = []string{"PATH=/usr/local"}
+	bys, err := cmds.Output()
+	fmt.Println(string(bys), err)
+}
+
+func TestMatch(t *testing.T) {
+	fmt.Println(regexp.MustCompile(".*\\.[(md)(MD)]+$").MatchString("xxxdd.md"))
+}

@@ -38,6 +38,12 @@ func (p *Pkg) RateV() {
 	}
 }
 
+type Web struct {
+	Key   string `json:"key,omitempty" xml:"-"`
+	Index string `json:"index,omitempty" xml:"-"`
+	Desc  string `json:"desc,omitempty" xml:"-"`
+}
+
 //the func
 type Func struct {
 	Name     string    `json:"name,omitempty" xml:"name,attr"` //the func name
@@ -48,6 +54,7 @@ type Func struct {
 	Arg      *Arg      `json:"arg,omitempty" xml:"-"`          //the func argument
 	Ret      *Arg      `json:"ret,omitempty" xml:"-"`          //the func return
 	Author   *Author   `json:"author,omitempty" xml:"-"`       //the func author
+	WS       []*Web    `json:"ws,omitempty" xml:"-"`           //the func author
 	Methods  []*Method `json:"-" xml:"methods>method"`         //the methods
 	Filename string    `json:"-" xml:"filename,attr"`          //the filename
 }

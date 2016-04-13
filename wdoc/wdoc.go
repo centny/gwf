@@ -97,18 +97,23 @@ func (n *NormalH) ISH(dir string, decl *ast.FuncDecl) bool {
 //the web api parser
 type Parser struct {
 	Running bool
-	Pre     string
+	PkgPre  string
+	WebPre  string
 	H       Handler
 	PS      map[string]*ast.Package
 	FS      map[string]map[string]*ast.FuncDecl
+	Web     *Webs
 }
 
 //create parser
-func NewParser() *Parser {
+func NewParser(pkg_pre, web_pre, cmdf string) *Parser {
 	return &Parser{
-		H:  NewNormalH(),
-		PS: map[string]*ast.Package{},
-		FS: map[string]map[string]*ast.FuncDecl{},
+		PkgPre: pkg_pre,
+		WebPre: web_pre,
+		H:      NewNormalH(),
+		PS:     map[string]*ast.Package{},
+		FS:     map[string]map[string]*ast.FuncDecl{},
+		Web:    NewWebs(web_pre+"/html", cmdf),
 	}
 }
 
@@ -305,8 +310,25 @@ func (p *Parser) do_author(text string, author *Author) {
 	}
 }
 
+func (p *Parser) do_web(path, text string, web *Web) {
+	line := strings.Trim(text, " \t")
+	line = multi_t.ReplaceAllString(line, "\t")
+	vals := strings.SplitN(line, ",", 3)
+	if len(vals) < 2 {
+		log.W("parsing web line(%v) error->%v", line, "must having key and index name")
+		return
+	}
+	web.Key = vals[0]
+	web.Index = vals[1]
+	if len(vals) > 2 {
+		web.Desc = vals[2]
+	}
+	log.D("Parser adding web by path(%v),key(%v),index(%v)", path, web.Key, web.Index)
+	p.Web.AddMD2(web.Key, path, web.Index)
+}
+
 //parse matched func to Func
-func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) *Func {
+func (p *Parser) Func2Map(path, fn string, f *ast.FuncDecl) *Func {
 	var info = &Func{
 		Name: fn,
 	}
@@ -335,6 +357,7 @@ func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) *Func {
 	}
 	for idx, cmd := range cmds {
 		var text = strings.Trim(dataes[idx+1], " \t\n")
+		// log.D("parsing command(%v) by text(%v)", cmd, text)
 		switch cmd {
 		case "@url,":
 			info.Url = &Url{}
@@ -351,6 +374,10 @@ func (p *Parser) Func2Map(fn string, f *ast.FuncDecl) *Func {
 		case "@author,":
 			info.Author = &Author{}
 			p.do_author(text, info.Author)
+		case "@web,":
+			var web = &Web{}
+			p.do_web(path, text, web)
+			info.WS = append(info.WS, web)
 		default:
 			log.E("unknow command(%v) for data(%v)", cmd, text)
 		}
@@ -366,7 +393,7 @@ func (p *Parser) ToMv(prefix, key, tags string) *Wdoc {
 	for name, fs := range p.FS {
 		var tfs = []*Func{}
 		for fn, f := range fs {
-			ff := p.Func2Map(fn, f)
+			ff := p.Func2Map(name, fn, f)
 			if ff == nil || !ff.Matched(key, tags) {
 				continue
 			}
@@ -466,9 +493,34 @@ func (p *Parser) ToM(prefix string) *Wdoc {
 //@tag,wdoc,godoc
 //
 //@author,Centny,2016-01-28
+//@web,readme_cn,README_cn.md,the chinese doc
 func (p *Parser) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
+	var path = hs.R.URL.Path
+	path = strings.TrimPrefix(path, p.WebPre)
+	path = strings.TrimPrefix(path, "/")
+	if strings.HasPrefix(path, "html") {
+		return p.Web.SrvHTTP(hs)
+	}
 	var key string = hs.CheckVal("key")
 	var tags string = hs.CheckVal("tags")
-	hs.JsonRes(p.ToMv(p.Pre, ".*"+key+".*", tags))
+	hs.JsonRes(p.ToMv(p.PkgPre, ".*"+key+".*", tags))
 	return routing.HRES_RETURN
 }
+
+// func (p *Parser) LoadHtml(hs *routing.HTTPSession) routing.HResult {
+// 	var _, html = path.Split(strings.TrimSuffix(hs.R.URL.Path, "/"))
+// 	html = strings.Trim(html, "/ \t")
+// 	html = strings.TrimSuffix(html, ".html")
+// 	if len(html) < 1 {
+// 		hs.W.WriteHeader(404)
+// 		return routing.HRES_RETURN
+// 	}
+// 	if content, ok := p.HTML[html]; ok {
+// 		log.D("Parser load html by key(%v) success", html)
+// 		hs.SendT(content, "text/html")
+// 	} else {
+// 		log.D("Parser load html by key(%v) fail with key is not found", html)
+// 		hs.W.WriteHeader(404)
+// 	}
+// 	return routing.HRES_RETURN
+// }
