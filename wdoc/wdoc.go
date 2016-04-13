@@ -10,6 +10,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -310,7 +311,7 @@ func (p *Parser) do_author(text string, author *Author) {
 	}
 }
 
-func (p *Parser) do_web(path, text string, web *Web) {
+func (p *Parser) do_web(pkg_path, text string, web *Web) {
 	line := strings.Trim(text, " \t")
 	line = multi_t.ReplaceAllString(line, "\t")
 	vals := strings.SplitN(line, ",", 3)
@@ -323,8 +324,29 @@ func (p *Parser) do_web(path, text string, web *Web) {
 	if len(vals) > 2 {
 		web.Desc = vals[2]
 	}
-	log.D("Parser adding web by path(%v),key(%v),index(%v)", path, web.Key, web.Index)
-	p.Web.AddMD2(web.Key, path, web.Index)
+	log.D("Parser adding web by path(%v),key(%v),index(%v)", pkg_path, web.Key, web.Index)
+	p.Web.AddMD2(web.Key, pkg_path, web.Index)
+}
+
+func (p *Parser) do_see(pkg_path, text string, see *See) {
+	line := strings.Trim(text, " \t")
+	line = multi_t.ReplaceAllString(line, "\t")
+	vals := strings.SplitN(line, ",", 2)
+	if len(vals) < 1 {
+		log.W("parsing see line(%v) error->%v", line, "must having key and index name")
+		return
+	}
+	if strings.HasPrefix(vals[0], ".") {
+		vals[0] = pkg_path + strings.TrimPrefix(vals[0], ".")
+	}
+	see.Pkg, see.Name = path.Split(vals[0])
+	var pkgs = strings.SplitN(see.Pkg, "src/", 2)
+	if len(pkgs) > 1 {
+		see.Pkg = pkgs[1]
+	}
+	if len(vals) > 1 {
+		see.Desc = vals[1]
+	}
 }
 
 //parse matched func to Func
@@ -378,6 +400,10 @@ func (p *Parser) Func2Map(path, fn string, f *ast.FuncDecl) *Func {
 			var web = &Web{}
 			p.do_web(path, text, web)
 			info.WS = append(info.WS, web)
+		case "@see,":
+			var see = &See{}
+			p.do_see(path, text, see)
+			info.See = append(info.See, see)
 		default:
 			log.E("unknow command(%v) for data(%v)", cmd, text)
 		}
@@ -494,6 +520,8 @@ func (p *Parser) ToM(prefix string) *Wdoc {
 //
 //@author,Centny,2016-01-28
 //@web,readme_cn,README_cn.md,the chinese doc
+//@see,Webs.SrvHTTP,the webs
+//@see,./Webs.SrvHTTP
 func (p *Parser) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	var path = hs.R.URL.Path
 	path = strings.TrimPrefix(path, p.WebPre)

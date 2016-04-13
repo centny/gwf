@@ -44,6 +44,12 @@ type Web struct {
 	Desc  string `json:"desc,omitempty" xml:"-"`
 }
 
+type See struct {
+	Pkg  string `json:"pkg,omitempty" xml:"-"`
+	Name string `json:"name,omitempty" xml:"-"`
+	Desc string `json:"desc,omitempty" xml:"-"`
+}
+
 //the func
 type Func struct {
 	Name     string    `json:"name,omitempty" xml:"name,attr"` //the func name
@@ -54,7 +60,8 @@ type Func struct {
 	Arg      *Arg      `json:"arg,omitempty" xml:"-"`          //the func argument
 	Ret      *Arg      `json:"ret,omitempty" xml:"-"`          //the func return
 	Author   *Author   `json:"author,omitempty" xml:"-"`       //the func author
-	WS       []*Web    `json:"ws,omitempty" xml:"-"`           //the func author
+	WS       []*Web    `json:"ws,omitempty" xml:"-"`           //the func web
+	See      []*See    `json:"see,omitempty" xml:"-"`          //the func see
 	Methods  []*Method `json:"-" xml:"methods>method"`         //the methods
 	Filename string    `json:"-" xml:"filename,attr"`          //the filename
 }
