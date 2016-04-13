@@ -53,6 +53,8 @@ func XXV(hs *routing.HTTPSession) routing.HResult { //也可以是golang默认�
 * `@ret,` 返回值
 * `@tag,` 接口分类tag
 * `@author` 作者，以及创建时间
+* `@web` 指定一个markdown或html作为附加文档，如`@web,readme_cn,README_cn.md,readme 文档`
+* `@see` 指定相关接口文档 `@see,xxx/xxx.SrvHTTP`
 
 ###例子
 * 以json数据作为请求body的例子
