@@ -26,6 +26,31 @@ func (w *Wdoc) RateV() {
 	}
 }
 
+func (w *Wdoc) Filter(key, tags string) *Wdoc {
+	var res = &Wdoc{}
+	var pkgs_ = []*Pkg{}
+	var tags_ = map[string]int{}
+	for _, pkg := range w.Pkgs {
+		var tfs = []*Func{}
+		for _, f := range pkg.Funcs {
+			if !f.Matched(key, tags) {
+				continue
+			}
+			tfs = append(tfs, f)
+			for _, tag := range f.Tags {
+				tags_[tag] += 1
+			}
+		}
+		if len(tfs) < 1 {
+			continue
+		}
+		pkgs_ = append(pkgs_, pkg)
+	}
+	res.Pkgs = pkgs_
+	res.Tags = tags_
+	return res
+}
+
 //the package
 type Pkg struct {
 	Name  string  `json:"name,omitempty" xml:"name,attr"`      //the package name

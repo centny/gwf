@@ -104,6 +104,8 @@ type Parser struct {
 	PS      map[string]*ast.Package
 	FS      map[string]map[string]*ast.FuncDecl
 	Web     *Webs
+
+	doc *Wdoc //temp
 }
 
 //create parser
@@ -129,6 +131,7 @@ func (p *Parser) LoopParseL(root []string, inc, exc []string, delay time.Duratio
 		if err != nil {
 			log.E("loop parse dir(%v),inc(%v),exc(%v) error->%v", root, inc, exc, err)
 		}
+		p.ParseWdoc(p.PkgPre)
 		time.Sleep(delay * time.Millisecond)
 	}
 }
@@ -415,8 +418,7 @@ func (p *Parser) Func2Map(path, fn string, f *ast.FuncDecl) *Func {
 	return info
 }
 
-//parse and search all matched func to Wdoc
-func (p *Parser) ToMv(prefix, key, tags string) *Wdoc {
+func (p *Parser) ParseWdoc(prefix string) *Wdoc {
 	var res = &Wdoc{}
 	var pkgs_ = []*Pkg{}
 	var tags_ = map[string]int{}
@@ -424,7 +426,7 @@ func (p *Parser) ToMv(prefix, key, tags string) *Wdoc {
 		var tfs = []*Func{}
 		for fn, f := range fs {
 			ff := p.Func2Map(name, fn, f)
-			if ff == nil || !ff.Matched(key, tags) {
+			if ff == nil {
 				continue
 			}
 			tfs = append(tfs, ff)
@@ -449,12 +451,24 @@ func (p *Parser) ToMv(prefix, key, tags string) *Wdoc {
 	sort.Sort(pkgs_l(pkgs_))
 	res.Pkgs = pkgs_
 	res.Tags = tags_
+	p.doc = res
 	return res
+}
+func (p *Parser) get_wdoc() *Wdoc {
+	if p.doc == nil {
+		p.ParseWdoc(p.PkgPre)
+	}
+	return p.doc
+}
+
+//parse and search all matched func to Wdoc
+func (p *Parser) ToMv(key, tags string) *Wdoc {
+	return p.get_wdoc().Filter(key, tags)
 }
 
 //parse all matched func to Wdoc
-func (p *Parser) ToM(prefix string) *Wdoc {
-	return p.ToMv(prefix, "", "")
+func (p *Parser) ToM() *Wdoc {
+	return p.ToMv("", "")
 }
 
 //list all web api doc
@@ -535,7 +549,7 @@ func (p *Parser) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	}
 	var key string = hs.CheckVal("key")
 	var tags string = hs.CheckVal("tags")
-	hs.JsonRes(p.ToMv(p.PkgPre, ".*"+key+".*", tags))
+	hs.JsonRes(p.ToMv(".*"+key+".*", tags))
 	return routing.HRES_RETURN
 }
 

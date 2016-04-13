@@ -23,7 +23,7 @@ func TestParser(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	pp.Running = false
 	<-wait
-	var res = pp.ToMv("", "x1", "test,x")
+	var res = pp.ToMv("x1", "test,x")
 	if len(res.Pkgs) < 1 {
 		t.Error("error")
 		return
@@ -32,12 +32,12 @@ func TestParser(t *testing.T) {
 		t.Error("error")
 		return
 	}
-	res = pp.ToMv("", "xxxx1", "test,x")
+	res = pp.ToMv("xxxx1", "test,x")
 	if len(res.Pkgs) > 0 {
 		t.Error("error")
 		return
 	}
-	res = pp.ToM("")
+	res = pp.ToM()
 	res.RateV()
 	bys, err := res.Marshal()
 	if err != nil {
