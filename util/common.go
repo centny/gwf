@@ -109,3 +109,11 @@ func CPU() int {
 		return i - 1
 	}
 }
+
+func AryS2Map(vals []string) map[string]bool {
+	var res = map[string]bool{}
+	for _, val := range vals {
+		res[val] = true
+	}
+	return res
+}
