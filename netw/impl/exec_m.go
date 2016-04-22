@@ -171,7 +171,7 @@ func (r *RCM_S) exec_f(f RC_M_FH, rcm *RCM_Cmd) (con bool, val interface{}, err 
 	defer func() {
 		var terr = recover()
 		if terr != nil {
-			log.E("RCM_S exec filter(%p) is panic(%v) with call stack->\n%v", f, err, util.CallStatck())
+			log.E("RCM_S exec filter(%p) is panic(%v) with call stack->\n%v", f, terr, util.CallStatck())
 			err = util.Err("%v", terr)
 		}
 	}()
@@ -182,7 +182,7 @@ func (r *RCM_S) exec_h(h RC_M_HH, rcm *RCM_Cmd) (val interface{}, err error) {
 	defer func() {
 		var terr = recover()
 		if terr != nil {
-			log.E("RCM_S exec handler(%p) is panic(%v) with call stack->\n%v", h, err, util.CallStatck())
+			log.E("RCM_S exec handler(%p) is panic(%v) with call stack->\n%v", h, terr, util.CallStatck())
 			err = util.Err("%v", terr)
 		}
 	}()
