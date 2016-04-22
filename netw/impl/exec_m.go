@@ -1,6 +1,7 @@
 package impl
 
 import (
+	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/util"
 	"regexp"
@@ -139,7 +140,7 @@ func (r *RCM_S) OnCmd(c netw.Cmd) int {
 		if !reg.MatchString(fname) {
 			continue
 		}
-		con, vv, err = r.filter_m[reg].Exec(rcm)
+		con, vv, err = r.exec_f(r.filter_m[reg], rcm)
 		if err != nil {
 			log_d("exec filter(%v) val(%v) errr:%v", reg.String(), vv, err.Error())
 			rcm.Err(1, "%v", err.Error())
@@ -152,7 +153,7 @@ func (r *RCM_S) OnCmd(c netw.Cmd) int {
 		}
 	}
 	if h, ok := r.routes_[fname]; ok {
-		val, err := h.Exec(rcm)
+		val, err := r.exec_h(h, rcm)
 		if err == nil {
 			r.writev(rcm, val)
 			return 0
@@ -165,6 +166,28 @@ func (r *RCM_S) OnCmd(c netw.Cmd) int {
 		rcm.Err(1, "function not found by name(%v)", fname)
 		return -1
 	}
+}
+func (r *RCM_S) exec_f(f RC_M_FH, rcm *RCM_Cmd) (con bool, val interface{}, err error) {
+	defer func() {
+		var terr = recover()
+		if terr != nil {
+			log.E("RCM_S exec filter(%p) is panic(%v) with call stack->\n%v", f, err, util.CallStatck())
+			err = util.Err("%v", terr)
+		}
+	}()
+	con, val, err = f.Exec(rcm)
+	return
+}
+func (r *RCM_S) exec_h(h RC_M_HH, rcm *RCM_Cmd) (val interface{}, err error) {
+	defer func() {
+		var terr = recover()
+		if terr != nil {
+			log.E("RCM_S exec handler(%p) is panic(%v) with call stack->\n%v", h, err, util.CallStatck())
+			err = util.Err("%v", terr)
+		}
+	}()
+	val, err = h.Exec(rcm)
+	return
 }
 func (r *RCM_S) writev(c *RCM_Cmd, val interface{}) {
 	if _, err := c.Writev(val); err != nil {

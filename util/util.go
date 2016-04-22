@@ -493,3 +493,9 @@ func BysSize(size int64) string {
 	}
 	return fmt.Sprintf("%v%v", size, keys[len(keys)-1])
 }
+
+func CallStatck() string {
+	buf := make([]byte, 102400)
+	blen := runtime.Stack(buf, false)
+	return string(buf[0:blen])
+}
