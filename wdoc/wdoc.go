@@ -302,7 +302,7 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 			}
 			do_append()
 			json = ""
-			cmt = txt
+			cmt = txt + "\n"
 		}
 		do_append()
 	}
