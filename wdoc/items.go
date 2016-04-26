@@ -184,12 +184,17 @@ func (u *Url) RateV() []*Method {
 	}
 }
 
+type Example struct {
+	Cmt  string      `json:"cmt,omitempty"`
+	Data interface{} `json:"data,omitempty"`
+}
+
 //the argument
 type Arg struct {
-	Items   []Item      `json:"items,omitempty"`   //the item list
-	Desc    string      `json:"desc,omitempty"`    //the argument desc
-	Ctype   string      `json:"ctype,omitempty"`   //the request content type
-	Example interface{} `json:"example,omitempty"` //the example
+	Items   []Item     `json:"items,omitempty"`   //the item list
+	Desc    string     `json:"desc,omitempty"`    //the argument desc
+	Ctype   string     `json:"ctype,omitempty"`   //the request content type
+	Example []*Example `json:"example,omitempty"` //the example
 }
 
 func (a *Arg) RateV() []*Method {
@@ -263,8 +268,8 @@ func (iv items_l) Swap(i, j int) {
 
 type Method struct {
 	Name      string  `xml:"name,attr"`
-	Signature string  `xml:"signature,attr"`
-	Lines     []*Line `xml:"lines>line"`
+	Signature string  `xml:"signats>lineure,attr"`
+	Lines     []*Line `xml:"line"`
 }
 
 func NewMethod(name string, hits int) *Method {

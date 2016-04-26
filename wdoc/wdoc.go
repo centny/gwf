@@ -264,15 +264,47 @@ func (p *Parser) do_arg_ret(cmd, text string, valid *regexp.Regexp, arg *Arg) {
 		ctext = strings.TrimPrefix(ctext, "样例")
 		ctext = strings.TrimPrefix(ctext, "example")
 		ctext = strings.Trim(ctext, " \t\n")
-		cm, err := util.Json2Map(ctext)
-		if err == nil {
-			arg.Example = cm
-		} else {
-			if json_m.MatchString(ctext) {
-				log.W("parsing liked json data error(%v) by \n%v\n", ctext, err)
+		ctexts := strings.Split(ctext, "\n")
+		var cmt, json string
+		var cmt_reg = regexp.MustCompile("^//.*$")
+		var do_append = func() {
+			if len(json) < 1 {
+				return
 			}
-			arg.Example = ctext
+			cm, err := util.Json2Map(json)
+			if err == nil {
+				arg.Example = append(arg.Example, &Example{
+					Cmt:  cmt,
+					Data: cm,
+				})
+			} else {
+				if json_m.MatchString(ctext) {
+					log.W("parsing liked json data error(%v) by \n%v\n", ctext, err)
+				}
+				arg.Example = append(arg.Example, &Example{
+					Cmt:  cmt,
+					Data: json,
+				})
+			}
 		}
+		for _, txt := range ctexts {
+			txt = strings.TrimSpace(txt)
+			if len(txt) < 1 {
+				continue
+			}
+			if !cmt_reg.MatchString(txt) {
+				json += txt + "\n"
+				continue
+			}
+			if len(json) < 1 {
+				cmt += txt + "\n"
+				continue
+			}
+			do_append()
+			json = ""
+			cmt = txt
+		}
+		do_append()
 	}
 }
 

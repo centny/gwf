@@ -71,8 +71,17 @@ type User struct {
 //	alias	O	用户昵称
 //	gender	R	性别，1表示男，2表示女
 /*	样例
+	//样例1
+	//测试数据
 	{
-		"usr": "abc",
+		"usr": "abc1",
+		"pwd": "123456",
+		"alias": "测试用户",
+		"gender": 1
+	}
+	//样例2
+	{
+		"usr": "abc2",
 		"pwd": "123456",
 		"alias": "测试用户",
 		"gender": 1
@@ -85,12 +94,24 @@ type User struct {
 //	alias	S	与请求参数意义相同
 //	gender	I	与请求参数意义相同
 /*	样例
+	//样例1
 	{
 		"code": 0,
 		"data": {
 			"id": "u_001",
 			"usr": "abc",
 			"alias":"测试用户",
+			"gender":1
+		}
+	}
+	//样例2
+	//测试数据
+	{
+		"code": 0,
+		"data": {
+			"id": "u_002",
+			"usr": "abc",
+			"alias":"测试用户2",
 			"gender":1
 		}
 	}
@@ -126,6 +147,9 @@ func AddUser_j(hs *routing.HTTPSession) routing.HResult {
 //	alias	O	用户昵称
 //	gender	R	性别，1表示男，2表示女
 /*	样例
+	//样例1
+	~/usr/api/createUser?usr=abc&pwd=123456&alias=测试用户&gender=1
+	//样例2
 	~/usr/api/createUser?usr=abc&pwd=123456&alias=测试用户&gender=1
 */
 //@ret,以下返回值在code为0时才有返回
