@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/routing/filter"
+	"github.com/Centny/gwf/util"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -12,18 +13,36 @@ import (
 )
 
 func main() {
-	addr := ":80"
-	if len(os.Args) > 1 {
-		if os.Args[1] == "-h" {
-			fmt.Println("Usage: rweb <addr> <proxy addres> <proxy path regex>")
-			return
-		}
-		addr = os.Args[1]
+	var addr = ":80"
+	_, args, _ := util.Args()
+	var paddr string
+	var tpl, preg []string
+	if args.Exist("h") {
+		fmt.Printf(`Usage: rweb <options>
+	-h		show help
+	-addr <addr>				the listen addr
+	-paddr <proxy address>	 	the proxy address
+	-preg <proxy path regex>	the proxy path regex
+	-tpl <template path regex>	the template html path regex
+	-T<key> http://xxxx/		the tpl data url`)
+		os.Exit(1)
+		return
+	}
+	var err = args.ValidF(`
+		addr,O|S,L:0;
+		paddr,O|S,L:0;
+		preg,O|S,L:0;
+		tpl,O|S,L:0;
+		`, &addr, &paddr, &preg, &tpl)
+	if err != nil {
+		fmt.Println("check value fail->", err)
+		os.Exit(1)
+		return
 	}
 	fmt.Println("running on", addr)
 	mux := routing.NewSessionMux2("")
-	if len(os.Args) > 2 {
-		var burl, err = url.Parse(os.Args[2])
+	if len(paddr) > 0 {
+		var burl, err = url.Parse(paddr)
 		if err != nil {
 			fmt.Println(err.Error())
 			return
@@ -34,10 +53,31 @@ func main() {
 			r.Host = burl.Host
 			proxy_d(r)
 		}
-		for _, arg := range os.Args[3:] {
-			mux.Handler(arg, proxy)
+		for _, reg := range preg {
+			mux.Handler(reg, proxy)
 		}
-
+	}
+	if len(tpl) > 0 {
+		var rn = filter.NewRenderNamedF()
+		for key, _ := range args {
+			if !strings.HasPrefix(key, "T") {
+				continue
+			}
+			url := args.StrVal2(key)
+			if len(url) < 1 {
+				continue
+			}
+			web := filter.NewRenderWebData(url)
+			keys := strings.SplitN(strings.TrimPrefix(key, "T"), "=", 2)
+			if len(keys) > 1 {
+				web.Path = keys[1]
+			}
+			rn.AddDataH(keys[0], web)
+		}
+		var rd = filter.NewRender(".", rn)
+		for _, t := range tpl {
+			mux.H(t, rd)
+		}
 	}
 	mux.HFilter("^.*$", filter.NewP3P2())
 	mux.HFunc("^/_echo_.*$", func(hs *routing.HTTPSession) routing.HResult {
