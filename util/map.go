@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -24,7 +23,7 @@ func IntVal(v interface{}) int64 {
 	if err == nil {
 		return val
 	} else {
-		return math.MaxInt64
+		return 0
 	}
 }
 
@@ -74,7 +73,7 @@ func UintVal(v interface{}) uint64 {
 	if err == nil {
 		return val
 	} else {
-		return math.MaxUint64
+		return 0
 	}
 }
 
@@ -114,7 +113,7 @@ func FloatVal(v interface{}) float64 {
 	if err == nil {
 		return val
 	} else {
-		return math.MaxFloat64
+		return 0
 	}
 }
 
@@ -149,6 +148,25 @@ func StrVal(v interface{}) string {
 	switch reflect.TypeOf(v).Kind() {
 	case reflect.String:
 		return v.(string)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+func StrVal2(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	switch reflect.TypeOf(v).Kind() {
+	case reflect.String:
+		return v.(string)
+	case reflect.Slice:
+		vals := reflect.ValueOf(v)
+		var vs = []string{}
+		for i := 0; i < vals.Len(); i++ {
+			vs = append(vs, fmt.Sprintf("%v", vals.Index(i).Interface()))
+		}
+		return strings.Join(vs, ",")
 	default:
 		return fmt.Sprintf("%v", v)
 	}
@@ -212,26 +230,33 @@ func (m Map) UintVal(key string) uint64 {
 	if v, ok := m[key]; ok {
 		return UintVal(v)
 	} else {
-		return math.MaxUint64
+		return 0
 	}
 }
 func (m Map) IntVal(key string) int64 {
 	if v, ok := m[key]; ok {
 		return IntVal(v)
 	} else {
-		return math.MaxInt64
+		return 0
 	}
 }
 func (m Map) FloatVal(key string) float64 {
 	if v, ok := m[key]; ok {
 		return FloatVal(v)
 	} else {
-		return math.MaxFloat64
+		return 0
 	}
 }
 func (m Map) StrVal(key string) string {
 	if v, ok := m[key]; ok {
 		return StrVal(v)
+	} else {
+		return ""
+	}
+}
+func (m Map) StrVal2(key string) string {
+	if v, ok := m[key]; ok {
+		return StrVal2(v)
 	} else {
 		return ""
 	}
@@ -295,6 +320,10 @@ func (m Map) FloatValP(path string) float64 {
 func (m Map) StrValP(path string) string {
 	v, _ := m.ValP(path)
 	return StrVal(v)
+}
+func (m Map) StrValP2(path string) string {
+	v, _ := m.ValP(path)
+	return StrVal2(v)
 }
 func (m Map) MapValP(path string) Map {
 	v, _ := m.ValP(path)
@@ -425,7 +454,7 @@ func (m Map) SetValP(path string, val interface{}) error {
 }
 
 func (m Map) ValidF(f string, args ...interface{}) error {
-	return ValidAttrF(f, m.StrValP, true, args...)
+	return ValidAttrF(f, m.StrValP2, true, args...)
 }
 func (m Map) ToS(dest interface{}) {
 	M2S(m, dest)
