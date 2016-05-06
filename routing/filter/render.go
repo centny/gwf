@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
 	"html/template"
@@ -17,15 +18,46 @@ type RenderH interface {
 	LoadData(r *Render, hs *routing.HTTPSession) (tmpl *TmplF, data interface{}, err error)
 }
 
+type RenderDataH interface {
+	LoadData(r *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values) (data interface{}, err error)
+}
+
 type RENDER_DATA_F func(r *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values) (data interface{}, err error)
 
+func (f RENDER_DATA_F) LoadData(r *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values) (data interface{}, err error) {
+	return f(r, hs, tmpl, args)
+}
+
+type RenderWebData struct {
+	Url  string
+	Path string
+}
+
+func NewRenderWebData(url string) *RenderWebData {
+	return &RenderWebData{Url: url}
+}
+
+func (r *RenderWebData) LoadData(rd *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values) (data interface{}, err error) {
+	var url string
+	if strings.Contains(r.Url, "?") {
+		url = r.Url + "&" + args.Encode()
+	} else {
+		url = r.Url + "?" + args.Encode()
+	}
+	res, err := util.HGet2(url)
+	if err == nil && len(r.Path) > 0 {
+		data, err = res.ValP(r.Path)
+	}
+	return data, err
+}
+
 type RenderNamedF struct {
-	DataF map[string]RENDER_DATA_F
+	DataF map[string]RenderDataH
 }
 
 func NewRenderNamedF() *RenderNamedF {
 	return &RenderNamedF{
-		DataF: map[string]RENDER_DATA_F{},
+		DataF: map[string]RenderDataH{},
 	}
 }
 
@@ -33,6 +65,9 @@ func (r *RenderNamedF) AddDataF(key string, f RENDER_DATA_F) {
 	r.DataF[key] = f
 }
 
+func (r *RenderNamedF) AddDataH(key string, h RenderDataH) {
+	r.DataF[key] = h
+}
 func (r *RenderNamedF) LoadData(rd *Render, hs *routing.HTTPSession) (tmpl *TmplF, data interface{}, err error) {
 	var args url.Values
 	tmpl, args, err = rd.LoadTmpF(hs)
@@ -44,7 +79,7 @@ func (r *RenderNamedF) LoadData(rd *Render, hs *routing.HTTPSession) (tmpl *Tmpl
 		err = util.Err("the data provider by key(%v) is not found", tmpl.Key)
 		return
 	}
-	data, err = dataf(rd, hs, tmpl, args)
+	data, err = dataf.LoadData(rd, hs, tmpl, args)
 	if err != nil {
 		err = util.Err("load provider(%v) data by args(%v) fail with error->%v", tmpl.Key, args, err)
 	}
@@ -123,6 +158,7 @@ func (r *Render) LoadTmpF(hs *routing.HTTPSession) (*TmplF, url.Values, error) {
 }
 
 func (r *Render) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
+	log.D("Render doing %v", hs.R.URL.Path)
 	tmpl, data, err := r.H.LoadData(r, hs)
 	if err != nil {
 		return hs.Printf("loading data fail with error->%v", err)

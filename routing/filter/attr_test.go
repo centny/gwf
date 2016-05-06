@@ -17,7 +17,8 @@ func TestAttr(t *testing.T) {
 	af.Delay = 100
 	af.Timeout = 1000
 	af.StartTimeout()
-	af.Hand(rt.L)
+	// af.Hand(rt.L)
+	af.Hand_rc(rt.L)
 	tk, err := RegisterAttr(rt.R, util.Map{"abc": 1})
 	if err != nil {
 		t.Error(err)
