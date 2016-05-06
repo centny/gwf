@@ -210,6 +210,17 @@ func ValidAttrT(data string, valLT string, valLR string, limit_r bool) (interfac
 	return validLts(data)
 }
 
+func validAttrt_(data string, fs string, fs_a []string, limit_r bool) (val interface{}, err error) {
+	val, err = ValidAttrT(data, fs_a[1], fs_a[2], limit_r)
+	if err != nil {
+		err = errors.New(fmt.Sprintf("limit(%s),%s", fs, err.Error()))
+		if len(fs_a) > 3 {
+			err = errors.New(fs_a[3])
+		}
+	}
+	return
+}
+
 type AttrFunc func(key string) string
 
 func ValidAttrF(f string, cf AttrFunc, limit_r bool, args ...interface{}) error {
@@ -229,105 +240,116 @@ func ValidAttrF(f string, cf AttrFunc, limit_r bool, args ...interface{}) error 
 		if len(fstr) < 3 {
 			return errors.New(fmt.Sprintf("format error:%s", fs))
 		}
-		rval, err := ValidAttrT(cf(fstr[0]), fstr[1], fstr[2], limit_r)
-		if err != nil {
-			rerr := errors.New(fmt.Sprintf("limit(%s),%s", fs, err.Error()))
-			if len(fstr) > 3 {
-				// log.D("%s", rerr.Error())
-				return errors.New(fstr[3])
-			} else {
-				return rerr
+		sval := cf(fstr[0])
+		pval := reflect.Indirect(reflect.ValueOf(args[idx]))
+		if pval.Kind() != reflect.Slice {
+			rval, err := validAttrt_(sval, fs, fstr, limit_r)
+			if err != nil {
+				return err
 			}
-		}
-		if rval == nil {
+			if rval == nil {
+				continue
+			}
+			err = ValidSetVal(pval, rval)
+			if err != nil {
+				return err
+			}
 			continue
 		}
-		pval := reflect.Indirect(reflect.ValueOf(args[idx]))
-		err = ValidSetVal(pval, rval)
-		if err != nil {
-			return err
+		sval_a := strings.Split(sval, ",")
+		tpval := pval
+		for _, sval = range sval_a {
+			rval, err := validAttrt_(sval, fs, fstr, limit_r)
+			if err != nil {
+				return err
+			}
+			if rval == nil {
+				continue
+			}
+			tval, err := ValidVal(pval.Type().Elem().Kind(), rval)
+			if err != nil {
+				return err
+			}
+			tpval = reflect.Append(tpval, reflect.ValueOf(tval))
 		}
+		pval.Set(tpval)
 	}
 	return nil
 }
 
 func ValidSetVal(dst reflect.Value, src interface{}) error {
+	tval, err := ValidVal(dst.Kind(), src)
+	if err == nil {
+		dst.Set(reflect.ValueOf(tval))
+	}
+	return err
+}
+
+func ValidVal(dst reflect.Kind, src interface{}) (val interface{}, err error) {
 	sk := reflect.TypeOf(src)
-	if sk.Kind() == dst.Kind() {
-		dst.Set(reflect.ValueOf(src))
-		return nil
+	if sk.Kind() == dst {
+		return src, nil
 	}
 	var tiv int64
 	var tfv float64
-	var terr error
-	switch dst.Kind() {
+	switch dst {
 	case reflect.Int:
-		tiv, terr = IntValV(src)
-		if terr == nil {
-			iv := int(tiv)
-			dst.Set(reflect.ValueOf(iv))
+		tiv, err = IntValV(src)
+		if err == nil {
+			val = int(tiv)
 		}
 	case reflect.Int16:
-		tiv, terr = IntValV(src)
-		if terr == nil {
-			iv := int16(tiv)
-			dst.Set(reflect.ValueOf(iv))
+		tiv, err = IntValV(src)
+		if err == nil {
+			val = int16(tiv)
 		}
 	case reflect.Int32:
-		tiv, terr = IntValV(src)
-		if terr == nil {
-			iv := int32(tiv)
-			dst.Set(reflect.ValueOf(iv))
+		tiv, err = IntValV(src)
+		if err == nil {
+			val = int32(tiv)
 		}
 	case reflect.Int64:
-		tiv, terr = IntValV(src)
-		if terr == nil {
-			iv := int64(tiv)
-			dst.Set(reflect.ValueOf(iv))
+		tiv, err = IntValV(src)
+		if err == nil {
+			val = int64(tiv)
 		}
 	case reflect.Uint:
-		tiv, terr = IntValV(src)
-		if terr == nil {
-			iv := uint(tiv)
-			dst.Set(reflect.ValueOf(iv))
+		tiv, err = IntValV(src)
+		if err == nil {
+			val = uint(tiv)
 		}
 	case reflect.Uint16:
-		tiv, terr = IntValV(src)
-		if terr == nil {
-			iv := uint16(tiv)
-			dst.Set(reflect.ValueOf(iv))
+		tiv, err = IntValV(src)
+		if err == nil {
+			val = uint16(tiv)
 		}
 	case reflect.Uint32:
-		tiv, terr = IntValV(src)
-		if terr == nil {
-			iv := uint32(tiv)
-			dst.Set(reflect.ValueOf(iv))
+		tiv, err = IntValV(src)
+		if err == nil {
+			val = uint32(tiv)
 		}
 	case reflect.Uint64:
-		tiv, terr = IntValV(src)
-		if terr == nil {
-			iv := uint64(tiv)
-			dst.Set(reflect.ValueOf(iv))
+		tiv, err = IntValV(src)
+		if err == nil {
+			val = uint64(tiv)
 		}
 	case reflect.Float32:
-		tfv, terr = FloatValV(src)
-		if terr == nil {
-			fv := float32(tfv)
-			dst.Set(reflect.ValueOf(fv))
+		tfv, err = FloatValV(src)
+		if err == nil {
+			val = float32(tfv)
 		}
 	case reflect.Float64:
-		tfv, terr = FloatValV(src)
-		if terr == nil {
-			fv := float64(tfv)
-			dst.Set(reflect.ValueOf(fv))
+		tfv, err = FloatValV(src)
+		if err == nil {
+			val = float64(tfv)
 		}
 	case reflect.String:
 		tsv := StrVal(src)
-		dst.Set(reflect.ValueOf(tsv))
+		val = tsv
 	}
-	if terr == nil {
-		return nil
+	if err == nil {
+		return val, err
 	} else {
-		return Err("parse kind(%v) value to kind(%v) value->%v", sk.Kind(), dst.Kind(), terr)
+		return nil, Err("parse kind(%v) value to kind(%v) value->%v", sk.Kind(), dst, err)
 	}
 }
