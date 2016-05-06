@@ -39,42 +39,43 @@ func TestArgs(t *testing.T) {
 	//case 4
 	os.Args = []string{"abc", "-a", "b"}
 	name, arg1, arg2 = Args()
-	if name != "abc" || len(arg1) != 1 || len(arg2) != 0 || arg1["a"] != "b" {
+	if name != "abc" || len(arg1) != 1 || len(arg2) != 0 || arg1["a"].([]string)[0] != "b" {
+		fmt.Println(S2Json(arg1))
 		t.Error("error")
 		return
 	}
 	//case 5
 	os.Args = []string{"abc", "-a", "b", "c"}
 	name, arg1, arg2 = Args()
-	if name != "abc" || len(arg1) != 1 || len(arg2) != 1 || arg1["a"] != "b" || arg2[0] != "c" {
+	if name != "abc" || len(arg1) != 1 || len(arg2) != 1 || arg1["a"].([]string)[0] != "b" || arg2[0] != "c" {
 		t.Error("error")
 		return
 	}
 	//case 6
 	os.Args = []string{"abc", "-a", "b", "-x"}
 	name, arg1, arg2 = Args()
-	if name != "abc" || len(arg1) != 2 || len(arg2) != 0 || arg1["a"] != "b" || arg1["x"] != "" {
+	if name != "abc" || len(arg1) != 2 || len(arg2) != 0 || arg1["a"].([]string)[0] != "b" || arg1["x"] == nil {
 		t.Error("error")
 		return
 	}
 	//case 7
 	os.Args = []string{"abc", "-a", "b", "c"}
 	name, arg1, arg2 = Args()
-	if name != "abc" || len(arg1) != 1 || len(arg2) != 1 || arg1["a"] != "b" || arg2[0] != "c" {
+	if name != "abc" || len(arg1) != 1 || len(arg2) != 1 || arg1["a"].([]string)[0] != "b" || arg2[0] != "c" {
 		t.Error("error")
 		return
 	}
 	//case 8
 	os.Args = []string{"abc", "-a", "b", "c", "-x"}
 	name, arg1, arg2 = Args()
-	if name != "abc" || len(arg1) != 2 || len(arg2) != 1 || arg1["a"] != "b" || arg1["x"] != "" || arg2[0] != "c" {
+	if name != "abc" || len(arg1) != 2 || len(arg2) != 1 || arg1["a"].([]string)[0] != "b" || arg1["x"] == nil || arg2[0] != "c" {
 		t.Error("error")
 		return
 	}
 	//case 9
 	os.Args = []string{"abc", "-a", "b", "c", "-x", "-l"}
 	name, arg1, arg2 = Args()
-	if name != "abc" || len(arg1) != 3 || len(arg2) != 1 || arg1["a"] != "b" || arg1["x"] != "" || arg1["l"] != "" || arg2[0] != "c" {
+	if name != "abc" || len(arg1) != 3 || len(arg2) != 1 || arg1["a"].([]string)[0] != "b" || arg1["x"] == nil || arg1["l"] == nil || arg2[0] != "c" {
 		t.Error("error")
 		return
 	}

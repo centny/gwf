@@ -15,6 +15,20 @@ func ArgsV(args []string) (string, Map, []string) {
 	args1 := Map{}
 	args2 := []string{}
 	var arg_k, arg_v string
+	addv := func() {
+		key := strings.TrimPrefix(arg_k, "-")
+		if args1[key] == nil {
+			if len(arg_v) > 0 {
+				args1[key] = []string{arg_v}
+			} else {
+				args1[key] = []string{}
+			}
+		} else {
+			if len(arg_v) > 0 {
+				args1[key] = append(args1[key].([]string), arg_v)
+			}
+		}
+	}
 	for i := 1; i < alen; {
 		arg_k = args[i]
 		if i < alen-1 {
@@ -24,10 +38,10 @@ func ArgsV(args []string) (string, Map, []string) {
 		}
 		if strings.HasPrefix(arg_k, "-") {
 			if strings.HasPrefix(arg_v, "-") {
-				args1[strings.TrimPrefix(arg_k, "-")] = ""
+				addv()
 				i += 1
 			} else {
-				args1[strings.TrimPrefix(arg_k, "-")] = arg_v
+				addv()
 				i += 2
 			}
 		} else {
