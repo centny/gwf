@@ -44,7 +44,7 @@ func (r *RenderWebData) LoadData(rd *Render, hs *routing.HTTPSession, tmpl *Tmpl
 	} else {
 		url = r.Url + "?" + args.Encode()
 	}
-	res, err := util.HGet2(url)
+	res, err := util.HGet2("%v", url)
 	if err == nil && len(r.Path) > 0 {
 		data, err = res.ValP(r.Path)
 	}
@@ -84,7 +84,7 @@ func (r *RenderNamedF) LoadData(rd *Render, hs *routing.HTTPSession) (tmpl *Tmpl
 	}
 	data, err = dataf.LoadData(rd, hs, tmpl, args, nil)
 	if err != nil {
-		err = util.Err("load provider(%v) data by args(%v) fail with error->%v", tmpl.Key, args, err)
+		err = util.Err("load provider(%v) data by args(%v) fail with error->%v", tmpl.Key, args.Encode(), err)
 	}
 	return
 }
