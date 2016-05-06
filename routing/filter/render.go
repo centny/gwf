@@ -19,13 +19,13 @@ type RenderH interface {
 }
 
 type RenderDataH interface {
-	LoadData(r *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values) (data interface{}, err error)
+	LoadData(r *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values, info interface{}) (data interface{}, err error)
 }
 
-type RENDER_DATA_F func(r *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values) (data interface{}, err error)
+type RENDER_DATA_F func(r *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values, info interface{}) (data interface{}, err error)
 
-func (f RENDER_DATA_F) LoadData(r *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values) (data interface{}, err error) {
-	return f(r, hs, tmpl, args)
+func (f RENDER_DATA_F) LoadData(r *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values, info interface{}) (data interface{}, err error) {
+	return f(r, hs, tmpl, args, info)
 }
 
 type RenderWebData struct {
@@ -37,7 +37,7 @@ func NewRenderWebData(url string) *RenderWebData {
 	return &RenderWebData{Url: url}
 }
 
-func (r *RenderWebData) LoadData(rd *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values) (data interface{}, err error) {
+func (r *RenderWebData) LoadData(rd *Render, hs *routing.HTTPSession, tmpl *TmplF, args url.Values, info interface{}) (data interface{}, err error) {
 	var url string
 	if strings.Contains(r.Url, "?") {
 		url = r.Url + "&" + args.Encode()
@@ -47,6 +47,9 @@ func (r *RenderWebData) LoadData(rd *Render, hs *routing.HTTPSession, tmpl *Tmpl
 	res, err := util.HGet2(url)
 	if err == nil && len(r.Path) > 0 {
 		data, err = res.ValP(r.Path)
+	}
+	if err != nil {
+		err = util.Err("RenderWebData do request by url(%v) fail with error(%v)->%v", url, err, util.S2Json(res))
 	}
 	return data, err
 }
@@ -79,7 +82,7 @@ func (r *RenderNamedF) LoadData(rd *Render, hs *routing.HTTPSession) (tmpl *Tmpl
 		err = util.Err("the data provider by key(%v) is not found", tmpl.Key)
 		return
 	}
-	data, err = dataf.LoadData(rd, hs, tmpl, args)
+	data, err = dataf.LoadData(rd, hs, tmpl, args, nil)
 	if err != nil {
 		err = util.Err("load provider(%v) data by args(%v) fail with error->%v", tmpl.Key, args, err)
 	}
