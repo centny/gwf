@@ -69,7 +69,9 @@ func (h *HClient) HGet_H(header map[string]string, ufmt string, args ...interfac
 	return code, string(bys), err
 }
 func (h *HClient) HGet_Hv(header map[string]string, ufmt string, args ...interface{}) (int, []byte, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf(ufmt, args...), nil)
+	url := fmt.Sprintf(ufmt, args...)
+	slog("do http get by url->%v", url)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return 0, []byte{}, err
 	}
@@ -86,8 +88,11 @@ func (h *HClient) HGet_Hv(header map[string]string, ufmt string, args ...interfa
 }
 func (h *HClient) HGet2(ufmt string, args ...interface{}) (Map, error) {
 	data, err := h.HGet(ufmt, args...)
-	if len(data) < 1 || err != nil {
+	if err != nil {
 		return nil, err
+	}
+	if len(data) < 1 {
+		return nil, Err("the response data is empty")
 	}
 	return Json2Map(data)
 }

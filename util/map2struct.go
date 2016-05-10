@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"math"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -204,6 +206,31 @@ func Json2Ss(data string, dest interface{}) error {
 func S2Json(v interface{}) string {
 	bys, _ := json.Marshal(v)
 	return string(bys)
+}
+
+var reg_num = regexp.MustCompile("[0-9][\\.0-9]*e\\+[0-9]+")
+var reg_num_s = regexp.MustCompile("e[+]?")
+
+func UndoIntScientific(src string) string {
+	return reg_num.ReplaceAllStringFunc(src, func(t string) string {
+		ts := reg_num_s.Split(t, 2)
+		if len(ts) < 2 {
+			return t
+		}
+		l, err := strconv.ParseInt(ts[1], 10, 64)
+		if err != nil {
+			return t
+		}
+		if int(l) < len(ts[0])-2 {
+			return t
+		}
+		v, err := strconv.ParseFloat(t, 64)
+		if err == nil {
+			return fmt.Sprintf("%v", int64(v))
+		} else {
+			return t
+		}
+	})
 }
 
 func J2S(data string, dest interface{}) error {

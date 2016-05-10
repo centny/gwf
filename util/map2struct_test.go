@@ -289,3 +289,7 @@ func TestTypeString(t *testing.T) {
 	M2S(mv, &vk)
 	fmt.Println(vk.X, "->", vk.A, "->", vk.X1, "->", vk.X2)
 }
+
+func TestUndoScientific(t *testing.T) {
+	fmt.Println(UndoIntScientific("1e+10 1.34222e2 1.23e2"))
+}
