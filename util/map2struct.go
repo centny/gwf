@@ -208,6 +208,15 @@ func S2Json(v interface{}) string {
 	return string(bys)
 }
 
+func S2Map(v interface{}) (Map, error) {
+	bys, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	res := Map{}
+	return res, json.Unmarshal(bys, &res)
+}
+
 var reg_num = regexp.MustCompile("[0-9][\\.0-9]*e\\+[0-9]+")
 var reg_num_s = regexp.MustCompile("e[+]?")
 
