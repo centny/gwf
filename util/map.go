@@ -226,6 +226,22 @@ func AryStrVal(v interface{}) []string {
 	return ms
 }
 
+func AryIntVal(v interface{}) []int {
+	as := AryVal(v)
+	if as == nil {
+		return nil
+	}
+	is := []int{}
+	for _, v := range as {
+		iv, err := IntValV(v)
+		if err != nil {
+			return nil
+		}
+		is = append(is, int(iv))
+	}
+	return is
+}
+
 func (m Map) UintVal(key string) uint64 {
 	if v, ok := m[key]; ok {
 		return UintVal(v)
@@ -289,6 +305,13 @@ func (m Map) AryStrVal(key string) []string {
 		return nil
 	}
 }
+func (m Map) AryIntVal(key string) []int {
+	if v, ok := m[key]; ok {
+		return AryIntVal(v)
+	} else {
+		return nil
+	}
+}
 func (m Map) Val(key string) interface{} {
 	if v, ok := m[key]; ok {
 		return v
@@ -340,6 +363,10 @@ func (m Map) AryMapValP(path string) []Map {
 func (m Map) AryStrValP(path string) []string {
 	v, _ := m.ValP(path)
 	return AryStrVal(v)
+}
+func (m Map) AryIntValP(path string) []int {
+	v, _ := m.ValP(path)
+	return AryIntVal(v)
 }
 func (m Map) ValP(path string) (interface{}, error) {
 	path = strings.TrimPrefix(path, "/")
