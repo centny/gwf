@@ -38,6 +38,9 @@ func AddHook(name string, hk Hook) {
 		hooks_[name] = []Hook{hk}
 	}
 }
+func DelHook(name string) {
+	delete(hooks_, name)
+}
 func SetMockErr(name, action string) {
 	mk_err[fmt.Sprintf("%v-%v", name, action)] = true
 }
