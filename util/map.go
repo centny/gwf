@@ -256,6 +256,19 @@ func (m Map) IntVal(key string) int64 {
 		return 0
 	}
 }
+func (m Map) IntValV(key string, d int64) int64 {
+	if v, ok := m[key]; ok {
+		val, err := IntValV(v)
+		if err == nil {
+			return val
+		} else {
+			return d
+		}
+	} else {
+		return d
+	}
+
+}
 func (m Map) FloatVal(key string) float64 {
 	if v, ok := m[key]; ok {
 		return FloatVal(v)
@@ -266,6 +279,18 @@ func (m Map) FloatVal(key string) float64 {
 func (m Map) StrVal(key string) string {
 	if v, ok := m[key]; ok {
 		return StrVal(v)
+	} else {
+		return ""
+	}
+}
+func (m Map) StrValV(key, d string) string {
+	if v, ok := m[key]; ok {
+		val := StrVal(v)
+		if len(val) < 0 {
+			return d
+		} else {
+			return val
+		}
 	} else {
 		return ""
 	}
@@ -331,10 +356,18 @@ func (m Map) UintValP(path string) uint64 {
 	v, _ := m.ValP(path)
 	return UintVal(v)
 }
-
 func (m Map) IntValP(path string) int64 {
 	v, _ := m.ValP(path)
 	return IntVal(v)
+}
+func (m Map) IntValPv(path string, d int64) int64 {
+	v, _ := m.ValP(path)
+	val, err := IntValV(v)
+	if err == nil {
+		return val
+	} else {
+		return d
+	}
 }
 func (m Map) FloatValP(path string) float64 {
 	v, _ := m.ValP(path)
@@ -343,6 +376,15 @@ func (m Map) FloatValP(path string) float64 {
 func (m Map) StrValP(path string) string {
 	v, _ := m.ValP(path)
 	return StrVal(v)
+}
+func (m Map) StrValPv(path, d string) string {
+	v, _ := m.ValP(path)
+	val := StrVal(v)
+	if len(val) < 1 {
+		return d
+	} else {
+		return val
+	}
 }
 func (m Map) StrValP2(path string) string {
 	v, _ := m.ValP(path)
