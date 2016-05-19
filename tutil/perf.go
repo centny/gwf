@@ -11,8 +11,14 @@ import (
 func DoPerf(tc int, logf string, call func(int)) (int64, error) {
 	return DoPerfV(tc, tc, logf, call)
 }
-
 func DoPerfV(total, tc int, logf string, call func(int)) (int64, error) {
+	return DoPerfV_(total, tc, logf, func(i int) error {
+		call(i)
+		return nil
+	})
+}
+
+func DoPerfV_(total, tc int, logf string, call func(int) error) (int64, error) {
 	stdout := os.Stdout
 	stderr := os.Stderr
 	if len(logf) > 0 {
@@ -32,10 +38,14 @@ func DoPerfV(total, tc int, logf string, call func(int)) (int64, error) {
 	beg := util.Now()
 	var tidx_ int32 = 0
 	var run_call func(int)
+	var err error = nil
 	run_call = func(v int) {
-		call(v)
+		terr := call(v)
+		if terr != nil {
+			err = terr
+		}
 		ridx := int(atomic.AddInt32(&tidx_, 1))
-		if ridx < total {
+		if err == nil && ridx < total {
 			go run_call(ridx)
 		}
 		ws.Done()
@@ -52,5 +62,5 @@ func DoPerfV(total, tc int, logf string, call func(int)) (int64, error) {
 		os.Stderr = stderr
 		log.SetWriter(os.Stdout)
 	}
-	return end - beg, nil
+	return end - beg, err
 }
