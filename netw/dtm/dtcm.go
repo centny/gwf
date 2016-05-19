@@ -464,6 +464,21 @@ func (d *DTCM_S) NewTask(id, info interface{}, args ...interface{}) *Task {
 	return task
 }
 
+func (d *DTCM_S) MatchArgs(info interface{}, args ...interface{}) bool {
+	if len(args) < 1 {
+		return false
+	}
+	return d.MatchArgsV(args[0], info, args...)
+}
+func (d *DTCM_S) MatchArgsV(id, info interface{}, args ...interface{}) bool {
+	for _, abs := range d.AbsL {
+		if abs.Match(d, id, info, args...) {
+			return true
+		}
+	}
+	return false
+}
+
 //add task by info and arguments
 func (d *DTCM_S) AddTask(info interface{}, args ...interface{}) error {
 	if len(args) < 1 {
