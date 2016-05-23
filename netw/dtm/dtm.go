@@ -23,6 +23,14 @@ import (
 	"sync/atomic"
 )
 
+var ShowLog = 0
+
+func slog(format string, args ...interface{}) {
+	if ShowLog > 0 {
+		log.D_(1, format, args...)
+	}
+}
+
 const (
 	CMD_M_PROC = 10
 	CMD_M_DONE = 20
@@ -104,6 +112,7 @@ func (d *DTM_S_Proc) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int
 		delete(tv, tid)
 		d.Rates[cid] = tv
 	}
+	slog("DTM_S_Proc done success with cid(%v),tid(%v),code(%v),err(%v),used(%v)", cid, tid, code, err, used)
 }
 
 //login event
@@ -131,6 +140,7 @@ func (d *DTM_S_Proc) OnClose(c netw.Con) {
 		delete(d.TaskC, cid)
 		delete(d.Rates, cid)
 	}
+	slog("DTM_S_Proc close success with cid(%v", cid)
 }
 
 //minial used client id
@@ -212,6 +222,7 @@ func (d *DTM_S) OnProc(c netw.Cmd) int {
 		log.E("DTM_S OnProc receive bad arguments detail(%v)", err)
 		return -1
 	}
+	slog("DTM_S OnDone will call handler process event by tid(%v),rate(%v)", tid, rate)
 	d.H.OnProc(d, d.ConCid(c), tid, rate)
 	return 0
 }
@@ -238,6 +249,7 @@ func (d *DTM_S) OnDone(c netw.Cmd) int {
 		log.E("DTM_S OnDone receive bad arguments detail(%v)", err)
 		return -1
 	}
+	slog("DTM_S OnDone will call handler done event by code(%v),tid(%v),err_m(%v),used(%v)", code, tid, err_m, used)
 	d.H.OnDone(d, args, d.ConCid(c), tid, code, err_m, used)
 	return 0
 }
