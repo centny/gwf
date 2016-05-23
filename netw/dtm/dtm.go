@@ -44,6 +44,8 @@ type DTM_S_H interface {
 	OnProc(d *DTM_S, cid, tid string, rate float64)
 	//start event
 	OnStart(d *DTM_S, cid, tid, cmds string)
+	//on start done event.
+	OnStartDone(d *DTM_S, cid, tid, cmds string, err error)
 	//stop event
 	OnStop(d *DTM_S, cid, tid string)
 	//done event
@@ -96,14 +98,22 @@ func (d *DTM_S_Proc) OnStart(dtm *DTM_S, cid, tid, cmds string) {
 	d.AllC += 1
 }
 
+//start done event
+func (d *DTM_S_Proc) OnStartDone(dtm *DTM_S, cid, tid, cmds string, err error) {
+	if err == nil {
+		return
+	}
+	d.proc_l.Lock()
+	defer d.proc_l.Unlock()
+	d.do_done(cid, tid)
+	slog("DTM_S_Proc start done with cid(%v),tid(%v),err(%v)", cid, tid, err)
+}
+
 //stop event
 func (d *DTM_S_Proc) OnStop(dtm *DTM_S, cid, tid string) {
 }
 
-//done event
-func (d *DTM_S_Proc) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int, err string, used int64) {
-	d.proc_l.Lock()
-	defer d.proc_l.Unlock()
+func (d *DTM_S_Proc) do_done(cid, tid string) {
 	if tv, ok := d.Rates[cid]; ok {
 		if _, ok := tv[tid]; ok {
 			d.TaskC[cid] -= 1
@@ -112,6 +122,13 @@ func (d *DTM_S_Proc) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int
 		delete(tv, tid)
 		d.Rates[cid] = tv
 	}
+}
+
+//done event
+func (d *DTM_S_Proc) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int, err string, used int64) {
+	d.proc_l.Lock()
+	defer d.proc_l.Unlock()
+	d.do_done(cid, tid)
 	slog("DTM_S_Proc done success with cid(%v),tid(%v),code(%v),err(%v),used(%v)", cid, tid, code, err, used)
 }
 
@@ -273,19 +290,23 @@ func (d *DTM_S) StartTask(cid, tid, cmds string) error {
 	if tc == nil {
 		return util.Err("DTM_S StartTask by cid(%v) error->client not found", cid)
 	}
+	d.H.OnStart(d, cid, tid, cmds)
 	res, err := tc.Exec_m("start_task", util.Map{
 		"tid":  tid,
 		"cmds": cmds,
 	})
 	if err != nil {
+		d.H.OnStartDone(d, cid, tid, cmds, err)
 		return util.Err("DTM_S StartTask executing by tid(%v),cmds(%v) on client(%v) error->%v", tid, cmds, cid, err)
 	}
 	if res.IntVal("code") == 0 {
-		d.H.OnStart(d, cid, tid, cmds)
+		d.H.OnStartDone(d, cid, tid, cmds, nil)
 		return nil
 	} else {
-		return util.Err("DTM_S StartTask executing by tid(%v),cmds(%v) on client(%v)  error(%v)->%v",
+		err = util.Err("DTM_S StartTask executing by tid(%v),cmds(%v) on client(%v)  error(%v)->%v",
 			tid, cmds, cid, res.IntVal("code"), res.StrVal("err"))
+		d.H.OnStartDone(d, cid, tid, cmds, err)
+		return err
 	}
 }
 

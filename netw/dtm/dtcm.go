@@ -331,6 +331,8 @@ type DTCM_S struct {
 	//
 	running bool
 	run_c   chan int
+	//
+	sequence uint64
 }
 
 //new DTCM_S by configure, it will be used by DTM_C as client.
@@ -561,13 +563,13 @@ func (d *DTCM_S) AddTaskH(hs *routing.HTTPSession) routing.HResult {
 	}
 }
 
-//do task, it will check running
+// //do task, it will check running
+// func (d *DTCM_S) do_task(t *Task) (int, int, int) {
+// 	d.task_l.Lock()
+// 	defer d.task_l.Unlock()
+// 	return d.do_task_(t)
+// }
 func (d *DTCM_S) do_task(t *Task) (int, int, int) {
-	d.task_l.Lock()
-	defer d.task_l.Unlock()
-	return d.do_task_(t)
-}
-func (d *DTCM_S) do_task_(t *Task) (int, int, int) {
 	var max = d.Cfg.IntValV("max", 100)
 	var current = d.DTM_S_Proc.Total()
 	if max < current+len(t.Proc) {
@@ -624,40 +626,49 @@ func (d *DTCM_S) min_used_cid(t *Task, proc *Proc) (string, string) {
 }
 
 //start task
-func (d *DTCM_S) start_task(t *Task) {
+func (d *DTCM_S) start_task(t *Task) int {
 	var err error
 	var msg string
-	var running bool = false
+	var busy int = 0
 	for cmd, proc := range t.Proc {
 		if proc.Status == TKS_DONE {
 			continue
 		}
+		d.task_l.Lock()
 		proc.Cid, msg = d.min_used_cid(t, proc)
 		if len(proc.Cid) < 1 {
 			proc.Status = TKS_PENDING
 			proc.Cid = ""
 			log.D("DTCM_S select min used client fail with %v by args(%v), process will be pending", msg, util.S2Json(t.Args))
+			busy += 1
+			d.task_l.Unlock()
 			continue
 		}
-		proc.Tid, err = d.StartTask4(proc.Cid, proc.Cmds)
+		proc.Tid = fmt.Sprintf("T-%v", atomic.AddUint64(&d.sequence, 1))
+		d.tasks[t.Id] = t
+		d.tid2task[proc.Tid] = t
+		d.tid2proc[proc.Tid] = cmd
+		proc.Msg = ""
+		proc.Status = TKS_RUNNING
+		d.task_l.Unlock()
+		log.D("DTCM_S starting runner(%v/%v) on task(%v) by cmds(\n\t%v\n)", proc.Tid, proc.Cid, t.Id, proc.Cmds)
+		err = d.StartTask(proc.Cid, proc.Tid, proc.Cmds)
 		if err == nil {
-			d.tid2task[proc.Tid] = t
-			d.tid2proc[proc.Tid] = cmd
-			proc.Msg = ""
-			proc.Status = TKS_RUNNING
 			log.D("DTCM_S start runner(%v/%v) success on task(%v) by cmds(\n\t%v\n)", proc.Tid, proc.Cid, t.Id, proc.Cmds)
-			running = true
 		} else {
+			d.task_l.Lock()
+			delete(d.tasks, t.Id)
+			delete(d.tid2task, proc.Tid)
+			delete(d.tid2proc, proc.Tid)
 			proc.Cid = ""
 			proc.Tid = ""
 			proc.Msg = fmt.Sprintf("start task error->%v", err)
 			proc.Status = TKS_COV_ERR
+			d.task_l.Unlock()
 			log.E("DTCM_S start task error by %v->%v", proc.Cmds, err)
 		}
 	}
-	if running {
-		d.tasks[t.Id] = t
-	}
+	return busy
 }
 
 //stop task
@@ -749,7 +760,7 @@ func (d *DTCM_S) OnClose(c netw.Con) {
 func (d *DTCM_S) mark_done(res interface{}, cid, tid, msg, status string) {
 	var task = d.tid2task[tid]
 	if task == nil {
-		log.E("DTCM_S stop task error(not found) by tid(%v)", tid)
+		log.E("DTCM_S mark done task error(not found) by tid(%v)", tid)
 		return
 	}
 	log.D("DTCM_S runner(%v/%v) is done on task(%v)", tid, cid, task.Id)
@@ -856,9 +867,7 @@ func (d *DTCM_S) do_checker() {
 	d.do_checker_(max)
 }
 func (d *DTCM_S) do_checker_(max int) {
-	d.task_l.Lock()
 	defer func() {
-		d.task_l.Unlock()
 		var err = recover()
 		if err != nil {
 			log.E("DTCM_S receive panic error->%v", err)
@@ -868,10 +877,12 @@ func (d *DTCM_S) do_checker_(max int) {
 		log.D("DTCM_S do check success, but active client is empty")
 		return
 	}
+	d.task_l.Lock()
 	var rids = []string{}
 	for rid, _ := range d.tasks {
 		rids = append(rids, rid)
 	}
+	d.task_l.Unlock()
 	total, ts, err := d.Db.List(rids, TKS_RUNNING, 0, max)
 	if err != nil {
 		log.E("DTCM_S do check error->%v", err)
@@ -887,9 +898,15 @@ func (d *DTCM_S) do_checker_(max int) {
 			continue
 		}
 		if task.IsDone() {
+			d.task_l.Lock()
 			d.do_done(task)
-		} else {
-			d.start_task(task)
+			d.task_l.Unlock()
+			continue
+		}
+		var busy = d.start_task(task)
+		if busy > 0 {
+			log.D("DTCM_S all runner is busy, checker is break")
+			break
 		}
 	}
 	log.D("DTCM_S do check done...")
