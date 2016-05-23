@@ -118,9 +118,13 @@ func (d *DTM_S_Proc) do_done(cid, tid string) {
 		if _, ok := tv[tid]; ok {
 			d.TaskC[cid] -= 1
 			d.AllC -= 1
+		} else {
+			log.E("DTM_S_Proc task not found by tid(%v)", tid)
 		}
 		delete(tv, tid)
 		d.Rates[cid] = tv
+	} else {
+		log.E("DTM_S_Proc client not found by cid(%v)", cid)
 	}
 }
 
