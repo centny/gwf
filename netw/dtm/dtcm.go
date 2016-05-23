@@ -717,6 +717,7 @@ func (d *DTCM_S) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int, er
 		d.mark_done(args, cid, tid, fmt.Sprintf("done error (code:%v,err:%v)", code, err), TKS_COV_ERR)
 	}
 	go d.do_checker_(1)
+	slog("DTCM_S done success with cid(%v),tid(%v),code(%v),err(%v),used(%v)", cid, tid, code, err, used)
 }
 
 func (d *DTCM_S) OnClose(c netw.Con) {
