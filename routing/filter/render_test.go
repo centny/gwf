@@ -37,6 +37,8 @@ func TestReander(t *testing.T) {
 	fmt.Println(ts.G("/render_test1.html"))
 	fmt.Println(ts.G("/render_test2.html"))
 	fmt.Println(ts.G(""))
+	r.Err = "render_test1.html"
+	fmt.Println(ts.G(""))
 	//
 }
 

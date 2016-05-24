@@ -100,12 +100,14 @@ type TmplF struct {
 type Render struct {
 	Dir string
 	H   RenderH
+	Err string
 }
 
 func NewRender(dir string, h RenderH) *Render {
 	return &Render{
 		Dir: dir,
 		H:   h,
+		Err: "error.html",
 	}
 }
 
@@ -164,8 +166,9 @@ func (r *Render) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	log.D("Render doing %v", hs.R.URL.Path)
 	tmpl, data, err := r.H.LoadData(r, hs)
 	if err != nil {
-		hs.W.WriteHeader(500)
-		return hs.Printf("loading data fail with error->%v", err)
+		log.E("%v", err)
+		hs.SendF2(filepath.Join(r.Dir, r.Err))
+		return routing.HRES_RETURN
 	}
 	if hs.RVal("_data_") == "1" {
 		return hs.JRes(data)
