@@ -90,11 +90,11 @@ func (r *RenderNamedF) LoadData(rd *Render, hs *routing.HTTPSession) (tmpl *Tmpl
 }
 
 type TmplF struct {
-	Path string
-	Text string
-	Key  string
-	U    *url.URL
-	T    *template.Template
+	Path string             `json:"path"`
+	Text string             `json:"text"`
+	Key  string             `json:"key"`
+	U    *url.URL           `json:"-"`
+	T    *template.Template `json:"-"`
 }
 
 type Render struct {
@@ -164,6 +164,7 @@ func (r *Render) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	log.D("Render doing %v", hs.R.URL.Path)
 	tmpl, data, err := r.H.LoadData(r, hs)
 	if err != nil {
+		hs.W.WriteHeader(500)
 		return hs.Printf("loading data fail with error->%v", err)
 	}
 	if hs.RVal("_data_") == "1" {
