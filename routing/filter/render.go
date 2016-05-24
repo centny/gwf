@@ -167,7 +167,10 @@ func (r *Render) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	tmpl, data, err := r.H.LoadData(r, hs)
 	if err != nil {
 		log.E("%v", err)
-		hs.SendF2(filepath.Join(r.Dir, r.Err))
+		err = hs.SendF2(filepath.Join(r.Dir, r.Err))
+		if err != nil {
+			log.E("sending error file(%v) error->%v", filepath.Join(r.Dir, r.Err), err)
+		}
 		return routing.HRES_RETURN
 	}
 	if hs.RVal("_data_") == "1" {
