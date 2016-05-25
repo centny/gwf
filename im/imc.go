@@ -180,6 +180,9 @@ func (i *IMC) GR(gr []string) (map[string][]string, error) {
 	if i.MRC == nil {
 		panic("not start connect")
 	}
+	if len(gr) < 1 {
+		return nil, nil
+	}
 	log_d("sending GR by (%v)", gr)
 	var res util.Map
 	_, err := i.C.Execm(MK_NRC_GR, map[string]interface{}{
