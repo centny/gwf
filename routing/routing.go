@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Centny/gwf/hooks"
 	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"io"
 	"net/http"
@@ -565,6 +566,8 @@ type SessionMux struct {
 	HandleEnable bool
 	ShowLog      bool
 	INT          International
+	ShowSlow     int64
+	M            *tutil.Monitor
 	//provide the convert function to convert HTTPSesion.V as the hook HK_R_END value argument.
 	FIND_V func(hs *HTTPSession) func(v interface{}) interface{}
 }
@@ -600,6 +603,8 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	mux.HandleEnable = true
 	mux.ShowLog = false
 	mux.INT = nil
+	mux.M = nil
+	mux.ShowSlow = 10000
 	return &mux
 }
 
@@ -716,18 +721,31 @@ func (s *SessionMux) exec_f(hs *HTTPSession) (bool, HResult) {
 			s.slog("not mathced method %v to %v", hs.R.Method, s.regex_m[k])
 			continue
 		}
+		var mid = ""
 		matched = true
 		switch s.regex_f[k] {
 		case 1:
+			if s.M != nil {
+				mid = s.M.Start(fmt.Sprintf("F_%v", k.String()))
+			}
 			rv := s.Filters[k]
 			res := rv.SrvHTTP(hs)
+			if s.M != nil {
+				s.M.Done(mid)
+			}
 			s.slog("mathced filter %v to %v (%v)", k, hs.R.URL.Path, res.String())
 			if res == HRES_RETURN {
 				return matched, res
 			}
 		case 2:
+			if s.M != nil {
+				mid = s.M.Start(fmt.Sprintf("F_%v", k.String()))
+			}
 			rv := s.FilterFunc[k]
 			res := rv(hs)
+			if s.M != nil {
+				s.M.Done(mid)
+			}
 			s.slog("mathced filter func %v to %v (%v)", k, hs.R.URL.Path, res.String())
 			if res == HRES_RETURN {
 				return matched, res
@@ -747,25 +765,44 @@ func (s *SessionMux) exec_h(hs *HTTPSession) (bool, HResult) {
 			s.slog("not mathced method %v to %v", hs.R.Method, s.regex_m[k])
 			continue
 		}
+		var mid = ""
 		matched = true
 		switch s.regex_h[k] {
 		case 1:
+			if s.M != nil {
+				mid = s.M.Start(fmt.Sprintf("H_%v", k.String()))
+			}
 			rv := s.Handlers[k]
 			res := rv.SrvHTTP(hs)
+			if s.M != nil {
+				s.M.Done(mid)
+			}
 			s.slog("mathced handler %v to %v (%v)", k, hs.R.URL.Path, res.String())
 			if res == HRES_RETURN {
 				return matched, res
 			}
 		case 2:
+			if s.M != nil {
+				mid = s.M.Start(fmt.Sprintf("H_%v", k.String()))
+			}
 			rv := s.HandlerFunc[k]
 			res := rv(hs)
+			if s.M != nil {
+				s.M.Done(mid)
+			}
 			s.slog("mathced handler func %v to %v (%v)", k, hs.R.URL.Path, res.String())
 			if res == HRES_RETURN {
 				return matched, res
 			}
 		case 3:
+			if s.M != nil {
+				mid = s.M.Start(fmt.Sprintf("H_%v", k.String()))
+			}
 			rv := s.NHandlers[k]
 			rv.ServeHTTP(hs.W, hs.R)
+			if s.M != nil {
+				s.M.Done(mid)
+			}
 			if s.check_continue(k) {
 				s.slog("mathced normal handler %v to %v (%v)",
 					k, hs.R.URL.Path, HRES_CONTINUE.String())
@@ -776,8 +813,14 @@ func (s *SessionMux) exec_h(hs *HTTPSession) (bool, HResult) {
 				return matched, HRES_RETURN
 			}
 		case 4:
+			if s.M != nil {
+				mid = s.M.Start(fmt.Sprintf("H_%v", k.String()))
+			}
 			rv := s.NHandlerFunc[k]
 			rv(hs.W, hs.R)
+			if s.M != nil {
+				s.M.Done(mid)
+			}
 			if s.check_continue(k) {
 				s.slog("mathced normal handler func %v to %v (%v)",
 					k, hs.R.URL.Path, HRES_CONTINUE.String())
@@ -794,6 +837,7 @@ func (s *SessionMux) exec_h(hs *HTTPSession) (bool, HResult) {
 
 //
 func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	beg := util.Now()
 	r.URL.Path = strings.TrimPrefix(r.URL.Path, s.Pre)
 	session := s.Sb.FindSession(w, r)
 	hs := &HTTPSession{
@@ -811,6 +855,10 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.rs_l.Lock()
 		delete(s.rs_m, r) //remove the http session object.
 		s.rs_l.Unlock()
+		used := util.Now() - beg
+		if s.ShowSlow > 0 && used > s.ShowSlow {
+			log.W("SessionMux slow request found->%v", r.URL.String())
+		}
 	}()
 	//
 	var matched bool = false
@@ -884,5 +932,23 @@ func (s *SessionMux) Print() {
 		for reg, h := range s.NHandlerFunc {
 			fmt.Printf("\t%v->%p\n", reg.String(), h)
 		}
+	}
+}
+
+//set the show slow log
+func (s *SessionMux) SetShowSlow(v int64) {
+	s.ShowSlow = v
+}
+
+//start monitor
+func (s *SessionMux) StartMonitor() {
+	s.M = tutil.NewMonitor()
+}
+
+func (s *SessionMux) State() (interface{}, error) {
+	if s.M == nil {
+		return nil, nil
+	} else {
+		return s.M.State()
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"net"
 	"sync/atomic"
@@ -148,6 +149,9 @@ type RC_Runner_m struct {
 	wait_     chan byte
 	DailF     F_DAIL
 	//
+	ShowSlow int64
+	M        *tutil.Monitor
+	//
 	w_lck chan int
 }
 
@@ -247,6 +251,20 @@ func (r *RC_Runner_m) Valid() error {
 	}
 }
 func (r *RC_Runner_m) VExec(name string, args interface{}, dest interface{}) (interface{}, error) {
+	var mid = ""
+	var beg = util.Now()
+	if r.M != nil {
+		mid = r.M.Start(name)
+	}
+	defer func() {
+		if r.M != nil {
+			r.M.Done(mid)
+		}
+		used := util.Now() - beg
+		if r.ShowSlow > 0 && used > r.ShowSlow {
+			log.W("RC_Runner_m(%v) slow exec(%v) found by args->%v", r.Name, name, util.S2Json(args))
+		}
+	}()
 	err := r.Valid()
 	if err == nil {
 		return r.Exec(name, args, dest)
@@ -255,6 +273,20 @@ func (r *RC_Runner_m) VExec(name string, args interface{}, dest interface{}) (in
 	}
 }
 func (r *RC_Runner_m) VExecRes(name string, args interface{}) (*RCM_CRes, error) {
+	var mid = ""
+	var beg = util.Now()
+	if r.M != nil {
+		mid = r.M.Start(name)
+	}
+	defer func() {
+		if r.M != nil {
+			r.M.Done(mid)
+		}
+		used := util.Now() - beg
+		if r.ShowSlow > 0 && used > r.ShowSlow {
+			log.W("RC_Runner_m(%v) slow exec(%v) found by args->%v", r.Name, name, util.S2Json(args))
+		}
+	}()
 	err := r.Valid()
 	if err == nil {
 		return r.ExecRes(name, args)
@@ -268,6 +300,20 @@ func (r *RC_Runner_m) VExec_m(name string, args interface{}) (util.Map, error) {
 	return res, err
 }
 func (r *RC_Runner_m) VExec_s(name string, args interface{}) (string, error) {
+	var mid = ""
+	var beg = util.Now()
+	if r.M != nil {
+		mid = r.M.Start(name)
+	}
+	defer func() {
+		if r.M != nil {
+			r.M.Done(mid)
+		}
+		used := util.Now() - beg
+		if r.ShowSlow > 0 && used > r.ShowSlow {
+			log.W("RC_Runner_m(%v) slow exec(%v) found by args->%v", r.Name, name, util.S2Json(args))
+		}
+	}()
 	err := r.Valid()
 	if err == nil {
 		return r.Exec_s(name, args)

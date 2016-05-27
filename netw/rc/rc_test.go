@@ -151,6 +151,7 @@ func (r *rc_s_h) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 		return "", util.Err("error")
 	}
 	cid := atomic.AddInt64(&r.cid, 1)
+	time.Sleep(10 * time.Millisecond)
 	return fmt.Sprintf("NN-%v", cid), nil
 }
 
@@ -195,6 +196,7 @@ func (r *rc_c_h) OnClose(c netw.Con) {
 //client command
 func (r *rc_c_h) List(rc *impl.RCM_Cmd) (interface{}, error) {
 	log.D("C(c)->receive list command")
+	time.Sleep(10 * time.Millisecond)
 	return []string{"a", "b", "c"}, nil
 }
 
@@ -217,6 +219,8 @@ func TestRc(t *testing.T) {
 	sh := &rc_s_h{}
 	lm := NewRC_Listener_m_j(bp, ":10801", sh)
 	lm.LCH = sh
+	lm.RCM_S.M = tutil.NewMonitor()
+	lm.RCM_S.ShowSlow = 1
 	sh.Handle(lm)
 	err := lm.Run()
 	if err != nil {
@@ -232,6 +236,8 @@ func TestRc(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		ch := &rc_c_h{}
 		cr := NewRC_Runner_m_j(bp, "127.0.0.1:10801", ch)
+		cr.StartMonitor()
+		cr.SetShowSlow(1)
 		ch.Handle(cr)
 		cr.Start()
 		_, err := cr.Writev(util.Map{
@@ -257,6 +263,8 @@ func TestRc(t *testing.T) {
 	for i := 5; i < 10; i++ {
 		ch := &rc_c_h{}
 		cr := NewRC_Runner_m_j(bp, "127.0.0.1:10801", ch)
+		cr.StartMonitor()
+		cr.SetShowSlow(1)
 		ch.Handle(cr)
 		cr.Start()
 		name := fmt.Sprintf("RC-%v", i)
@@ -269,6 +277,8 @@ func TestRc(t *testing.T) {
 		}
 		log.D("login by name(%v)->%v", name, res.IntVal("code"))
 		crs = append(crs, cr)
+		val, _ := cr.State()
+		fmt.Println("CR->", util.S2Json(val))
 	}
 	fmt.Println("xxxx->003")
 	//
@@ -305,6 +315,9 @@ func TestRc(t *testing.T) {
 		t.Error("not exist")
 		return
 	}
+	//
+	val, _ := lm.RCM_S.M.State()
+	fmt.Println("LM->", util.S2Json(val))
 	//
 	//test other
 	lm.MsgC("not found")

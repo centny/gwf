@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"testing"
+	"time"
 )
 
 type Ssrv struct {
@@ -50,6 +51,7 @@ func TestSrvMux(t *testing.T) {
 	http.Handle("/re2/", rgx2)
 	//
 	go http.ListenAndServe(":6789", nil)
+	time.Sleep(100 * time.Millisecond)
 	http.Get("http://127.0.0.1:6789/reg/a1")
 	http.Get("http://127.0.0.1:6789/reg/b2")
 	http.Get("http://127.0.0.1:6789/reg/c3")

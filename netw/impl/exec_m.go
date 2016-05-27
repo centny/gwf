@@ -3,6 +3,7 @@ package impl
 import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
+	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"regexp"
 )
@@ -100,6 +101,8 @@ func (r *RCM_Cmd) CRes(code int, v interface{}) (interface{}, error) {
 type RCM_S struct {
 	ND       ND_F
 	VNA      VNA_F
+	ShowSlow int64
+	M        *tutil.Monitor
 	filter_a []*regexp.Regexp
 	filter_m map[*regexp.Regexp]RC_M_FH
 	routes_  map[string]RC_M_HH
@@ -168,22 +171,48 @@ func (r *RCM_S) OnCmd(c netw.Cmd) int {
 	}
 }
 func (r *RCM_S) exec_f(f RC_M_FH, rcm *RCM_Cmd) (con bool, val interface{}, err error) {
+	var name = util.ReflectName(f)
+	var mid = ""
+	var beg = util.Now()
+	if r.M != nil {
+		mid = r.M.Start(name)
+	}
 	defer func() {
 		var terr = recover()
 		if terr != nil {
-			log.E("RCM_S exec filter(%p) is panic(%v) with call stack->\n%v", f, terr, util.CallStatck())
+			log.E("RCM_S exec filter(%v) is panic(%v) with call stack->\n%v", name, terr, util.CallStatck())
 			err = util.Err("%v", terr)
+		}
+		if r.M != nil {
+			r.M.Done(mid)
+		}
+		used := util.Now() - beg
+		if r.ShowSlow > 0 && used > r.ShowSlow {
+			log.W("RCM_S slow exec(%v) found by args->%v", name, util.S2Json(rcm.Map))
 		}
 	}()
 	con, val, err = f.Exec(rcm)
 	return
 }
 func (r *RCM_S) exec_h(h RC_M_HH, rcm *RCM_Cmd) (val interface{}, err error) {
+	var name = util.ReflectName(h)
+	var mid = ""
+	var beg = util.Now()
+	if r.M != nil {
+		mid = r.M.Start(name)
+	}
 	defer func() {
 		var terr = recover()
 		if terr != nil {
-			log.E("RCM_S exec handler(%p) is panic(%v) with call stack->\n%v", h, terr, util.CallStatck())
+			log.E("RCM_S exec handler(%v) is panic(%v) with call stack->\n%v", name, terr, util.CallStatck())
 			err = util.Err("%v", terr)
+		}
+		if r.M != nil {
+			r.M.Done(mid)
+		}
+		used := util.Now() - beg
+		if r.ShowSlow > 0 && used > r.ShowSlow {
+			log.W("RCM_S slow exec(%v) found by args->%v", name, util.S2Json(rcm.Map))
 		}
 	}()
 	val, err = h.Exec(rcm)

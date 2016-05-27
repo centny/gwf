@@ -486,3 +486,21 @@ func TestTrimAryS(t *testing.T) {
 	}
 	fmt.Println("done...")
 }
+
+func TestReflectName(t *testing.T) {
+	var abc = []string{}
+	var abc2 = []*testing.T{}
+	var abc3 = []testing.T{}
+	fmt.Println(StructName(t))
+	fmt.Println(StructName(TestReflectName))
+	fmt.Println(StructName(abc))
+	fmt.Println(StructName(abc2))
+	fmt.Println(StructName(abc3))
+	fmt.Println("...")
+	fmt.Println(ReflectName(t))
+	fmt.Println(ReflectName(TestReflectName))
+	fmt.Println(ReflectName(abc))
+	fmt.Println(ReflectName(abc2))
+	fmt.Println(ReflectName(abc3))
+	fmt.Println(FuncName(TestReflectName))
+}

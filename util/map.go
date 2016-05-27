@@ -556,8 +556,21 @@ type MapSorter struct {
 	Maps []Map
 	Key  string
 	Type int //0 is int,1 is float,2 is string
+	Desc bool
 }
 
+func NewMapSorter(ms []Map, key string, vtype int) *MapSorter {
+	return NewMapSorterV(ms, key, vtype, false)
+}
+
+func NewMapSorterV(ms []Map, key string, vtype int, desc bool) *MapSorter {
+	return &MapSorter{
+		Maps: ms,
+		Key:  key,
+		Type: vtype,
+		Desc: desc,
+	}
+}
 func (m *MapSorter) Len() int {
 	return len(m.Maps)
 }
@@ -565,11 +578,23 @@ func (m *MapSorter) Len() int {
 func (m *MapSorter) Less(i, j int) bool {
 	switch m.Type {
 	case 0:
-		return m.Maps[i].IntValP(m.Key) < m.Maps[j].IntValP(m.Key)
+		if m.Desc {
+			return m.Maps[i].IntValP(m.Key) > m.Maps[j].IntValP(m.Key)
+		} else {
+			return m.Maps[i].IntValP(m.Key) < m.Maps[j].IntValP(m.Key)
+		}
 	case 1:
-		return m.Maps[i].FloatValP(m.Key) < m.Maps[j].FloatValP(m.Key)
+		if m.Desc {
+			return m.Maps[i].FloatValP(m.Key) > m.Maps[j].FloatValP(m.Key)
+		} else {
+			return m.Maps[i].FloatValP(m.Key) < m.Maps[j].FloatValP(m.Key)
+		}
 	default:
-		return m.Maps[i].StrValP(m.Key) < m.Maps[j].StrValP(m.Key)
+		if m.Desc {
+			return m.Maps[i].StrValP(m.Key) > m.Maps[j].StrValP(m.Key)
+		} else {
+			return m.Maps[i].StrValP(m.Key) < m.Maps[j].StrValP(m.Key)
+		}
 	}
 }
 func (m *MapSorter) Swap(i, j int) {

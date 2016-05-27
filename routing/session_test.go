@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Centny/gwf/hooks"
+	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"golang.org/x/net/publicsuffix"
 	"net/http"
@@ -82,6 +83,7 @@ func (s *CSrv) SrvHTTP(hs *HTTPSession) HResult {
 	hs.SetCookie("kk", "sfsf")
 	hs.Cookie("kk")
 	hs.SetCookie("kk", "")
+	time.Sleep(10 * time.Millisecond)
 	return s.Res
 }
 
@@ -90,6 +92,7 @@ func TestSessionMux(t *testing.T) {
 	sb.ShowLog = true
 	mux := NewSessionMux("/t", sb)
 	mux.ShowLog = true
+	mux.M = tutil.NewMonitor()
 	// mux.CDelay = 500
 	ssrv1 := Ssrv{Count: 0}
 	csrv1 := CSrv{Count: 0, Res: HRES_CONTINUE}
@@ -152,6 +155,7 @@ func TestSessionMux(t *testing.T) {
 	http.Handle("/t2/", mux)
 	http.Handle("/abc/", mux)
 	go http.ListenAndServe(":2789", nil)
+	time.Sleep(100 * time.Millisecond)
 	options := cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
 	}
@@ -207,6 +211,10 @@ func TestSessionMux(t *testing.T) {
 	sb.StopLoop()
 	//
 	NewSessionMux("/", nil)
+	//
+	//
+	vals, _ := mux.M.State()
+	fmt.Println(util.S2Json(vals))
 	//
 	fmt.Println("TestSessionMux end")
 }

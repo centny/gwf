@@ -12,6 +12,7 @@ import (
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"net"
 	"sync"
@@ -297,6 +298,24 @@ func (r *RC_Listener_m) Login_(rc *impl.RCM_Cmd) (interface{}, error) {
 	return util.Map{"code": 0}, nil
 }
 
+//set the show slow log
+func (r *RC_Listener_m) SetShowSlow(v int64) {
+	r.RCM_S.ShowSlow = v
+}
+
+//start monitor
+func (r *RC_Listener_m) StartMonitor() {
+	r.RCM_S.M = tutil.NewMonitor()
+}
+
+func (r *RC_Listener_m) State() (interface{}, error) {
+	if r.M == nil {
+		return nil, nil
+	} else {
+		return r.M.State()
+	}
+}
+
 //remote command client runner.
 type RC_Runner_m struct {
 	*impl.RC_Runner_m
@@ -403,6 +422,32 @@ func (r *RC_Runner_m) Login_(token string) error {
 		log.I("RC_Runner_m(%v) login fail by token(%v)->%v", r.Name, token, util.S2Json(res))
 		return util.Err("login error->%v", res.StrVal("err"))
 	}
+}
+
+//set the show slow log
+func (r *RC_Runner_m) SetShowSlow(v int64) {
+	r.RC_Runner_m.ShowSlow = v
+	r.RCM_S.ShowSlow = v
+}
+
+//start monitor
+func (r *RC_Runner_m) StartMonitor() {
+	r.RC_Runner_m.M = tutil.NewMonitor()
+	r.RCM_S.M = tutil.NewMonitor()
+}
+
+//the runner state
+func (r *RC_Runner_m) State() (interface{}, error) {
+	var res = util.Map{}
+	if r.RC_Runner_m.M != nil {
+		val, _ := r.RC_Runner_m.M.State()
+		res["exec"] = val
+	}
+	if r.RCM_S.M != nil {
+		val, _ := r.RC_Runner_m.M.State()
+		res["hand"] = val
+	}
+	return res, nil
 }
 
 type AutoLoginH struct {

@@ -499,3 +499,18 @@ func CallStatck() string {
 	blen := runtime.Stack(buf, false)
 	return string(buf[0:blen])
 }
+
+func StructName(v interface{}) string {
+	return reflect.Indirect(reflect.ValueOf(v)).Type().String()
+}
+func FuncName(v interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(v).Pointer()).Name()
+}
+func ReflectName(v interface{}) string {
+	var val = reflect.Indirect(reflect.ValueOf(v))
+	if val.Kind() == reflect.Func {
+		return runtime.FuncForPC(val.Pointer()).Name()
+	} else {
+		return val.Type().String()
+	}
+}
