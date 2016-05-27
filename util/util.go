@@ -298,6 +298,13 @@ func SplitThree(bys []byte, idxa, idxb int) ([]byte, []byte, []byte) {
 	return bys[:idxa], bys[idxa:idxb], bys[idxb:]
 }
 
+func Split(val, sep string) []string {
+	if len(val) < 1 {
+		return nil
+	}
+	return strings.Split(val, sep)
+}
+
 func TrimAryS_V(vals []string, cutset string, repeat bool) []string {
 	var exist = map[string]bool{}
 	var res = []string{}
