@@ -600,3 +600,11 @@ func (m *MapSorter) Less(i, j int) bool {
 func (m *MapSorter) Swap(i, j int) {
 	m.Maps[i], m.Maps[j] = m.Maps[j], m.Maps[i]
 }
+
+func Maps2Map(ms []Map, path string) Map {
+	var res = Map{}
+	for _, m := range ms {
+		res[m.StrValP(path)] = m
+	}
+	return res
+}
