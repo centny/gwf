@@ -389,6 +389,39 @@ func TestDtcm(t *testing.T) {
 	fmt.Println("done...")
 }
 
+func TestDtcmLoc(t *testing.T) {
+	runtime.GOMAXPROCS(util.CPU())
+	// bp := pool.NewBytePool(8, 10240000)
+	// netw.ShowLog = true
+	// impl.ShowLog = true
+	var cfg = util.NewFcfg3()
+	var err = cfg.InitWithFilePath2("dtcm.properties", false)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	var sh = new_dtcm_s_h()
+	dtms, err := StartDTCM_S(cfg, MemDbc, sh)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	dtms.Cfg.SetVal("CMD_1", "./cmd_x.sh")
+	dtms.Cfg.SetVal("CMD_2", "./cmd_x.sh")
+	dtms.Cfg.SetVal("CMD_3", "echo")
+	dtms.Cfg.SetVal("CMD_4", "echoxx")
+	res, err := dtms.RunLocTaskV("abc", nil, "aaa.mkv", "bbb.mp4")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(res) != 2 {
+		fmt.Println(util.S2Json(res))
+		t.Error("error")
+		return
+	}
+}
+
 func TestParseCmds(t *testing.T) {
 	var cfg, _ = util.NewFcfg2(`
 		[T1]

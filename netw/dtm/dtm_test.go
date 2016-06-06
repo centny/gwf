@@ -81,7 +81,8 @@ func TestDtmBase(t *testing.T) {
 	do_c(true)
 	//
 	var args = util.Map{}
-	if dtmc.cmd_do_res(args, "xxxx", `
+	resr := NewResultRunner("cmds")
+	if resr.cmd_do_res(args, "xxxx", `
 		sfs
 		fsdf
 
@@ -89,14 +90,14 @@ func TestDtmBase(t *testing.T) {
 		t.Error("error")
 		return
 	}
-	if dtmc.cmd_do_res(args, "xxxx", `
+	if resr.cmd_do_res(args, "xxxx", `
 	----------------result----------------
 
 		`) != 0 {
 		t.Error("error")
 		return
 	}
-	if dtmc.cmd_do_res(args, "xxxx", `
+	if resr.cmd_do_res(args, "xxxx", `
 	----------------result----------------
 	[json]
 	{}
@@ -105,7 +106,7 @@ func TestDtmBase(t *testing.T) {
 		t.Error("error")
 		return
 	}
-	if dtmc.cmd_do_res(args, "xxxx", `
+	if resr.cmd_do_res(args, "xxxx", `
 	----------------result----------------
 	[json]
 	{xx}

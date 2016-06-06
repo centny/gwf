@@ -318,8 +318,10 @@ type DTCM_S struct {
 	Db      DbH                //the database handler
 	Sid     string             //the server id
 	Cmds    []*Cmd             //command list
-	Clients map[string]*Client //client list
+	LocCmds []*Cmd             //the local command list
 	AbsL    []Abs              //the argument builder list
+	LocAbsL []Abs              //the argument builder list
+	Clients map[string]*Client //client list
 
 	Cfg *util.Fcfg         //the configure
 	T2C map[string]*Client //mapping token to clients
@@ -382,6 +384,17 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 		return nil, err
 	}
 	//
+	var loc_cmds_ []*Cmd
+	var loc_cmds = cfg.Val("loc_cmds")
+	if len(loc_cmds) > 0 {
+		var loc_cmds_s = strings.Split(loc_cmds, ",")
+		log.D("DTCM_S parsing local cmds by names(%v)", loc_cmds_s)
+		loc_cmds_, err = ParseCmds(cfg, loc_cmds_s)
+		if err != nil {
+			return nil, err
+		}
+	}
+	//
 	var clients = cfg.Val("clients")
 	if len(clients) < 1 {
 		return nil, util.Err("loc/clients is empty")
@@ -393,10 +406,20 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 	if err != nil {
 		return nil, err
 	}
+	//
 	var abs = []Abs{}
 	var abs_l = cfg.Val("abs_l")
 	if len(abs_l) > 0 {
 		abs, err = ParseAbsL(cfg, strings.Split(abs_l, ","))
+		if err != nil {
+			return nil, err
+		}
+	}
+	//
+	var loc_abs = []Abs{}
+	var loc_abs_l = cfg.Val("loc_abs_l")
+	if len(loc_abs_l) > 0 {
+		loc_abs, err = ParseAbsL(cfg, strings.Split(loc_abs_l, ","))
 		if err != nil {
 			return nil, err
 		}
@@ -410,8 +433,10 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 		Db:         dbh,
 		Sid:        sid,
 		Cmds:       cmds_,
-		Clients:    clients_,
+		LocCmds:    loc_cmds_,
 		AbsL:       abs,
+		LocAbsL:    loc_abs,
+		Clients:    clients_,
 		Cfg:        cfg,
 		T2C:        map[string]*Client{},
 		task_l:     sync.RWMutex{},

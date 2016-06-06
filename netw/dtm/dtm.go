@@ -6,7 +6,6 @@
 package dtm
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
@@ -16,9 +15,7 @@ import (
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
 	"net/http"
-	"os"
 	"os/exec"
-	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -555,63 +552,22 @@ func (d *DTM_C) run_cmd(tid, cmds string) error {
 	cfg.SetVal("proc_tid", tid)
 	cmds = cfg.EnvReplaceV(cmds, false)
 	log.D("DTM_C calling command(\n\t%v\n)", cmds)
-	beg := util.Now()
-	var runner = exec.Command(d.Cfg.Val2("bash_c", "bash"), "-c", cmds)
-	runner.Dir = cfg.Val2("proc_ws", ".")
-	var env = cfg.Val2("proc_env", "")
-	if len(env) > 0 {
-		runner.Env = append(os.Environ(), strings.Split(env, ",")...)
-	}
-	buf := &bytes.Buffer{}
-	runner.Stdout = buf
-	runner.Stderr = buf
+	runner := NewResultRunner(cmds)
+	runner.Dir, runner.Env, runner.Bash = cfg.Val2("proc_ws", "."),
+		cfg.Val2("proc_env", ""), d.Cfg.Val2("bash_c", "bash")
 	err := runner.Start()
 	if err != nil {
 		err = util.Err("DTM_C run_cmd start error->%v", err)
 		log.E("%v", err)
 		return err
 	}
-	task_c := d.add_task(tid, runner)
+	task_c := d.add_task(tid, runner.Runner)
 	go func() {
-		args := util.Map{"tid": tid}
-		err = runner.Wait()
-		used := util.Now() - beg
-		res := buf.String()
-		if err == nil {
-			log.D("DTM_C run_cmd by running command(\n\t%v\n) success,used(%vms)->\n%v", cmds, used, res)
-			args["code"] = d.cmd_do_res(args, cmds, res)
-		} else {
-			log.E("DTM_C run_cmd by running command(\n\t%v\n) error(%v)->\n%v", cmds, err, res)
-			args["code"] = -1
-			args["err"] = err.Error()
-		}
-		args["used"] = used
+		args := util.Map{}
+		args, _ = runner.Wait()
 		d.Writev2([]byte{CMD_M_DONE}, args)
 		task_c <- args.StrVal("err")
 		d.del_task(tid)
 	}()
 	return nil
-}
-
-func (d *DTM_C) cmd_do_res(args util.Map, cmds, res string) int {
-	var res_a = strings.SplitN(res, "----------------result----------------", 2)
-	if len(res_a) < 2 {
-		return 0
-	}
-	var mres = util.ParseSectionF("[", "]", res_a[1])
-	var jval = mres.StrVal("json")
-	if len(jval) < 1 {
-		args["data"] = mres
-		return 0
-	}
-	var jval_m, err = util.Json2Map(jval)
-	if err == nil {
-		args["data"] = jval_m
-		return 0
-	} else {
-		log.E("DTM_C parse json result on command(\n\t%v\n) by data(%v) error->%v", cmds, jval, err)
-		args["data"] = mres
-		args["err"] = err.Error()
-		return -2
-	}
 }
