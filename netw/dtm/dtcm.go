@@ -323,8 +323,9 @@ type DTCM_S struct {
 	LocAbsL []Abs              //the argument builder list
 	Clients map[string]*Client //client list
 
-	Cfg *util.Fcfg         //the configure
-	T2C map[string]*Client //mapping token to clients
+	Cfg   *util.Fcfg //the configure
+	Local *util.Fcfg
+	T2C   map[string]*Client //mapping token to clients
 	//
 	task_l   sync.RWMutex      //task lock
 	tasks    map[string]*Task  //mapping Task.Id to Task
@@ -438,6 +439,7 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 		LocAbsL:    loc_abs,
 		Clients:    clients_,
 		Cfg:        cfg,
+		Local:      cfg.Strip("Local"),
 		T2C:        map[string]*Client{},
 		task_l:     sync.RWMutex{},
 		tasks:      map[string]*Task{},

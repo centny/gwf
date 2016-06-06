@@ -18,6 +18,7 @@ func (d *DTCM_S) RunLocTaskV(id, info interface{}, args ...interface{}) (util.Ma
 			continue
 		}
 		cmds := cmd.ParseCmd(args...)
+		cmds = d.Local.EnvReplaceV(cmds, false)
 		runner := NewResultRunner(cmds)
 		runner.Dir, runner.Env, runner.Bash = d.Cfg.Val2("proc_ws", "."),
 			d.Cfg.Val2("proc_env", ""), d.Cfg.Val2("bash_c", "bash")

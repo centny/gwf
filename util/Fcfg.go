@@ -447,6 +447,17 @@ func (f *Fcfg) Merge2(sec string, t *Fcfg) {
 	}
 }
 
+func (f *Fcfg) Strip(sec string) *Fcfg {
+	var cfg = NewFcfg3()
+	for k, v := range f.Map {
+		if !strings.HasPrefix(k, sec) {
+			continue
+		}
+		cfg.Map["loc"+strings.TrimPrefix(k, sec)] = v
+	}
+	return cfg
+}
+
 func (f *Fcfg) String() string {
 	buf := bytes.NewBuffer(nil)
 	keys, locs := []string{}, []string{}
