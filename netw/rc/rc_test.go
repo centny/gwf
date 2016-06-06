@@ -279,6 +279,12 @@ func TestRc(t *testing.T) {
 		crs = append(crs, cr)
 		val, _ := cr.State()
 		fmt.Println("CR->", util.S2Json(val))
+		//
+		err = cr.HB("abc")
+		if err != nil {
+			t.Error(err.Error())
+			return
+		}
 	}
 	fmt.Println("xxxx->003")
 	//

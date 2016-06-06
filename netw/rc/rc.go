@@ -202,6 +202,7 @@ func NewRC_Listener_m(p *pool.BytePool, port string, h netw.CCHandler, rc *impl.
 	}
 	rch.L = rcl
 	rcl.AddHFunc("login_", rcl.Login_)
+	rcl.AddHFunc("hb", rcl.HB)
 	return rcl
 }
 
@@ -296,6 +297,13 @@ func (r *RC_Listener_m) Login_(rc *impl.RCM_Cmd) (interface{}, error) {
 	rc.Kvs().SetVal("cid", tcid)
 	log.D("RC_Listener_m(%v) login by token(%v),old(%v) success with cid(%v)", r.Name, token, otk, tcid)
 	return util.Map{"code": 0}, nil
+}
+
+func (r *RC_Listener_m) HB(rc *impl.RCM_Cmd) (interface{}, error) {
+	return util.Map{
+		"type": "HB-S",
+		"data": rc.StrVal("data"),
+	}, nil
 }
 
 //set the show slow log
@@ -421,6 +429,23 @@ func (r *RC_Runner_m) Login_(token string) error {
 	} else {
 		log.I("RC_Runner_m(%v) login fail by token(%v)->%v", r.Name, token, util.S2Json(res))
 		return util.Err("login error->%v", res.StrVal("err"))
+	}
+}
+
+func (r *RC_Runner_m) HB(data string) error {
+	res, err := r.VExec_m("hb", util.Map{
+		"data": data,
+	})
+	if err != nil {
+		log.E("RC_Runner_m(%v) HB fail with error(%v)", r.Name, err)
+		return err
+	}
+	if res.StrVal("data") == data {
+		return nil
+	} else {
+		err = util.Err("RC_Runner_m(%v) HB fail by response data is %v, the %v expect", r.Name, res.StrVal("data"), data)
+		log.W("%v", err)
+		return err
 	}
 }
 
