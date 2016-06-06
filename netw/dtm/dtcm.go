@@ -916,7 +916,7 @@ func (d *DTCM_S) do_checker_(max int) {
 		return
 	}
 	if len(ts) < 1 {
-		log.D("DTCM_S do check succes and task is empty")
+		// log.D("DTCM_S do check succes and task is empty")
 		return
 	}
 	log.D("DTCM_S do check succes and %v task found, will try run %v task", total, max)
