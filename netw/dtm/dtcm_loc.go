@@ -20,8 +20,8 @@ func (d *DTCM_S) RunLocTaskV(id, info interface{}, args ...interface{}) (util.Ma
 		cmds := cmd.ParseCmd(args...)
 		cmds = d.Local.EnvReplaceV(cmds, false)
 		runner := NewResultRunner(cmds)
-		runner.Dir, runner.Env, runner.Bash = d.Cfg.Val2("proc_ws", "."),
-			d.Cfg.Val2("proc_env", ""), d.Cfg.Val2("bash_c", "bash")
+		runner.Dir, runner.Env, runner.Bash = d.Local.Val2("proc_ws", "."),
+			d.Local.Val2("proc_env", ""), d.Local.Val2("bash_c", "bash")
 		err = runner.Start()
 		if err != nil {
 			err = util.Err("RunLocTaskV start runner(%v) error(%v)", util.S2Json(runner), err)

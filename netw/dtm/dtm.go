@@ -563,8 +563,8 @@ func (d *DTM_C) run_cmd(tid, cmds string) error {
 	}
 	task_c := d.add_task(tid, runner.Runner)
 	go func() {
-		args := util.Map{}
-		args, _ = runner.Wait()
+		args, _ := runner.Wait()
+		args["tid"] = tid
 		d.Writev2([]byte{CMD_M_DONE}, args)
 		task_c <- args.StrVal("err")
 		d.del_task(tid)
