@@ -92,7 +92,7 @@ type DbH interface {
 	Store(m *Msg) error
 	MarkRecv(uid, avaliable string, mids []string) error
 	//send unread message
-	ListUnread(uid string, login_type int) ([]Msg, error)
+	ListUnread(uid string, login_type int) ([]*Msg, error)
 }
 
 //

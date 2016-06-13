@@ -367,7 +367,7 @@ func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
 	fmt.Printf("M:%v, R(%v)-P(%v)-E(%v)=%v, D:%v\n", mlen, rlen, plen, elen, rlen-plen-elen, dlen)
 	return mlen, rlen, plen, elen, dlen
 }
-func (m *MemDbH) ListUnread(r string, ct int) ([]Msg, error) {
+func (m *MemDbH) ListUnread(r string, ct int) ([]*Msg, error) {
 	msg := Msg{}
 	var dd string = r
 	var ss string = "S-Robot"
@@ -390,7 +390,7 @@ func (m *MemDbH) ListUnread(r string, ct int) ([]Msg, error) {
 		},
 	}
 	m.Store(&msg)
-	return []Msg{msg}, nil
+	return []*Msg{&msg}, nil
 }
 func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []Con, error) {
 	m.con_l.Lock()
