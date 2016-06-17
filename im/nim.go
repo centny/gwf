@@ -6,6 +6,7 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
+	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"strings"
 	"sync/atomic"
@@ -69,6 +70,7 @@ type NIM_Rh struct {
 	idc      int64
 	Running  bool
 	PushChan chan string
+	M        *tutil.Monitor
 }
 
 func (n *NIM_Rh) OnConn(c netw.Con) bool {
@@ -105,6 +107,10 @@ func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
 	return n.OnMsg(&mc)
 }
 func (n *NIM_Rh) OnMsg(mc *Msg) int {
+	if n.M != nil {
+		mi_id := n.M.Start("msg")
+		defer n.M.Done(mi_id)
+	}
 	if len(mc.R) < 1 {
 		log.E("receive empty R from %v", mc.RemoteAddr())
 		mc.Close()
@@ -315,6 +321,10 @@ func (n *NIM_Rh) writev_ce2(c netw.Cmd, code int, err string) int {
 	return 0
 }
 func (n *NIM_Rh) LI(r netw.Cmd) int {
+	if n.M != nil {
+		mi_id := n.M.Start("li")
+		defer n.M.Done(mi_id)
+	}
 	defer r.Done()
 	if r.Closed() {
 		return -1
@@ -354,6 +364,10 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 	return res
 }
 func (n *NIM_Rh) LO(r netw.Cmd) int {
+	if n.M != nil {
+		mi_id := n.M.Start("lo")
+		defer n.M.Done(mi_id)
+	}
 	defer r.Done()
 	if r.Closed() {
 		return -1
@@ -386,6 +400,10 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 	return n.writev_c(r, con)
 }
 func (n *NIM_Rh) UR(r netw.Cmd) int {
+	if n.M != nil {
+		mi_id := n.M.Start("ur")
+		defer n.M.Done(mi_id)
+	}
 	defer r.Done()
 	if r.Closed() {
 		return -1
@@ -403,6 +421,10 @@ func (n *NIM_Rh) HB(r netw.Cmd) int {
 	return 0
 }
 func (n *NIM_Rh) GR(r netw.Cmd) int {
+	if n.M != nil {
+		mi_id := n.M.Start("gr")
+		defer n.M.Done(mi_id)
+	}
 	defer r.Done()
 	var args LGR_Arg
 	_, err := r.V(&args)

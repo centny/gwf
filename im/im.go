@@ -211,11 +211,11 @@ type Listener struct {
 	NIM     *NIM_Rh
 	DIP     *DimPool
 	DIM     *DIM_Rh
+	DIM_M   *impl.RCM_S
 	WIM     *WIM_Rh
 	WIM_L   *netw.LConPool
 	Db      DbH
 	P       *pool.BytePool
-	RCM     *impl.RCM_S
 	Host    string
 	Port    int
 	WsAddr  string
@@ -309,9 +309,9 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		NIM:         nim,
 		DIP:         dip,
 		DIM:         dim,
+		DIM_M:       dim_m,
 		Db:          db,
 		P:           p,
-		RCM:         dim_m,
 		Host:        "127.0.0.1",
 		Port:        port,
 		WsAddr:      "",
@@ -415,20 +415,25 @@ func (l *Listener) OnCmd(c netw.Cmd) int {
 
 //set the show slow log
 func (l *Listener) SetShowSlow(v int64) {
-	l.RCM.ShowSlow = v
+	l.DIM_M.ShowSlow = v
 }
 
 //start monitor
 func (l *Listener) StartMonitor() {
-	l.RCM.M = tutil.NewMonitor()
+	l.DIM_M.M = tutil.NewMonitor()
+	l.NIM.M = tutil.NewMonitor()
 }
 
 //the runner state
 func (l *Listener) State() (interface{}, error) {
 	var res = util.Map{}
-	if l.RCM.M != nil {
-		val, _ := l.RCM.M.State()
-		res["hand"] = val
+	if l.DIM_M.M != nil {
+		val, _ := l.DIM_M.M.State()
+		res["DIM"] = val
+	}
+	if l.NIM.M != nil {
+		val, _ := l.NIM.M.State()
+		res["NIM"] = val
 	}
 	return res, nil
 }
