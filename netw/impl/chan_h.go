@@ -1,7 +1,9 @@
 package impl
 
 import (
+	"fmt"
 	"github.com/Centny/gwf/netw"
+	"github.com/Centny/gwf/tutil"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -13,6 +15,7 @@ type ChanH struct {
 	cc      chan netw.Cmd
 	Wg      sync.WaitGroup
 	Sleep   time.Duration
+	M       *tutil.Monitor
 	count_  int32
 	running bool
 }
@@ -71,7 +74,15 @@ func (ch *ChanH) run_c() {
 			if cmd == nil {
 				break
 			}
+			data := cmd.Data()
+			mid := ""
+			if ch.M != nil {
+				mid = ch.M.Start(fmt.Sprintf("C->%v", data[0]))
+			}
 			ch.H.OnCmd(cmd)
+			if ch.M != nil {
+				ch.M.Done(mid)
+			}
 			//case <-tk:
 		}
 	}

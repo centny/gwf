@@ -208,6 +208,7 @@ func (m *MarkConPoolSender) SendC(con netw.Con, v interface{}) error {
 type Listener struct {
 	*netw.Listener
 	Obdh    *impl.OBDH
+	Chan    *impl.ChanH
 	NIM     *NIM_Rh
 	DIP     *DimPool
 	DIM     *DIM_Rh
@@ -273,7 +274,8 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		return cc
 	}
 	dip := NewDimPool(db, sid, p, v2b, b2v, nav, ncf, dim)
-	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), impl.NewChanH2(obdh, util.CPU()*5))
+	chan_h := impl.NewChanH2(obdh, util.CPU()*5)
+	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), chan_h)
 	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), sid, cch, ncf)
 	l.T = timeout
 	l.Name = "NIM"
@@ -304,6 +306,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 	var tl = &Listener{
 		Listener:    l,
 		Obdh:        obdh,
+		Chan:        chan_h,
 		WIM:         wim,
 		WIM_L:       wim_l,
 		NIM:         nim,
@@ -422,6 +425,7 @@ func (l *Listener) SetShowSlow(v int64) {
 func (l *Listener) StartMonitor() {
 	l.DIM_M.M = tutil.NewMonitor()
 	l.NIM.M = tutil.NewMonitor()
+	l.Chan.M = tutil.NewMonitor()
 }
 
 //the runner state
@@ -434,6 +438,10 @@ func (l *Listener) State() (interface{}, error) {
 	if l.NIM.M != nil {
 		val, _ := l.NIM.M.State()
 		res["NIM"] = val
+	}
+	if l.Chan.M != nil {
+		val, _ := l.Chan.M.State()
+		res["Chan"] = val
 	}
 	return res, nil
 }
