@@ -20,6 +20,7 @@ import (
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"github.com/golang/protobuf/proto"
 	"net"
@@ -214,6 +215,7 @@ type Listener struct {
 	WIM_L   *netw.LConPool
 	Db      DbH
 	P       *pool.BytePool
+	RCM     *impl.RCM_S
 	Host    string
 	Port    int
 	WsAddr  string
@@ -309,6 +311,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		DIM:         dim,
 		Db:          db,
 		P:           p,
+		RCM:         dim_m,
 		Host:        "127.0.0.1",
 		Port:        port,
 		WsAddr:      "",
@@ -409,6 +412,27 @@ func (l *Listener) OnCmd(c netw.Cmd) int {
 	log_d("receive on push notification by mid(%v)", mid)
 	return 0
 }
+
+//set the show slow log
+func (l *Listener) SetShowSlow(v int64) {
+	l.RCM.ShowSlow = v
+}
+
+//start monitor
+func (l *Listener) StartMonitor() {
+	l.RCM.M = tutil.NewMonitor()
+}
+
+//the runner state
+func (l *Listener) State() (interface{}, error) {
+	var res = util.Map{}
+	if l.RCM.M != nil {
+		val, _ := l.RCM.M.State()
+		res["hand"] = val
+	}
+	return res, nil
+}
+
 func IM_V2B(v interface{}) ([]byte, error) {
 	switch v.(type) {
 	case *pb.ImMsg:
