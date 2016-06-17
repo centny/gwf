@@ -65,6 +65,7 @@ func (l *Listener) Run() error {
 func (l *Listener) LoopAccept() {
 	l.Running = true
 	for l.Running {
+		log_d("Pool(%v) waiting tcp connect", l.Id())
 		con, err := l.L.Accept()
 		if err != nil {
 			log.I("accept %s error->%s", l.Port, err.Error())
