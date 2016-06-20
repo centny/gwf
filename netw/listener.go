@@ -5,7 +5,7 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/pool"
 	"net"
-	"reflect"
+	"time"
 )
 
 //the TCP server listener.
@@ -65,13 +65,28 @@ func (l *Listener) Run() error {
 //looping the accept
 func (l *Listener) LoopAccept() {
 	l.Running = true
+	var tempDelay time.Duration
 	for l.Running {
 		log_d("Pool(%v) waiting tcp connect", l.Id())
 		con, err := l.L.Accept()
 		if err != nil {
-			log.W("accept %s error(%v)->%s", l.Port, reflect.TypeOf(err).Kind(), err.Error())
-			continue
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+				if tempDelay == 0 {
+					tempDelay = 5 * time.Millisecond
+				} else {
+					tempDelay *= 2
+				}
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+				log.W("netw: Accept error: %v; retrying in %v", err, tempDelay)
+				time.Sleep(tempDelay)
+				continue
+			}
+			log.E("accept %s error(->%s", l.Port, err)
+			break
 		}
+		tempDelay = 0
 		l.Increase()
 		con.(*net.TCPConn).SetNoDelay(true)
 		// con.(*net.TCPConn).SetWriteBuffer(5)
@@ -87,7 +102,7 @@ func (l *Listener) LoopAccept() {
 	}
 	l.Running = false
 	l.Wc <- 0
-	log.I("loop accept will exit...")
+	log.W("loop accept will exit...")
 }
 
 //close the listener.
