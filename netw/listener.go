@@ -5,6 +5,7 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/pool"
 	"net"
+	"reflect"
 )
 
 //the TCP server listener.
@@ -68,7 +69,7 @@ func (l *Listener) LoopAccept() {
 		log_d("Pool(%v) waiting tcp connect", l.Id())
 		con, err := l.L.Accept()
 		if err != nil {
-			log.W("accept %s error->%s", l.Port, err.Error())
+			log.W("accept %s error(%v)->%s", l.Port, reflect.TypeOf(err).Kind(), err.Error())
 			continue
 		}
 		l.Increase()
