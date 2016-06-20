@@ -68,8 +68,8 @@ func (l *Listener) LoopAccept() {
 		log_d("Pool(%v) waiting tcp connect", l.Id())
 		con, err := l.L.Accept()
 		if err != nil {
-			log.I("accept %s error->%s", l.Port, err.Error())
-			break
+			log.W("accept %s error->%s", l.Port, err.Error())
+			continue
 		}
 		l.Increase()
 		con.(*net.TCPConn).SetNoDelay(true)
