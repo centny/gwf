@@ -36,6 +36,7 @@ func log_d(f string, args ...interface{}) {
 
 //the protocol modes
 const H_MOD = "^~^"
+const PING_V = 99
 
 //
 //the connection command mode
@@ -47,6 +48,7 @@ const (
 
 //the default connection timeout for not data receive
 const CON_TIMEOUT int64 = 5000
+const PING_DELAY = 60000
 
 //the func to create on connection for ConPool
 type NewConF func(cp ConPool, p *pool.BytePool, con net.Conn) Con
@@ -328,6 +330,7 @@ func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	// 	return 0, err
 	// }
 	// err = c.Flush()
+	c.Last_ = util.Now()
 	return total, err
 }
 func (c *Con_) Writev(val interface{}) (int, error) {
@@ -418,11 +421,12 @@ type ConPool interface {
 
 //the connection pool
 type LConPool struct {
-	Name string
-	T    int64          //the timeout of not data received
-	P    *pool.BytePool //the memory pool
-	Wg   sync.WaitGroup //wait group.
-	H    CCHandler      //command handler
+	Name      string
+	T         int64 //the timeout of not data received
+	PingDelay int64
+	P         *pool.BytePool //the memory pool
+	Wg        sync.WaitGroup //wait group.
+	H         CCHandler      //command handler
 	// Wc     chan int       //the wait chan.
 	NewCon  NewConF
 	Runner_ ConRunner
@@ -457,12 +461,13 @@ type Counter interface {
 // }
 func NewLConPoolV(p *pool.BytePool, h CCHandler, n string, ncf NewConF) *LConPool {
 	return &LConPool{
-		T:       CON_TIMEOUT,
-		P:       p,
-		H:       h,
-		cons:    map[string]Con{},
-		NewCon:  ncf,
-		Runner_: NewModRunner(),
+		T:         CON_TIMEOUT,
+		PingDelay: PING_DELAY,
+		P:         p,
+		H:         h,
+		cons:      map[string]Con{},
+		NewCon:    ncf,
+		Runner_:   NewModRunner(),
 		Err_: func(c Cmd, d int, code byte, f string, args ...interface{}) {
 			log.D_(d, f, args...)
 		},
@@ -476,21 +481,31 @@ func (l *LConPool) LoopTimeout() {
 	l.t_r = true
 	for l.t_r {
 		cons := []Con{}
+		ping := []Con{}
 		tn := util.Now()
 		for _, c := range l.cons {
 			if c.Waiting() {
-				continue
-			}
-			if (tn - c.Last()) > l.T {
-				cons = append(cons, c)
+				if (tn - c.Last()) > l.PingDelay {
+					ping = append(ping, c)
+				}
+			} else {
+				if (tn - c.Last()) > l.T {
+					cons = append(cons, c)
+				}
 			}
 		}
-		if (len(cons)) > 0 {
+		if len(cons) > 0 {
 			log.D("closing %v connection for timeout on %v", len(cons), l.Name)
 		}
 		for _, con := range cons {
 			log.D("close connection(%v,%v) for timeout on %v", con.RemoteAddr(), con.Id(), l.Name)
 			con.Close()
+		}
+		if len(ping) > 0 {
+			log.D("Pool(%v): ping %v connection", l.Name, len(cons))
+		}
+		for _, con := range cons {
+			con.Writeb([]byte{PING_V}, []byte("snows"))
 		}
 		time.Sleep(time.Duration(l.T) * time.Millisecond)
 	}
