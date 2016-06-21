@@ -28,7 +28,14 @@ type NMR_Rh struct {
 }
 
 func (n *NMR_Rh) OnCmd(r netw.Cmd) int {
-	defer r.Done()
+	defer func() {
+		r.Done()
+		err := recover()
+		if err != nil {
+			log.E("NMR_Rh OnCmd panic by error(%v), the stack:\n%v\n", err, util.CallStatck())
+			r.Close()
+		}
+	}()
 	if r.Closed() {
 		return -1
 	}
@@ -82,7 +89,14 @@ func (n *NIM_Rh) OnClose(c netw.Con) {
 }
 
 func (n *NIM_Rh) OnCmd(c netw.Cmd) int {
-	defer c.Done()
+	defer func() {
+		c.Done()
+		err := recover()
+		if err != nil {
+			log.E("NIM_Rh OnCmd panic by error(%v), the stack:\n%v\n", err, util.CallStatck())
+			c.Close()
+		}
+	}()
 	if c.Closed() {
 		return -1
 	}
@@ -325,7 +339,14 @@ func (n *NIM_Rh) LI(r netw.Cmd) int {
 		mi_id := n.M.Start("li")
 		defer n.M.Done(mi_id)
 	}
-	defer r.Done()
+	defer func() {
+		r.Done()
+		err := recover()
+		if err != nil {
+			log.E("NIM_Rh LI panic by error(%v), the stack:\n%v\n", err, util.CallStatck())
+			r.Close()
+		}
+	}()
 	if r.Closed() {
 		return -1
 	}
@@ -368,7 +389,14 @@ func (n *NIM_Rh) LO(r netw.Cmd) int {
 		mi_id := n.M.Start("lo")
 		defer n.M.Done(mi_id)
 	}
-	defer r.Done()
+	defer func() {
+		r.Done()
+		err := recover()
+		if err != nil {
+			log.E("NIM_Rh LI panic by error(%v), the stack:\n%v\n", err, util.CallStatck())
+			r.Close()
+		}
+	}()
 	if r.Closed() {
 		return -1
 	}
@@ -404,7 +432,14 @@ func (n *NIM_Rh) UR(r netw.Cmd) int {
 		mi_id := n.M.Start("ur")
 		defer n.M.Done(mi_id)
 	}
-	defer r.Done()
+	defer func() {
+		r.Done()
+		err := recover()
+		if err != nil {
+			log.E("NIM_Rh LI panic by error(%v), the stack:\n%v\n", err, util.CallStatck())
+			r.Close()
+		}
+	}()
 	if r.Closed() {
 		return -1
 	}
@@ -425,7 +460,14 @@ func (n *NIM_Rh) GR(r netw.Cmd) int {
 		mi_id := n.M.Start("gr")
 		defer n.M.Done(mi_id)
 	}
-	defer r.Done()
+	defer func() {
+		r.Done()
+		err := recover()
+		if err != nil {
+			log.E("NIM_Rh LI panic by error(%v), the stack:\n%v\n", err, util.CallStatck())
+			r.Close()
+		}
+	}()
 	var args LGR_Arg
 	_, err := r.V(&args)
 	if err != nil {
