@@ -15,6 +15,7 @@ type Listener struct {
 	L         net.Listener //the base listener.
 	Running   bool         //whether running accept.
 	Wc        chan int     //the wait chan.
+	Limit     int64
 }
 
 //new one listener.
@@ -29,6 +30,7 @@ func NewListenerN(p *pool.BytePool, port string, n string, h CCHandler, ncf NewC
 		Port:     port,
 		LConPool: NewLConPoolV(p, h, n, ncf),
 		Wc:       make(chan int),
+		Limit:    512,
 	}
 	return ls
 }
@@ -68,23 +70,27 @@ func (l *Listener) LoopAccept() {
 	var tempDelay time.Duration
 	for l.Running {
 		log_d("Pool(%v) waiting tcp connect", l.Id())
+		if l.Current() >= l.Limit {
+			if tempDelay == 0 {
+				tempDelay = 5 * time.Millisecond
+			} else {
+				tempDelay *= 2
+			}
+			if max := 1 * time.Second; tempDelay > max {
+				tempDelay = max
+			}
+			log.W("netw: Accept error: opened(%v),limit(%v); retrying in %v", l.Current(), l.Limit, tempDelay)
+			time.Sleep(tempDelay)
+			continue
+		}
 		con, err := l.L.Accept()
 		if err != nil {
-			if ne, ok := err.(net.Error); ok && ne.Temporary() {
-				if tempDelay == 0 {
-					tempDelay = 5 * time.Millisecond
-				} else {
-					tempDelay *= 2
-				}
-				if max := 1 * time.Second; tempDelay > max {
-					tempDelay = max
-				}
-				log.W("netw: Accept error: %v; retrying in %v", err, tempDelay)
-				time.Sleep(tempDelay)
-				continue
-			}
 			log.E("accept %s error(->%s", l.Port, err)
-			break
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+				continue
+			} else {
+				break
+			}
 		}
 		tempDelay = 0
 		l.Increase()
