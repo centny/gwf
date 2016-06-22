@@ -29,7 +29,9 @@ type HClient struct {
 }
 
 func (h *HClient) DoGet(header map[string]string, ufmt string, args ...interface{}) (int, string, map[string]string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf(ufmt, args...), nil)
+	url := fmt.Sprintf(ufmt, args...)
+	slog("do http get by url->%v", url)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return 0, "", nil, err
 	}
@@ -114,6 +116,7 @@ func (h *HClient) HPostF_H(url string, fields map[string]string, header map[stri
 	return code, string(bys), err
 }
 func (h *HClient) HPostF_Hv(url string, fields map[string]string, header map[string]string, fkey string, fp string) (int, []byte, error) {
+	slog("do http post by url->%v", url)
 	var ctype string
 	var bodyBuf io.Reader
 	if len(fkey) > 0 {
