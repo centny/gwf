@@ -268,7 +268,7 @@ func (iv items_l) Swap(i, j int) {
 
 type Method struct {
 	Name      string  `xml:"name,attr"`
-	Signature string  `xml:"signats>lineure,attr"`
+	Signature string  `xml:"signats,attr"`
 	Lines     []*Line `xml:"line"`
 }
 
