@@ -15,6 +15,7 @@ import (
 	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -328,40 +329,40 @@ func (r *RC_Listener_m) State() (interface{}, error) {
 type RC_Runner_m struct {
 	*impl.RC_Runner_m
 	*impl.RCM_S
-	CC  netw.ConHandler //command message and connection event handler.
-	TC  *impl.RC_C      //remote callback handler.
-	CH  *impl.ChanH     //process chan
-	OH  *impl.OBDH      //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
-	V2b netw.V2Byte     //common convert function
-	B2v netw.Byte2V     //common convert function
-	Na  impl.NAV_F      //remote command function name.
-	MC  netw.Con        //message connection.
-	RC  *impl.RCM_Con   //remote command connection.
-	BC  *netw.Con_
+	CH *impl.ChanH //process chan
+	OH *impl.OBDH  //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
+	MC netw.Con    //message connection.
+	BC *netw.Con_
 }
 
 //new remote command client runner by common convert function.
 func NewRC_Runner_m(p *pool.BytePool, addr string, h netw.CCHandler, rc *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) *RC_Runner_m {
-	tc := impl.NewRC_C()
-	obdh := impl.NewOBDH()
-	obdh.AddH(CMD_S, tc)
-	obdh.AddH(MSG_C, h)
-	obdh.AddH(CMD_C, impl.NewRC_S(rc))
-	ch := impl.NewChanH(obdh)
-	ch.Run(util.CPU())
-	// cc := netw.NewCCH(h, ch)
-	run := &RC_Runner_m{
-		TC:    tc,
-		CH:    ch,
-		OH:    obdh,
-		CC:    h,
-		V2b:   v2b,
-		B2v:   b2v,
-		Na:    na,
-		RCM_S: rc,
+	runner := &RC_Runner_m{
+		RC_Runner_m: impl.NewRC_Runner_m_base(),
+		RCM_S:       rc,
 	}
-	run.RC_Runner_m = impl.NewRC_Runner_m(addr, p, run.Dail)
-	return run
+	runner.Addr = addr
+	runner.BP = p
+	runner.Connected = 0
+	runner.Uuid = strings.ToUpper(util.UUID())
+	runner.NAV = na
+	runner.V2B = v2b
+	runner.B2V = b2v
+	runner.TC = impl.NewRC_C()
+	runner.Dailer = netw.NewAutoDailer()
+	runner.RC = impl.NewRC_Con(nil, runner.TC)
+	runner.RCM_Con = impl.NewRCM_Con(runner.RC, na)
+	runner.OH = impl.NewOBDH()
+	runner.OH.AddH(CMD_S, runner.TC)
+	runner.OH.AddH(MSG_C, h)
+	runner.OH.AddH(CMD_C, impl.NewRC_S(rc))
+	runner.CH = impl.NewChanH(runner.OH)
+	runner.L = netw.NewNConPool(p, netw.NewCCH(netw.NewQueueConH(runner, runner.Dailer, h), runner.CH), "RC-")
+	runner.L.DailAddr = runner.DailAddr
+	runner.Dailer.Dail = runner.L.Dail
+	runner.CH.Run(util.CPU())
+	runner.L.NewCon = runner.NewCon
+	return runner
 }
 
 //new remote command client runner by json convert function.
@@ -370,26 +371,16 @@ func NewRC_Runner_m_j(p *pool.BytePool, addr string, h netw.CCHandler) *RC_Runne
 	return NewRC_Runner_m(p, addr, h, rcm, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
 }
 
-//dail to server and create remote command connection.
-func (r *RC_Runner_m) Dail(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *impl.RCM_Con, error) {
-	log.I("RC_Runner_m(%v) start connect to addr(%v)", r.Name, addr)
-	cch := netw.NewCCH(netw.NewQueueConH(h, r.CC), r.CH)
-	np := netw.NewNConPool2(p, cch)
-	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
-		r.BC = netw.NewCon_(cp, p, con)
-		r.BC.V2B_, r.BC.B2V_ = r.V2b, r.B2v
-		rcc := impl.NewRC_Con(impl.NewOBDH_Con(CMD_S, r.BC), r.TC)
-		r.RCM_Con = impl.NewRCM_Con(rcc, r.Na)
-		r.MC = impl.NewOBDH_Con(MSG_S, r.BC)
-		return r.BC
-	}
-	_, err := np.Dail(addr)
-	if err == nil {
-		return np, r.RCM_Con, nil
-	} else {
-		return nil, nil, err
-	}
+func (r *RC_Runner_m) NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	r.BC = netw.NewCon_(cp, p, con)
+	r.BC.V2B_, r.BC.B2V_ = r.V2B, r.B2V
+	// rcc := impl.NewRC_Con(, r.TC)
+	// r.RCM_Con = impl.NewRCM_Con(rcc, r.NAV)
+	r.RC.Con = impl.NewOBDH_Con(CMD_S, r.BC)
+	r.MC = impl.NewOBDH_Con(MSG_S, r.BC)
+	return r.BC
 }
+
 func (r *RC_Runner_m) Writeb(bys ...[]byte) (int, error) {
 	err := r.Valid()
 	if err == nil {

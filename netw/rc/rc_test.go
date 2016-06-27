@@ -212,6 +212,9 @@ func (r *rc_c_h) Handle(run *RC_Runner_m) {
 func TestRc(t *testing.T) {
 	runtime.GOMAXPROCS(util.CPU())
 	// impl.ShowLog = true
+	// netw.ShowLog = true
+	// netw.ShowLog_C = true
+	// impl.ShowLog = true
 	bp := pool.NewBytePool(8, 102400)
 	//
 	//
@@ -236,6 +239,7 @@ func TestRc(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		ch := &rc_c_h{}
 		cr := NewRC_Runner_m_j(bp, "127.0.0.1:10801", ch)
+		fmt.Println(cr.RC_Runner_m, "-->")
 		cr.StartMonitor()
 		cr.SetShowSlow(1)
 		ch.Handle(cr)
@@ -267,6 +271,7 @@ func TestRc(t *testing.T) {
 		cr.SetShowSlow(1)
 		ch.Handle(cr)
 		cr.Start()
+		time.Sleep(time.Second)
 		name := fmt.Sprintf("RC-%v", i)
 		res, err := cr.VExec_m("login", util.Map{
 			"n": name,
@@ -287,6 +292,7 @@ func TestRc(t *testing.T) {
 		}
 	}
 	fmt.Println("xxxx->003")
+	// return
 	//
 	//
 	//calling target.
@@ -401,6 +407,7 @@ func TestRcLogin(t *testing.T) {
 	login("xxxxx", false, false)
 	lm.LCH = sh
 	login("abc", false, false)
+	lm.Close()
 }
 
 func TestErr(t *testing.T) {
@@ -466,6 +473,8 @@ func pref_rc() (int64, int64, error) {
 			panic("not zero")
 		}
 	})
+	lm.Close()
+	cr.Stop()
 	return used, fail, nil
 }
 
@@ -520,7 +529,8 @@ func TestPerformance(t *testing.T) {
 HTTP->Used:%vms,Fail:%v
 ------------------------------
 
-			`, used, fail)
+			
+`, used, fail)
 	//
 	used, fail, err = pref_rc()
 	if err != nil {
@@ -532,7 +542,7 @@ HTTP->Used:%vms,Fail:%v
 RC->Used:%vms,Fail:%v
 ------------------------------
 
-		`, used, fail)
+`, used, fail)
 }
 
 func TestRelogin(t *testing.T) {
@@ -549,7 +559,7 @@ func TestRelogin(t *testing.T) {
 	rl.Runner = rcc
 	rl.Token = "abc"
 	rcc.Start()
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 	rcc.RC_Con.Close()
 	time.Sleep(time.Second)
 }

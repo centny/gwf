@@ -12,8 +12,8 @@ import (
 	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"net"
+	"strings"
 	"sync/atomic"
-	"time"
 )
 
 var ShowLog bool = false
@@ -28,9 +28,9 @@ func log_d(f string, args ...interface{}) {
 
 
  */
-func NewNConRunner_j(bp *pool.BytePool, addr string, h netw.CmdHandler) *netw.NConRunner {
-	return netw.NewNConRunnerN(bp, addr, h, Json_NewCon)
-}
+// func NewNConRunner_j(bp *pool.BytePool, addr string, h netw.CmdHandler) *netw.NConRunner {
+// 	return netw.NewNConRunnerN(bp, addr, h, Json_NewCon)
+// }
 
 //
 func ExecDail(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *RC_Con, error) {
@@ -132,50 +132,92 @@ func NewChanExecListener_m_j(p *pool.BytePool, port string, h netw.ConHandler) (
 	return l, cc, rc
 }
 
-type F_DAIL func(p *pool.BytePool, addr string, h netw.ConHandler) (*netw.NConPool, *RCM_Con, error)
+type F_DAIL func(p *pool.BytePool, addr string, h netw.ConHandler) (netw.ConPool, *RCM_Con, error)
 
 //
 type RC_Runner_m struct {
 	*RCM_Con
 	Name      string
 	Addr      string
+	CC        netw.ConHandler
 	BP        *pool.BytePool
 	L         *netw.NConPool
-	R         bool
-	Delay     int64
 	Connected int32
-	TryCount  int64
 	wc        int32
 	wait_     chan byte
-	DailF     F_DAIL
 	//
 	ShowSlow int64
 	M        *tutil.Monitor
 	//
-	w_lck chan int
+	Multi bool
+	//
+	// w_lck chan int
+	//
+	Dailer *netw.AutoDailer
+	TC     *RC_C
+	RC     *RC_Con
+	Uuid   string
+	//
+	NAV NAV_F
+	V2B netw.V2Byte
+	B2V netw.Byte2V
 }
 
-func NewRC_Runner_m(addr string, bp *pool.BytePool, f F_DAIL) *RC_Runner_m {
+func NewRC_Runner_m_base() *RC_Runner_m {
 	return &RC_Runner_m{
-		Addr:      addr,
-		BP:        bp,
-		Delay:     3000,
-		Connected: 0,
-		wait_:     make(chan byte, 1000),
-		DailF:     f,
-		w_lck:     make(chan int),
+		wait_: make(chan byte, 1000),
+		// w_lck: make(chan int),
 	}
 }
+
+func NewRC_Runner_m(addr string, bp *pool.BytePool, na NAV_F, v2b netw.V2Byte, b2v netw.Byte2V) *RC_Runner_m {
+	var runner = &RC_Runner_m{
+		Addr:      addr,
+		BP:        bp,
+		Connected: 0,
+		wait_:     make(chan byte, 1000),
+		// w_lck:     make(chan int),
+		Uuid: strings.ToUpper(util.UUID()),
+		NAV:  na,
+		V2B:  v2b,
+		B2V:  b2v,
+	}
+	runner.TC = NewRC_C()
+	runner.Dailer = netw.NewAutoDailer()
+	runner.RC = NewRC_Con(nil, runner.TC)
+	runner.RCM_Con = NewRCM_Con(runner.RC, na)
+	runner.L = netw.NewNConPool(bp, netw.NewCCH(netw.NewQueueConH(runner, runner.Dailer), runner.TC), "RC-")
+	runner.L.NewCon = runner.NewCon
+	runner.Dailer.Dail = runner.L.Dail
+	runner.L.DailAddr = runner.DailAddr
+	return runner
+}
+
+func (r *RC_Runner_m) NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	cc := netw.NewCon_(cp, p, con)
+	cc.V2B_, cc.B2V_ = r.V2B, r.B2V
+	r.RC.Con = cc
+	return r.RC
+}
 func (r *RC_Runner_m) Start() {
-	r.R = true
-	go r.Try()
+	if r.Multi {
+		r.Dailer.DailAll(strings.Split(r.Addr, ","))
+	} else {
+		r.Dailer.DailAll([]string{r.Addr})
+	}
 }
-func (r *RC_Runner_m) Start_() error {
-	r.R = true
-	return r.Run()
+func (r *RC_Runner_m) DailAddr(addr string) (net.Conn, error) {
+	con, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	return con, nil
 }
+
 func (r *RC_Runner_m) Stop() {
-	r.R = false
+	if r.Dailer != nil {
+		r.Dailer.Stop()
+	}
 	if r.L != nil {
 		r.L.Close()
 	}
@@ -184,58 +226,26 @@ func (r *RC_Runner_m) Stop() {
 }
 func (r *RC_Runner_m) Wait() {
 	log.D("RC Runner wait stop")
-	<-r.w_lck
+	// <-r.w_lck
 }
-func (r *RC_Runner_m) Run() error {
-	atomic.StoreInt32(&r.Connected, 0)
-	var err error
-	r.L, r.RCM_Con, err = r.DailF(r.BP, r.Addr, r)
-	if err != nil {
-		return err
-	}
-	r.RCM_Con.Start()
-	atomic.StoreInt32(&r.Connected, 1)
-	var i int32
+func (r *RC_Runner_m) OnConn(c netw.Con) bool {
+	r.RC.Start()
+	atomic.AddInt32(&r.Connected, 1)
 	tlen := r.wc
+	var i int32
 	for i = 0; i < tlen; i++ {
 		r.wait_ <- byte(0)
 	}
 	atomic.AddInt32(&r.wc, -tlen)
-	return nil
-}
-func (r *RC_Runner_m) OnConn(c netw.Con) bool {
-	c.SetWait(true)
-	log.D("RC Runner(%v) connect to %v success", r.Name, r.Addr)
+	if r.CC != nil {
+		return r.CC.OnConn(c)
+	}
 	return true
 }
-func (r *RC_Runner_m) Try() {
-	atomic.StoreInt32(&r.Connected, 0)
-	var last, now int64 = util.Now(), 0
-	var t int = 0
-	for r.R {
-		t++
-		r.TryCount += 1
-		err := r.Run()
-		if err == nil {
-			break
-		}
-		now = util.Now()
-		if now-last < r.Delay {
-			log.E("RC connect server err:%v, will retry(%v) after %v ms", err.Error(), t, r.Delay)
-			time.Sleep(time.Duration(r.Delay) * time.Millisecond)
-		}
-		last = now
-	}
-}
 func (r *RC_Runner_m) OnClose(c netw.Con) {
-	atomic.StoreInt32(&r.Connected, 0)
-	r.RCM_Con.Stop()
-	if r.R {
-		log.W("RC connection  is closed, Runner will retry connect to %v", r.Addr)
-		go r.Try()
-	} else {
-		log.W("RC connection  is closed, Runner will stop")
-		r.w_lck <- 0
+	atomic.AddInt32(&r.Connected, -1)
+	if r.CC != nil {
+		r.CC.OnClose(c)
 	}
 }
 
@@ -340,6 +350,6 @@ type RC_Runner_m_j struct {
 
 func NewRC_Runner_m_j(addr string, bp *pool.BytePool) *RC_Runner_m_j {
 	return &RC_Runner_m_j{
-		RC_Runner_m: NewRC_Runner_m(addr, bp, ExecDail_m_j),
+		RC_Runner_m: NewRC_Runner_m(addr, bp, Json_NAV, Json_V2B, Json_B2V),
 	}
 }

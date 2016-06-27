@@ -98,17 +98,21 @@ func (l *Listener) LoopAccept() {
 		// con.(*net.TCPConn).SetWriteBuffer(5)
 		// con.(*net.TCPConn).SetWriteDeadline(t)
 		log_d("accepting tcp connect(%v) in pool(%v)", con.RemoteAddr().String(), l.Id())
-		tcon := l.NewCon(l, l.P, con)
-		if l.H.OnConn(tcon) {
-			l.RunC(tcon)
-		} else {
-			log.W("Pool(%v/%v) rejecting tcp connection from %v", l.Name, l.Id(), con.RemoteAddr().String())
-			tcon.Close()
-		}
+		go l.do_run(con)
 	}
 	l.Running = false
 	l.Wc <- 0
 	log.W("loop accept will exit...")
+}
+
+func (l *Listener) do_run(con net.Conn) {
+	tcon := l.NewCon(l, l.P, con)
+	if l.H.OnConn(tcon) {
+		l.RunC_(tcon)
+	} else {
+		log.W("Pool(%v/%v) rejecting tcp connection from %v", l.Name, l.Id(), con.RemoteAddr().String())
+		tcon.Close()
+	}
 }
 
 //close the listener.

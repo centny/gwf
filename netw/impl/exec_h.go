@@ -79,14 +79,13 @@ func (r *rc_h_cmd) Err(code byte, f string, args ...interface{}) {
 }
 
 type RC_C struct {
-	RCC    uint64
-	back_c chan *rc_h_cmd //remote command back chan.
+	RCC uint64
+	// back_c chan *rc_h_cmd //remote command back chan.
+	on_cmd func(*rc_h_cmd)
 }
 
 func NewRC_C() *RC_C {
-	return &RC_C{
-		back_c: make(chan *rc_h_cmd, 10000),
-	}
+	return &RC_C{}
 }
 func (r *RC_C) OnCmd(c netw.Cmd) int {
 	// log_d("RC_C OnCmd")
@@ -98,16 +97,17 @@ func (r *RC_C) OnCmd(c netw.Cmd) int {
 	}
 	rid, ms, data := util.SplitThree(c.Data(), 2, 3)
 	log_d("RC_C receive data:%v", data)
-	r.back_c <- &rc_h_cmd{
+	// r.back_c <-
+	r.on_cmd(&rc_h_cmd{
 		Cmd:   c,
 		mark:  ms[0],
 		rid:   rid,
 		data_: data,
-	}
+	})
 	return 0
 }
 func (r *RC_C) Close() {
-	close(r.back_c)
+	// close(r.back_c)
 }
 
 //the chan command for each calling.
@@ -132,32 +132,40 @@ type RC_Con struct {
 	//
 	bc *RC_C //remote command back chan.
 	//
-	req_c chan *chan_c //require chan.
+	// req_c chan *chan_c //require chan.
 	req_l sync.RWMutex
 	//
-	close_c chan int //
-	start_c chan int
+	// close_c chan int //
+	// start_c chan int
 	//
 	running bool
 	err     error
-	wg      sync.WaitGroup
-	run_c   *list.List
-	run_l   sync.RWMutex
+	// wg      sync.WaitGroup
+	run_c *list.List
+	// run_l   sync.RWMutex
+	cids   map[uint16]*chan_c
+	cids_l sync.RWMutex
+	Cts    map[uint16]int64
 }
 
 //new on remote command caller.
 func NewRC_Con(con netw.Con, bc *RC_C) *RC_Con {
-	return &RC_Con{
-		Sleep:   100,
-		Con:     con,
-		bc:      bc,
-		req_c:   make(chan *chan_c, 10000),
-		close_c: make(chan int, 2),
-		start_c: make(chan int, 2),
-		wg:      sync.WaitGroup{},
-		run_c:   list.New(),
+	var rc = &RC_Con{
+		Sleep: 100,
+		Con:   con,
+		bc:    bc,
+		// req_c:   make(chan *chan_c, 10000),
+		// close_c: make(chan int, 2),
+		// start_c: make(chan int, 2),
+		// wg:      sync.WaitGroup{},
+		run_c: list.New(),
+		cids:  map[uint16]*chan_c{},
+		Cts:   map[uint16]int64{},
 	}
+	bc.on_cmd = rc.on_cmd
+	return rc
 }
+
 func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
 	return r.Exec_(0, false, args, dest)
 }
@@ -208,15 +216,16 @@ func (r *RC_Con) ExecV(m byte, bs bool, args interface{}) ([]byte, error) {
 		C:    make(chan bool, 2),
 		Data: bys,
 	}
-	r.req_c <- tc
-	r.run_l.Lock()
+	// r.req_c <- tc
+	// r.run_l.Lock()
 	var tc_e = r.run_c.PushBack(tc)
-	r.run_l.Unlock()
+	r.send_c(tc)
+	// r.run_l.Unlock()
 	r.req_l.Unlock()
 	<-tc.C
-	r.run_l.Lock()
+	r.req_l.Lock()
 	r.run_c.Remove(tc_e)
-	r.run_l.Unlock()
+	r.req_l.Unlock()
 	close(tc.C)
 	if tc.Err == nil {
 		var buf []byte
@@ -234,6 +243,29 @@ func (r *RC_Con) ExecV(m byte, bs bool, args interface{}) ([]byte, error) {
 	}
 }
 
+func (r *RC_Con) on_cmd(cmd *rc_h_cmd) {
+	r.cids_l.Lock()
+	tid := binary.BigEndian.Uint16(cmd.rid)
+	if tc, ok := r.cids[tid]; ok {
+		delete(r.cids, tid)
+		r.Cts[tid] = util.Now() - r.Cts[tid]
+		r.exec_c--
+		r.cids_l.Unlock()
+		tc.Back = cmd
+		if cmd.mark == 0 {
+			tc.C <- true
+		} else {
+			tc.Err = new_rc_err(int(cmd.mark), cmd.Data())
+			tc.C <- false
+			cmd.Done()
+		}
+	} else {
+		r.cids_l.Unlock()
+		cmd.Done()
+		log.W("RC_Con(%p) back chan not found by id(%v) on %v", r, tid, r.cids)
+	}
+}
+
 // func (r *RC_Con) OnConn(c netw.Con) bool {
 // 	return true
 // }
@@ -243,100 +275,100 @@ func (r *RC_Con) ExecV(m byte, bs bool, args interface{}) ([]byte, error) {
 
 //run the process of send/receive command(async).
 func (r *RC_Con) Start() {
-	log_d("RC_Con starting...")
-	r.wg.Add(1)
-	go r.Run_()
-	<-r.start_c
+	// log_d("RC_Con starting...")
+	r.req_l.Lock()
+	r.running = true
+	r.req_l.Unlock()
+	// r.wg.Add(1)
+	// go r.Run_()
+	// <-r.start_c
 }
 
 //stop gorutine
 func (r *RC_Con) Stop() {
 	r.req_l.Lock()
 	r.running = false
-	r.close_c <- 1
-	r.req_l.Unlock()
-	log_d("RC_Con stopping...")
-	r.wg.Wait()
-}
-
-//run the process of send/receive command(sync).
-func (r *RC_Con) Run_() {
-	defer r.wg.Done()
-	if r.running {
-		log.W("RC_Con already running....")
-		return
-	}
-	cm := map[uint16]*chan_c{}
-	buf := make([]byte, 3)
-	r.running = true
-	r.start_c <- 1
-	// var trun bool = true
-	// tk := pool.NewTick(r.Sleep * time.Millisecond)
-	for r.running {
-		select {
-		case cmd := <-r.bc.back_c:
-			if cmd == nil {
-				break
-			}
-			// log.D("cmd ->%p->%v", r, cmd)
-			tid := binary.BigEndian.Uint16(cmd.rid)
-			if tc, ok := cm[tid]; ok {
-				r.exec_c--
-				delete(cm, tid)
-				tc.Back = cmd
-				if cmd.mark == 0 {
-					tc.C <- true
-				} else {
-					tc.Err = new_rc_err(int(cmd.mark), cmd.Data())
-					tc.C <- false
-					cmd.Done()
-				}
-			} else {
-				cmd.Done()
-				log.W("back chan not found by id(%v) on %v", tid, cm)
-			}
-		case tc := <-r.req_c:
-			if tc == nil {
-				break
-			}
-			con := r.Con
-			// log.D("tc ->%p->%v", r, tc)
-			r.exec_id++
-			binary.BigEndian.PutUint16(buf, r.exec_id)
-			buf[2] = 0
-			if tc.BS {
-				_, tc.Err = con.Writeb(buf, []byte{tc.B}, tc.Data)
-			} else {
-				_, tc.Err = con.Writeb(buf, tc.Data)
-			}
-			if tc.Err == nil {
-				cm[r.exec_id] = tc
-				r.exec_c++
-			} else {
-				r.err = tc.Err
-				tc.C <- false
-			}
-		case <-r.close_c:
-			break
-			// 	trun = r.running && r.Con != nil
-		}
-	}
-	// fmt.Println("xx0")
-	// pool.PutTick(r.Sleep*time.Millisecond, tk)
-	//clear all waiting.
-	r.run_l.Lock()
+	// r.close_c <- 1
 	for ele := r.run_c.Front(); ele != nil; ele = ele.Next() {
 		tc := ele.Value.(*chan_c)
 		tc.Err = util.Err("stopped")
 		tc.C <- false
 	}
-	r.run_l.Unlock()
-	r.running = false
-	close(r.req_c)
-	close(r.start_c)
-	close(r.close_c)
-	log.D("clearing all waiting exec(%v),err(%v)", len(cm), r.err)
+	r.req_l.Unlock()
+	log_d("RC_Con stopping...")
+	// r.wg.Wait()
 }
+
+func (r *RC_Con) send_c(tc *chan_c) {
+	con := r.Con
+	// log.D("tc ->%p->%v", r, tc)
+	buf := make([]byte, 3)
+	r.cids_l.Lock()
+	r.exec_id++
+	exec_id := r.exec_id
+	binary.BigEndian.PutUint16(buf, exec_id)
+	buf[2] = 0
+	r.cids[exec_id] = tc
+	r.Cts[exec_id] = util.Now()
+	r.cids_l.Unlock()
+	log_d("RC_Con(%p) sending exec id(%v)", r, exec_id)
+	if tc.BS {
+		_, tc.Err = con.Writeb(buf, []byte{tc.B}, tc.Data)
+	} else {
+		_, tc.Err = con.Writeb(buf, tc.Data)
+	}
+	if tc.Err == nil {
+		r.cids_l.Lock()
+		r.exec_c++
+		r.cids_l.Unlock()
+	} else {
+		r.cids_l.Lock()
+		delete(r.cids, exec_id)
+		r.Cts[exec_id] = util.Now() - r.Cts[exec_id]
+		r.cids_l.Unlock()
+		r.err = tc.Err
+		tc.C <- false
+	}
+}
+
+//run the process of send/receive command(sync).
+// func (r *RC_Con) Run_() {
+// 	defer r.wg.Done()
+// 	if r.running {
+// 		log.W("RC_Con already running....")
+// 		return
+// 	}
+// 	cm := map[uint16]*chan_c{}
+// 	r.running = true
+// 	r.start_c <- 1
+// 	// var trun bool = true
+// 	// tk := pool.NewTick(r.Sleep * time.Millisecond)
+// 	for r.running {
+// 		select {
+// 		case cmd := <-r.bc.back_c:
+// 			if cmd == nil {
+// 				break
+// 			}
+// 			// log.D("cmd ->%p->%v", r, cmd)
+// 		case tc := <-r.req_c:
+// 			if tc == nil {
+// 				break
+// 			}
+// 		case <-r.close_c:
+// 			break
+// 			// 	trun = r.running && r.Con != nil
+// 		}
+// 	}
+// 	// fmt.Println("xx0")
+// 	// pool.PutTick(r.Sleep*time.Millisecond, tk)
+// 	//clear all waiting.
+
+// 	r.running = false
+// 	close(r.req_c)
+// 	close(r.start_c)
+// 	close(r.close_c)
+// 	log.D("clearing all waiting exec(%v),err(%v)", len(cm), r.err)
+// }
 
 type RC_C_H struct {
 }

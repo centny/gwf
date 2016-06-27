@@ -113,10 +113,16 @@ func (w *wsConn) Close() error {
 /*
 
  */
+type ByteWriter interface {
+	//write multi []byte to conection.
+	//it will be joined to MOD|lenght|[]byte|[]byte|[]byte....
+	Writeb(bys ...[]byte) (int, error)
+}
 
 //the connection interface.
 //it will be created when client connect to server or server received one connection.
 type Con interface {
+	ByteWriter
 	//the base connection
 	net.Conn
 	Closed() bool
@@ -134,6 +140,10 @@ type Con interface {
 	Id() string
 	//set the connection id.
 	SetId(id string)
+	//the group id
+	Gid() string
+	//set the group id
+	SetGid(id string)
 	//connection seesion.
 	Kvs() util.Map
 	//having valuf of key
@@ -148,9 +158,6 @@ type Con interface {
 	ReadW(p []byte) error
 	//read one line data.
 	ReadL(limit int, end bool) ([]byte, error)
-	//write multi []byte to conection.
-	//it will be joined to MOD|lenght|[]byte|[]byte|[]byte....
-	Writeb(bys ...[]byte) (int, error)
 	//write one struct val to connection.
 	//it will call connection V2B func to convert the value to []byte.
 	Writev(val interface{}) (int, error)
@@ -164,6 +171,66 @@ type Con interface {
 	V2B() V2Byte
 	//the []byte to value convert function
 	B2V() Byte2V
+}
+
+type Group struct {
+	Id    string
+	Cons  []Con
+	lck   sync.RWMutex
+	w_idx int
+}
+
+func NewGroup(gid string) *Group {
+	return &Group{
+		Id: gid,
+	}
+}
+
+func (m *Group) Writeb(b []byte) (n int, err error) {
+	m.lck.Lock()
+	defer m.lck.Unlock()
+	if len(m.Cons) < 1 {
+		err = util.Err("not connection or closed")
+		return
+	}
+	m.w_idx += 1
+	clen := len(m.Cons)
+	if m.w_idx >= clen {
+		m.w_idx = 0
+	}
+	for i := 0; i < clen; i++ {
+		con := m.Cons[(m.w_idx+i)%clen]
+		n, err = con.Write(b)
+		if err == nil {
+			return
+		}
+	}
+	return
+}
+
+func (m *Group) AddCon(con Con) {
+	m.lck.Lock()
+	defer m.lck.Unlock()
+	if con == nil {
+		panic("the connection is nil")
+	}
+	m.Cons = append(m.Cons, con)
+}
+
+func (m *Group) DelCon(con Con) {
+	m.lck.Lock()
+	defer m.lck.Unlock()
+	var idx = -1
+	var tcon net.Conn
+	for idx, tcon = range m.Cons {
+		if tcon == con {
+			break
+		}
+	}
+	if idx < 0 {
+		return
+	}
+	m.Cons = append(m.Cons[:idx], m.Cons[idx+1:]...)
 }
 
 //the base implement to Con
@@ -180,11 +247,13 @@ type Con_ struct {
 	V2B_     V2Byte         //the V2Byte func
 	B2V_     Byte2V         //the Byte2V func
 	ID_      string         //the connection id
+	GID_     string         //the connection group id
 	c_l      sync.RWMutex   //connection lock.
 	buf      []byte         //the buf to store the data len which will be writed to connection.
 	closed_  bool
 	ShowLog  bool
 	// r_l      sync.RWMutex
+	Out ByteWriter
 }
 
 //new Con by ConPool/BytePool and normal connection.
@@ -229,6 +298,27 @@ func NewCon_(cp ConPool, p *pool.BytePool, con net.Conn) *Con_ {
 		ShowLog: ShowLog_C,
 	}
 }
+
+func NewOutCon_(cp ConPool, p *pool.BytePool, out ByteWriter) *Con_ {
+	return &Con_{
+		closed_:  false,
+		Mod_:     CM_H,
+		CP_:      cp,
+		P_:       p,
+		Kvs_:     util.Map{},
+		Waiting_: 0,
+		buf:      make([]byte, 2),
+		V2B_: func(v interface{}) ([]byte, error) {
+			return nil, util.Err("V2B not implemeted")
+		},
+		B2V_: func(bys []byte, v interface{}) (interface{}, error) {
+			return nil, util.Err("B2V not implemeted")
+		},
+		ID_:     fmt.Sprintf("C%v", atomic.AddUint64(&con_idc, 1)),
+		ShowLog: ShowLog_C,
+	}
+}
+
 func (c *Con_) log_d(f string, args ...interface{}) {
 	if c.ShowLog {
 		log.D(f, args...)
@@ -306,6 +396,9 @@ func (c *Con_) Write(b []byte) (n int, err error) {
 //sending data.
 //Data:mod|len|bys...
 func (c *Con_) Writeb(bys ...[]byte) (int, error) {
+	if c.Out != nil {
+		return c.Out.Writeb(bys...)
+	}
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
 	switch c.Conn.(type) {
@@ -356,6 +449,12 @@ func (c *Con_) Id() string {
 }
 func (c *Con_) SetId(id string) {
 	c.ID_ = id
+}
+func (c *Con_) Gid() string {
+	return c.GID_
+}
+func (c *Con_) SetGid(id string) {
+	c.GID_ = id
 }
 
 //the Cmd interface for exec data.
@@ -437,6 +536,7 @@ type LConPool struct {
 	Id_     string
 	Delay_  time.Duration //the write delay.
 	RC      int64
+	Groups  map[string]*Group
 }
 
 type Counter interface {
@@ -473,6 +573,7 @@ func NewLConPoolV(p *pool.BytePool, h CCHandler, n string, ncf NewConF) *LConPoo
 		},
 		Id_:    fmt.Sprintf("%v%v", n, atomic.AddUint64(&pool_idc, 1)),
 		Delay_: 5 * time.Second,
+		Groups: map[string]*Group{},
 	}
 }
 
@@ -549,14 +650,35 @@ func (l *LConPool) add_c(c Con) {
 	}
 	l.Wg.Add(1)
 	l.cons[c.Id()] = c
-	log_d("add connect(%v) to pool(%v)", c.Id(), l.Id())
+	log_d("LConPool add connect(%v) to pool(%v)", c.Id(), l.Id())
+	gid := c.Gid()
+	if len(gid) < 1 {
+		return
+	}
+	grp := l.Groups[gid]
+	if grp == nil {
+		grp = NewGroup(gid)
+		l.Groups[gid] = grp
+	}
+	grp.AddCon(c)
+	log_d("LConPool add connect(%v) to group(%v) on pool(%v)", c.Id(), gid, l.Id())
 }
 func (l *LConPool) del_c(c Con) {
 	l.cons_l.Lock()
 	defer l.cons_l.Unlock()
 	l.Wg.Done()
 	delete(l.cons, c.Id())
-	log_d("del connect(%v) from pool(%v)", c.Id(), l.Id())
+	log_d("LConPool del connect(%v) from pool(%v)", c.Id(), l.Id())
+	gid := c.Gid()
+	if len(gid) < 1 {
+		return
+	}
+	grp := l.Groups[gid]
+	if grp == nil {
+		return
+	}
+	grp.DelCon(c)
+	log_d("LConPool del connect(%v) to group(%v) on pool(%v)", c.Id(), gid, l.Id())
 }
 func (l *LConPool) Find(id string) Con {
 	if c, ok := l.cons[id]; ok {
