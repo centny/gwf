@@ -92,7 +92,7 @@ type BytePool struct {
 	T    int64 //timeout when gc
 	Beg  int
 	End  int
-	ms_  map[int]*ByteSlice
+	ms_  []*ByteSlice
 	ms_l sync.RWMutex
 }
 
@@ -101,17 +101,17 @@ func NewBytePool(beg, end int) *BytePool {
 		T:   GC_T,
 		Beg: beg,
 		End: end,
-		ms_: map[int]*ByteSlice{},
 	}).init(beg, end)
 }
 func (b *BytePool) init(beg, end int) *BytePool {
 	if beg < 1 || end < 1 || (beg%8) != 0 || (end%8) != 0 {
 		panic("beg/end must be a multiple of 8")
 	}
-	for i := (beg / 8); i <= (end / 8); i++ {
-		size_ := i * 8
-		b.ms_[size_] = NewByteSlice(b, size_)
-	}
+	b.ms_ = make([]*ByteSlice, (end/8)+1)
+	// for i := (beg / 8); i <= (end / 8); i++ {
+	// 	size_ := i * 8
+	// 	b.ms_[size_] = NewByteSlice(b, size_)
+	// }
 	return b
 }
 func (b *BytePool) Alloc(l int) []byte {
@@ -122,9 +122,17 @@ func (b *BytePool) Alloc(l int) []byte {
 	if tl < 1 || tl > b.End {
 		panic(fmt.Sprintf("memory size must in %v<=x<=%v, but %v", b.Beg, b.End, l))
 	}
-	// b.ms_l.Lock()
-	// defer b.ms_l.Unlock()
-	tv := b.ms_[tl].Alloc()
+	bs := b.ms_[tl/8]
+	if bs == nil {
+		b.ms_l.Lock()
+		bs = b.ms_[tl/8]
+		if bs == nil {
+			bs = NewByteSlice(b, tl)
+			b.ms_[tl/8] = bs
+		}
+		b.ms_l.Unlock()
+	}
+	tv := bs.Alloc()
 	if l < tl {
 		return tv[:l]
 	} else {
@@ -146,12 +154,19 @@ func (b *BytePool) Free(bys []byte) {
 	}
 	// b.ms_l.Lock()
 	// defer b.ms_l.Unlock()
-	b.ms_[tl].Free(bys)
+	bs := b.ms_[tl/8]
+	if bs == nil {
+		return
+	}
+	bs.Free(bys)
 }
 
 func (b *BytePool) Size() int64 {
 	var tsize int64 = 0
 	for _, bs_ := range b.ms_ {
+		if bs_ == nil {
+			continue
+		}
 		tsize += bs_.Size()
 	}
 	return tsize
@@ -161,6 +176,9 @@ func (b *BytePool) GC() (int, int64) {
 	total := 0
 	var tsize int64 = 0
 	for _, bs := range b.ms_ {
+		if bs == nil {
+			continue
+		}
 		t_, ts_ := bs.GC()
 		total += t_
 		tsize += ts_

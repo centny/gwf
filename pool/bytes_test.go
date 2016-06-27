@@ -49,7 +49,7 @@ func tbp() {
 		}
 	}()
 	b_t := util.Now()
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		go run_bp(bp)
 	}
 	time.Sleep(time.Millisecond)
@@ -57,7 +57,7 @@ func tbp() {
 	e_t := util.Now()
 	fmt.Println("used time:", e_t-b_t, "size:", bp.Size())
 	//
-	bp.Alloc(0)
+	// bp.Alloc(0)
 	tv := bp.Alloc(8)
 	fmt.Println(tv)
 	bp.Free(tv)
