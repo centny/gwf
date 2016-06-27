@@ -45,6 +45,12 @@ func (m *Monitor) Start(name string) string {
 	return id
 }
 
+func (m *Monitor) Start_(id string) {
+	m.lck.Lock()
+	defer m.lck.Unlock()
+	m.Pending[id] = util.Now()
+}
+
 func (m *Monitor) Done(id string) {
 	m.lck.Lock()
 	defer m.lck.Unlock()

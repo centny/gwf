@@ -134,12 +134,12 @@ func TestNetw(t *testing.T) {
 		tt: false,
 	}
 	c2 := NewNConPool2(p, tc2)
-	c2.NewCon = func(cp ConPool, l *pool.BytePool, con net.Conn) Con {
+	c2.NewCon = func(cp ConPool, l *pool.BytePool, con net.Conn) (Con, error) {
 		cc := NewCon_(cp, p, con)
 		cc.V2B_ = func(v interface{}) ([]byte, error) {
 			return []byte{1}, nil
 		}
-		return cc
+		return cc, nil
 	}
 	c2.Dail("127.0.0.1:7686")
 	c3 := NewNConPool2(p, tc3)

@@ -16,6 +16,8 @@ import (
 	"sync/atomic"
 )
 
+const UUID_LEN = 24
+
 var ShowLog bool = false
 
 func log_d(f string, args ...interface{}) {
@@ -43,12 +45,12 @@ func ExecDail2(p *pool.BytePool, addr string, h netw.ConHandler, v2b netw.V2Byte
 func ExecDailN(p *pool.BytePool, addr string, h netw.CCHandler, tc *RC_C, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.NConPool, *RC_Con, error) {
 	// cch := netw.NewCCH(NewRC_C_H(), h)
 	np := netw.NewNConPool2(p, h)
-	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	np.NewCon = func(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
 		cc := netw.NewCon_(cp, p, con)
 		cc.V2B_, cc.B2V_ = v2b, b2v
 		rcc := NewRC_Con(cc, tc)
 		// cch.Con = rcc
-		return rcc
+		return rcc, nil
 	}
 	con, err := np.Dail(addr)
 	if err == nil {
@@ -62,11 +64,11 @@ func NewExecListener(p *pool.BytePool, port string, h netw.CCHandler) *netw.List
 	return NewExecListenerN(p, port, h, V2B_Byte, B2V_Copy)
 }
 func NewExecListenerN(p *pool.BytePool, port string, h netw.CCHandler, v2b netw.V2Byte, b2v netw.Byte2V) *netw.Listener {
-	return netw.NewListenerN2(p, port, netw.NewCCH(h, NewRC_S(h)), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	return netw.NewListenerN2(p, port, netw.NewCCH(h, NewRC_S(h)), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
 		cc := netw.NewCon_(cp, p, con)
 		cc.V2B_ = v2b
 		cc.B2V_ = b2v
-		return cc
+		return cc, nil
 	})
 }
 
@@ -93,20 +95,20 @@ func NewExecListenerN_m(p *pool.BytePool, port string, h netw.ConHandler, v2b ne
 }
 
 func NewExecListenerN_m_r(p *pool.BytePool, port string, h netw.ConHandler, rc *RCM_S, v2b netw.V2Byte, b2v netw.Byte2V) *netw.Listener {
-	return netw.NewListenerN2(p, port, netw.NewCCH(h, NewRC_S(rc)), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	return netw.NewListenerN2(p, port, netw.NewCCH(h, NewRC_S(rc)), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
 		cc := netw.NewCon_(cp, p, con)
 		cc.V2B_ = v2b
 		cc.B2V_ = b2v
-		return cc
+		return cc, nil
 	})
 }
 func NewChanExecListenerN_m_r(p *pool.BytePool, port string, h netw.ConHandler, rc *RCM_S, v2b netw.V2Byte, b2v netw.Byte2V) (*netw.Listener, *ChanH) {
 	cc := NewChanH(NewRC_S(rc))
-	return netw.NewListenerN2(p, port, netw.NewCCH(h, cc), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	return netw.NewListenerN2(p, port, netw.NewCCH(h, cc), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
 		cc := netw.NewCon_(cp, p, con)
 		cc.V2B_ = v2b
 		cc.B2V_ = b2v
-		return cc
+		return cc, nil
 	}), cc
 }
 
@@ -149,14 +151,14 @@ type RC_Runner_m struct {
 	ShowSlow int64
 	M        *tutil.Monitor
 	//
-	Multi bool
-	//
 	// w_lck chan int
 	//
-	Dailer *netw.AutoDailer
-	TC     *RC_C
-	RC     *RC_Con
-	Uuid   string
+	Dailer  *netw.AutoDailer
+	TC      *RC_C
+	RC      *RC_Con
+	Uuid    string
+	CH      *ChanH
+	ChanMax int
 	//
 	NAV NAV_F
 	V2B netw.V2Byte
@@ -165,7 +167,8 @@ type RC_Runner_m struct {
 
 func NewRC_Runner_m_base() *RC_Runner_m {
 	return &RC_Runner_m{
-		wait_: make(chan byte, 1000),
+		wait_:   make(chan byte, 1000),
+		ChanMax: 64,
 		// w_lck: make(chan int),
 	}
 }
@@ -176,42 +179,59 @@ func NewRC_Runner_m(addr string, bp *pool.BytePool, na NAV_F, v2b netw.V2Byte, b
 		BP:        bp,
 		Connected: 0,
 		wait_:     make(chan byte, 1000),
-		// w_lck:     make(chan int),
-		Uuid: strings.ToUpper(util.UUID()),
-		NAV:  na,
-		V2B:  v2b,
-		B2V:  b2v,
+		ChanMax:   64,
+		Uuid:      "",
+		NAV:       na,
+		V2B:       v2b,
+		B2V:       b2v,
 	}
 	runner.TC = NewRC_C()
+	runner.CH = NewChanH(runner.TC)
 	runner.Dailer = netw.NewAutoDailer()
 	runner.RC = NewRC_Con(nil, runner.TC)
 	runner.RCM_Con = NewRCM_Con(runner.RC, na)
-	runner.L = netw.NewNConPool(bp, netw.NewCCH(netw.NewQueueConH(runner, runner.Dailer), runner.TC), "RC-")
+	runner.L = netw.NewNConPool(bp, netw.NewCCH(netw.NewQueueConH(runner, runner.Dailer), runner.CH), "RCC-")
 	runner.L.NewCon = runner.NewCon
 	runner.Dailer.Dail = runner.L.Dail
 	runner.L.DailAddr = runner.DailAddr
 	return runner
 }
 
-func (r *RC_Runner_m) NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+func (r *RC_Runner_m) NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
 	cc := netw.NewCon_(cp, p, con)
 	cc.V2B_, cc.B2V_ = r.V2B, r.B2V
-	r.RC.Con = cc
-	return r.RC
+	if len(r.Uuid) > 0 {
+		log.D("RC_Runner_m doing bind connection(%v) with uuid(%v)", cc.LocalAddr(), r.Uuid)
+		_, err := cc.Writem(netw.CM_L, []byte(r.Uuid))
+		if err != nil {
+			err = util.Err("RC_Runner_m write uuid to con error(%v)", err)
+			return nil, err
+		}
+		bys, err := cc.ReadL(1024, false)
+		if err != nil {
+			err = util.Err("RC_Runner_m read uuid from con error(%v)", err)
+			return nil, err
+		}
+		if string(bys) != r.Uuid {
+			err = util.Err("RC_Runner_m the server return uuid is not correct, expect(%v), found(%v)", r.Uuid, string(bys))
+			return nil, err
+		}
+		log.D("RC_Runner_m do bind connection(%v) success with uuid(%v)", cc.LocalAddr(), r.Uuid)
+		cc.SetGid(r.Uuid)
+	}
+	if r.RC.Con == nil {
+		r.RC.Con = cc
+	}
+	return cc, nil
 }
+
 func (r *RC_Runner_m) Start() {
-	if r.Multi {
-		r.Dailer.DailAll(strings.Split(r.Addr, ","))
-	} else {
-		r.Dailer.DailAll([]string{r.Addr})
-	}
+	r.CH.Run(r.ChanMax)
+	r.Dailer.DailAll(strings.Split(r.Addr, ","))
 }
+
 func (r *RC_Runner_m) DailAddr(addr string) (net.Conn, error) {
-	con, err := net.Dial("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	return con, nil
+	return net.Dial("tcp", addr)
 }
 
 func (r *RC_Runner_m) Stop() {
@@ -220,6 +240,9 @@ func (r *RC_Runner_m) Stop() {
 	}
 	if r.L != nil {
 		r.L.Close()
+	}
+	if r.CH != nil {
+		r.CH.Stop()
 	}
 	r.Timeout()
 	log.D("RC Runner is stopping")
@@ -233,6 +256,7 @@ func (r *RC_Runner_m) OnConn(c netw.Con) bool {
 	atomic.AddInt32(&r.Connected, 1)
 	tlen := r.wc
 	var i int32
+	log.D("RC_Runner_m rc is connected, will continue %v waiting exec", tlen)
 	for i = 0; i < tlen; i++ {
 		r.wait_ <- byte(0)
 	}
@@ -351,5 +375,70 @@ type RC_Runner_m_j struct {
 func NewRC_Runner_m_j(addr string, bp *pool.BytePool) *RC_Runner_m_j {
 	return &RC_Runner_m_j{
 		RC_Runner_m: NewRC_Runner_m(addr, bp, Json_NAV, Json_V2B, Json_B2V),
+	}
+}
+
+type RC_Listener_m struct {
+	*netw.Listener
+	*RCM_S //remote command handler.
+	//
+	CH  *ChanH //process chan.
+	ND  ND_F
+	VNA VNA_F
+	V2B netw.V2Byte
+	B2V netw.Byte2V
+	//
+	Multi bool
+}
+
+func NewRC_Listener_m(p *pool.BytePool, port string, h netw.ConHandler, nd ND_F, vna VNA_F, v2b netw.V2Byte, b2v netw.Byte2V) *RC_Listener_m {
+	rc := NewRCM_S(nd, vna)
+	ch := NewChanH(rc)
+	rcl := &RC_Listener_m{
+		RCM_S: rc,
+		CH:    ch,
+		ND:    nd,
+		VNA:   vna,
+		V2B:   v2b,
+		B2V:   b2v,
+	}
+	rcl.Listener = netw.NewListenerN2(p, port, netw.NewCCH(h, ch), rcl.NewCon)
+	return rcl
+}
+
+func (r *RC_Listener_m) NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
+	cc := netw.NewCon_(cp, p, con)
+	cc.V2B_, cc.B2V_ = r.V2B, r.B2V
+	if r.Multi {
+		log.D("RC_Listener_m checking multi bind mode for connection(%v)", cc.RemoteAddr())
+		bys, err := cc.ReadL(1024, false)
+		if err != nil {
+			err = util.Err("RC_Listener_m read uuid from con(%v) error(%v)", cc.RemoteAddr(), err)
+			return nil, err
+		}
+		uuid := string(bys)
+		if len(uuid) != UUID_LEN {
+			err = util.Err("RC_Listener_m read uuid length from con(%v)  is not correct, expect(%v),found(%v)",
+				cc.RemoteAddr(), UUID_LEN, len(bys))
+			return nil, err
+		}
+		_, err = cc.Writem(netw.CM_L, bys)
+		if err != nil {
+			err = util.Err("RC_Listener_m write uuid to con(%v) error(%v)", cc.RemoteAddr(), err)
+			return nil, err
+		}
+		log.D("RC_Listener_m check multi bind mode success with uuid(%v) for connection(%v)", uuid, cc.RemoteAddr())
+		cc.SetGid(uuid)
+	}
+	return cc, nil
+}
+
+type RC_Listener_m_j struct {
+	*RC_Listener_m
+}
+
+func NewRC_Listener_m_j(bp *pool.BytePool, port string, h netw.CCHandler) *RC_Listener_m_j {
+	return &RC_Listener_m_j{
+		RC_Listener_m: NewRC_Listener_m(bp, port, h, Json_ND, Json_VNA, Json_V2B, Json_B2V),
 	}
 }

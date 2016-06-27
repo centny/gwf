@@ -34,7 +34,11 @@ func (n *NConPool) Dail(addr string) (Con, error) {
 	if err != nil {
 		return nil, err
 	}
-	cc := n.NewCon(n, n.P, con)
+	cc, err := n.NewCon(n, n.P, con)
+	if err != nil {
+		con.Close()
+		return nil, util.Err("NewCon return error(%v)", err)
+	}
 	if !n.H.OnConn(cc) {
 		return nil, util.Err("OnConn return false for %v", addr)
 	}

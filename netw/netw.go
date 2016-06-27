@@ -51,7 +51,7 @@ const CON_TIMEOUT int64 = 5000
 const PING_DELAY = 60000
 
 //the func to create on connection for ConPool
-type NewConF func(cp ConPool, p *pool.BytePool, con net.Conn) Con
+type NewConF func(cp ConPool, p *pool.BytePool, con net.Conn) (Con, error)
 
 //the func to handler Cmd.Err call.
 type CmdErrF func(c Cmd, d int, code byte, f string, args ...interface{})
@@ -116,7 +116,7 @@ func (w *wsConn) Close() error {
 type ByteWriter interface {
 	//write multi []byte to conection.
 	//it will be joined to MOD|lenght|[]byte|[]byte|[]byte....
-	Writeb(bys ...[]byte) (int, error)
+	Writem(m string, bys ...[]byte) (int, error)
 }
 
 //the connection interface.
@@ -144,6 +144,8 @@ type Con interface {
 	Gid() string
 	//set the group id
 	SetGid(id string)
+	//
+	SetOut(out ByteWriter)
 	//connection seesion.
 	Kvs() util.Map
 	//having valuf of key
@@ -162,6 +164,7 @@ type Con interface {
 	//it will call connection V2B func to convert the value to []byte.
 	Writev(val interface{}) (int, error)
 	Writev2(bys []byte, val interface{}) (int, error)
+	Writeb(bys ...[]byte) (int, error)
 	//exec on remote command by args,
 	//the return value will be converted to dest,and return dest
 	Exec(args interface{}, dest interface{}) (interface{}, error)
@@ -178,51 +181,54 @@ type Group struct {
 	Cons  []Con
 	lck   sync.RWMutex
 	w_idx int
+	Hited map[Con]int
 }
 
 func NewGroup(gid string) *Group {
 	return &Group{
-		Id: gid,
+		Id:    gid,
+		Hited: map[Con]int{},
 	}
 }
 
-func (m *Group) Writeb(b []byte) (n int, err error) {
-	m.lck.Lock()
-	defer m.lck.Unlock()
-	if len(m.Cons) < 1 {
+func (g *Group) Writem(m string, b ...[]byte) (n int, err error) {
+	g.lck.Lock()
+	defer g.lck.Unlock()
+	if len(g.Cons) < 1 {
 		err = util.Err("not connection or closed")
 		return
 	}
-	m.w_idx += 1
-	clen := len(m.Cons)
-	if m.w_idx >= clen {
-		m.w_idx = 0
+	g.w_idx += 1
+	clen := len(g.Cons)
+	if g.w_idx >= clen {
+		g.w_idx = 0
 	}
 	for i := 0; i < clen; i++ {
-		con := m.Cons[(m.w_idx+i)%clen]
-		n, err = con.Write(b)
+		con := g.Cons[(g.w_idx+i)%clen]
+		n, err = con.Writem(m, b...)
 		if err == nil {
+			g.Hited[con] += 1
 			return
 		}
 	}
 	return
 }
 
-func (m *Group) AddCon(con Con) {
-	m.lck.Lock()
-	defer m.lck.Unlock()
+func (g *Group) AddCon(con Con) {
+	g.lck.Lock()
+	defer g.lck.Unlock()
 	if con == nil {
 		panic("the connection is nil")
 	}
-	m.Cons = append(m.Cons, con)
+	g.Cons = append(g.Cons, con)
 }
 
-func (m *Group) DelCon(con Con) {
-	m.lck.Lock()
-	defer m.lck.Unlock()
+func (g *Group) DelCon(con Con) {
+	g.lck.Lock()
+	defer g.lck.Unlock()
 	var idx = -1
 	var tcon net.Conn
-	for idx, tcon = range m.Cons {
+	for idx, tcon = range g.Cons {
 		if tcon == con {
 			break
 		}
@@ -230,7 +236,7 @@ func (m *Group) DelCon(con Con) {
 	if idx < 0 {
 		return
 	}
-	m.Cons = append(m.Cons[:idx], m.Cons[idx+1:]...)
+	g.Cons = append(g.Cons[:idx], g.Cons[idx+1:]...)
 }
 
 //the base implement to Con
@@ -257,20 +263,20 @@ type Con_ struct {
 }
 
 //new Con by ConPool/BytePool and normal connection.
-func NewConN(cp ConPool, p *pool.BytePool, con net.Conn) Con {
+func NewConN(cp ConPool, p *pool.BytePool, con net.Conn) (Con, error) {
 	c := NewCon_(cp, p, con)
 	c.SetMod(CM_N)
-	return c
+	return c, nil
 }
-func NewConH(cp ConPool, p *pool.BytePool, con net.Conn) Con {
+func NewConH(cp ConPool, p *pool.BytePool, con net.Conn) (Con, error) {
 	c := NewCon_(cp, p, con)
 	c.SetMod(CM_H)
-	return c
+	return c, nil
 }
-func NewConL(cp ConPool, p *pool.BytePool, con net.Conn) Con {
+func NewConL(cp ConPool, p *pool.BytePool, con net.Conn) (Con, error) {
 	c := NewCon_(cp, p, con)
 	c.SetMod(CM_L)
-	return c
+	return c, nil
 }
 
 var NewCon = NewConH
@@ -397,8 +403,11 @@ func (c *Con_) Write(b []byte) (n int, err error) {
 //Data:mod|len|bys...
 func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	if c.Out != nil {
-		return c.Out.Writeb(bys...)
+		return c.Out.Writem(c.Mod_, bys...)
 	}
+	return c.Writem(c.Mod_, bys...)
+}
+func (c *Con_) Writem(mode string, bys ...[]byte) (int, error) {
 	c.c_l.Lock()
 	defer c.c_l.Unlock()
 	switch c.Conn.(type) {
@@ -407,7 +416,7 @@ func (c *Con_) Writeb(bys ...[]byte) (int, error) {
 	}
 	var err error
 	var total int
-	switch c.Mod_ {
+	switch mode {
 	case CM_H:
 		total, err = Writeh(c.Conn, bys...)
 	case CM_L:
@@ -455,6 +464,9 @@ func (c *Con_) Gid() string {
 }
 func (c *Con_) SetGid(id string) {
 	c.GID_ = id
+}
+func (c *Con_) SetOut(out ByteWriter) {
+	c.Out = out
 }
 
 //the Cmd interface for exec data.
@@ -603,7 +615,7 @@ func (l *LConPool) LoopTimeout() {
 			con.Close()
 		}
 		if len(ping) > 0 {
-			log.D("Pool(%v): ping %v connection", l.Name, len(cons))
+			log_d("Pool(%v): ping %v connection", l.Name, len(ping))
 		}
 		for _, con := range cons {
 			con.Writeb([]byte{PING_V}, []byte("snows"))
@@ -661,6 +673,7 @@ func (l *LConPool) add_c(c Con) {
 		l.Groups[gid] = grp
 	}
 	grp.AddCon(c)
+	c.SetOut(grp)
 	log_d("LConPool add connect(%v) to group(%v) on pool(%v)", c.Id(), gid, l.Id())
 }
 func (l *LConPool) del_c(c Con) {
@@ -677,6 +690,7 @@ func (l *LConPool) del_c(c Con) {
 	if grp == nil {
 		return
 	}
+	c.SetOut(nil)
 	grp.DelCon(c)
 	log_d("LConPool del connect(%v) to group(%v) on pool(%v)", c.Id(), gid, l.Id())
 }
@@ -765,7 +779,12 @@ func (l *LConPool) accept_ws(wc *websocket.Conn) {
 		Addr: wc.RemoteAddr(),
 	}
 	log_d("%v:accepting ws connect(%v) in pool(%v)", l.Name, con.RemoteAddr().String(), l.Id())
-	tcon := l.NewCon(l, l.P, con)
+	tcon, err := l.NewCon(l, l.P, con)
+	if err != nil {
+		log.E("LConPool accept ws fail with new con error(%v)", err)
+		con.Close()
+		return
+	}
 	if l.H.OnConn(tcon) {
 		l.RunC_(tcon)
 	} else {

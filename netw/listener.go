@@ -106,7 +106,12 @@ func (l *Listener) LoopAccept() {
 }
 
 func (l *Listener) do_run(con net.Conn) {
-	tcon := l.NewCon(l, l.P, con)
+	tcon, err := l.NewCon(l, l.P, con)
+	if err != nil {
+		log.E("Listener new con return error(%v)", err)
+		con.Close()
+		return
+	}
 	if l.H.OnConn(tcon) {
 		l.RunC_(tcon)
 	} else {

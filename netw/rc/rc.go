@@ -15,7 +15,6 @@ import (
 	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"net"
-	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -89,7 +88,7 @@ func (r *RC_Cmd_h) AddC(cid string, con netw.Con) {
 	tc := impl.NewRC_C()
 	oc := impl.NewOBDH_Con(CMD_C, con)
 	rcc := impl.NewRC_Con(oc, tc)
-	rcm := impl.NewRCM_Con(rcc, r.L.Na)
+	rcm := impl.NewRCM_Con(rcc, r.L.NAV)
 	rcm.Start()
 	r.CRC[cid] = tc
 	r.CCS[cid] = rcm
@@ -165,43 +164,36 @@ func AuthF(r *impl.RCM_Cmd) (bool, interface{}, error) {
 
 //remote command listener.
 type RC_Listener_m struct {
-	*netw.Listener //listener
-	*impl.RCM_S    //remote command handler.
+	*impl.RC_Listener_m //listener
 	//
-	OH  *impl.OBDH  //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
-	Na  impl.NAV_F  //remote command function name.
-	CH  *impl.ChanH //process chan.
-	RCH *RC_Cmd_h   //remote client command call back handler.
-	LCH RC_Login_h
+	OH      *impl.OBDH //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
+	RCH     *RC_Cmd_h  //remote client command call back handler.
+	LCH     RC_Login_h
+	NAV     impl.NAV_F
+	ChanMax int
 }
 
 //new remote command listener by common convert function
-func NewRC_Listener_m(p *pool.BytePool, port string, h netw.CCHandler, rc *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) *RC_Listener_m {
-	obdh := impl.NewOBDH()
-	obdh.AddH(CMD_S, impl.NewRC_S(rc))
-	obdh.AddH(MSG_S, h)
-	//
-	rch := NewRC_Cmd_h()
-	rch.H = h
-	obdh.AddH(CMD_C, rch)
-	//
-	ch := impl.NewChanH(obdh)
-	l := netw.NewListenerN2(p, port, netw.NewCCH(rch, ch), func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
-		cc := netw.NewCon_(cp, p, con)
-		cc.V2B_ = v2b
-		cc.B2V_ = b2v
-		return cc
-	})
+func NewRC_Listener_m(p *pool.BytePool, port string, h netw.CCHandler, nd impl.ND_F, vna impl.VNA_F, v2b netw.V2Byte, b2v netw.Byte2V, nav impl.NAV_F) *RC_Listener_m {
 	rcl := &RC_Listener_m{
-		Listener: l,
-		OH:       obdh,
-		CH:       ch,
-		RCH:      rch,
-		Na:       na,
-		RCM_S:    rc,
-		LCH:      rch,
+		ChanMax: 256,
 	}
-	rch.L = rcl
+	rcl.RC_Listener_m = &impl.RC_Listener_m{}
+	rcl.NAV = nav
+	rcl.ND, rcl.VNA, rcl.V2B, rcl.B2V, rcl.NAV = nd, vna, v2b, b2v, nav
+	rcl.RCM_S = impl.NewRCM_S(nd, vna)
+	rcl.OH = impl.NewOBDH()
+	rcl.OH.AddH(CMD_S, impl.NewRC_S(rcl.RCM_S))
+	rcl.OH.AddH(MSG_S, h)
+	//
+	rcl.RCH = NewRC_Cmd_h()
+	rcl.RCH.H = h
+	rcl.RCH.L = rcl
+	rcl.OH.AddH(CMD_C, rcl.RCH)
+	//
+	rcl.CH = impl.NewChanH(rcl.OH)
+	rcl.Listener = netw.NewListenerN(p, port, "RCS-", netw.NewCCH(rcl.RCH, rcl.CH), rcl.NewCon)
+	rcl.CH.Name = rcl.Id()
 	rcl.AddHFunc("login_", rcl.Login_)
 	rcl.AddHFunc("hb", rcl.HB)
 	return rcl
@@ -209,13 +201,12 @@ func NewRC_Listener_m(p *pool.BytePool, port string, h netw.CCHandler, rc *impl.
 
 //new remote command listener by json convert function
 func NewRC_Listener_m_j(p *pool.BytePool, port string, h netw.CCHandler) *RC_Listener_m {
-	rcm := impl.NewRCM_S_j()
-	return NewRC_Listener_m(p, port, h, rcm, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
+	return NewRC_Listener_m(p, port, h, impl.Json_ND, impl.Json_VNA, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
 }
 
 //start listener
 func (r *RC_Listener_m) Run() error {
-	r.CH.Run(util.CPU())
+	r.CH.Run(r.ChanMax)
 	return r.Listener.Run()
 }
 
@@ -315,28 +306,44 @@ func (r *RC_Listener_m) SetShowSlow(v int64) {
 //start monitor
 func (r *RC_Listener_m) StartMonitor() {
 	r.RCM_S.M = tutil.NewMonitor()
+	r.M = tutil.NewMonitor()
+	r.CH.M = tutil.NewMonitor()
 }
 
 func (r *RC_Listener_m) State() (interface{}, error) {
 	if r.M == nil {
 		return nil, nil
-	} else {
-		return r.M.State()
 	}
+	var err error
+	var res = util.Map{}
+	var grps = util.Map{}
+	for uuid, group := range r.Groups {
+		grp := util.Map{}
+		for con, hited := range group.Hited {
+			grp[con.Id()] = hited
+		}
+		grps[uuid] = grp
+	}
+	res["groups"] = grps
+	res["listener"], err = r.M.State()
+	if r.CH.M != nil {
+		val, _ := r.CH.M.State()
+		res["chan"] = val
+	}
+	return res, err
 }
 
 //remote command client runner.
 type RC_Runner_m struct {
 	*impl.RC_Runner_m
 	*impl.RCM_S
-	CH *impl.ChanH //process chan
-	OH *impl.OBDH  //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
-	MC netw.Con    //message connection.
-	BC *netw.Con_
+	OH *impl.OBDH //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
+	MC netw.Con   //message connection.
+	// BC *netw.Con_
 }
 
 //new remote command client runner by common convert function.
-func NewRC_Runner_m(p *pool.BytePool, addr string, h netw.CCHandler, rc *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) *RC_Runner_m {
+func NewRC_Runner_m(p *pool.BytePool, addr string, h netw.CCHandler, rc *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, nav impl.NAV_F) *RC_Runner_m {
 	runner := &RC_Runner_m{
 		RC_Runner_m: impl.NewRC_Runner_m_base(),
 		RCM_S:       rc,
@@ -344,23 +351,22 @@ func NewRC_Runner_m(p *pool.BytePool, addr string, h netw.CCHandler, rc *impl.RC
 	runner.Addr = addr
 	runner.BP = p
 	runner.Connected = 0
-	runner.Uuid = strings.ToUpper(util.UUID())
-	runner.NAV = na
+	runner.NAV = nav
 	runner.V2B = v2b
 	runner.B2V = b2v
 	runner.TC = impl.NewRC_C()
 	runner.Dailer = netw.NewAutoDailer()
 	runner.RC = impl.NewRC_Con(nil, runner.TC)
-	runner.RCM_Con = impl.NewRCM_Con(runner.RC, na)
+	runner.RCM_Con = impl.NewRCM_Con(runner.RC, nav)
 	runner.OH = impl.NewOBDH()
 	runner.OH.AddH(CMD_S, runner.TC)
 	runner.OH.AddH(MSG_C, h)
 	runner.OH.AddH(CMD_C, impl.NewRC_S(rc))
 	runner.CH = impl.NewChanH(runner.OH)
-	runner.L = netw.NewNConPool(p, netw.NewCCH(netw.NewQueueConH(runner, runner.Dailer, h), runner.CH), "RC-")
+	runner.L = netw.NewNConPool(p, netw.NewCCH(netw.NewQueueConH(runner, runner.Dailer, h), runner.CH), "RCC-")
+	runner.CH.Name = runner.L.Id()
 	runner.L.DailAddr = runner.DailAddr
 	runner.Dailer.Dail = runner.L.Dail
-	runner.CH.Run(util.CPU())
 	runner.L.NewCon = runner.NewCon
 	return runner
 }
@@ -371,14 +377,13 @@ func NewRC_Runner_m_j(p *pool.BytePool, addr string, h netw.CCHandler) *RC_Runne
 	return NewRC_Runner_m(p, addr, h, rcm, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
 }
 
-func (r *RC_Runner_m) NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
-	r.BC = netw.NewCon_(cp, p, con)
-	r.BC.V2B_, r.BC.B2V_ = r.V2B, r.B2V
-	// rcc := impl.NewRC_Con(, r.TC)
-	// r.RCM_Con = impl.NewRCM_Con(rcc, r.NAV)
-	r.RC.Con = impl.NewOBDH_Con(CMD_S, r.BC)
-	r.MC = impl.NewOBDH_Con(MSG_S, r.BC)
-	return r.BC
+func (r *RC_Runner_m) NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
+	bc, err := r.RC_Runner_m.NewCon(cp, p, con)
+	if err == nil {
+		r.RC.Con = impl.NewOBDH_Con(CMD_S, bc)
+		r.MC = impl.NewOBDH_Con(MSG_S, bc)
+	}
+	return bc, nil
 }
 
 func (r *RC_Runner_m) Writeb(bys ...[]byte) (int, error) {
@@ -450,6 +455,7 @@ func (r *RC_Runner_m) SetShowSlow(v int64) {
 func (r *RC_Runner_m) StartMonitor() {
 	r.RC_Runner_m.M = tutil.NewMonitor()
 	r.RCM_S.M = tutil.NewMonitor()
+	r.CH.M = tutil.NewMonitor()
 }
 
 //the runner state
@@ -460,8 +466,12 @@ func (r *RC_Runner_m) State() (interface{}, error) {
 		res["exec"] = val
 	}
 	if r.RCM_S.M != nil {
-		val, _ := r.RC_Runner_m.M.State()
+		val, _ := r.RCM_S.M.State()
 		res["hand"] = val
+	}
+	if r.CH.M != nil {
+		val, _ := r.CH.M.State()
+		res["chan"] = val
 	}
 	return res, nil
 }

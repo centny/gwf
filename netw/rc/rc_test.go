@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -209,18 +210,27 @@ func (r *rc_c_h) Handle(run *RC_Runner_m) {
 ////////////////////////////////////
 //////// testing runner ////////////
 ////////////////////////////////////
+func TestB2V(t *testing.T) {
+	var bys = []byte{91, 34, 97, 34, 44, 34, 98, 34, 44, 34, 99, 34, 93}
+	fmt.Println("xxx")
+	fmt.Println(string(bys), "--->")
+}
+
 func TestRc(t *testing.T) {
+	test_rc(t, true)
+}
+func test_rc(t *testing.T, multi bool) {
 	runtime.GOMAXPROCS(util.CPU())
-	// impl.ShowLog = true
-	// netw.ShowLog = true
-	// netw.ShowLog_C = true
-	// impl.ShowLog = true
+	impl.ShowLog = true
+	netw.ShowLog = true
+	netw.ShowLog_C = true
 	bp := pool.NewBytePool(8, 102400)
 	//
 	//
 	//initial server.
 	sh := &rc_s_h{}
 	lm := NewRC_Listener_m_j(bp, ":10801", sh)
+	lm.Multi = true
 	lm.LCH = sh
 	lm.RCM_S.M = tutil.NewMonitor()
 	lm.RCM_S.ShowSlow = 1
@@ -230,7 +240,7 @@ func TestRc(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	fmt.Println("xxxx->001")
+	fmt.Println("=== xxxx->001\n\n\n")
 	//
 	//
 	//initial client
@@ -240,18 +250,22 @@ func TestRc(t *testing.T) {
 		ch := &rc_c_h{}
 		cr := NewRC_Runner_m_j(bp, "127.0.0.1:10801", ch)
 		fmt.Println(cr.RC_Runner_m, "-->")
+		cr.Uuid = util.UUID()
 		cr.StartMonitor()
 		cr.SetShowSlow(1)
 		ch.Handle(cr)
 		cr.Start()
+		fmt.Printf("xx->%v\n", "001")
 		_, err := cr.Writev(util.Map{
 			"c": "l",
 			"n": fmt.Sprintf("RC-%v", i),
 		})
+		fmt.Printf("xx->%v\n", "002")
 		_, err = cr.Writeb([]byte(util.S2Json(util.Map{
 			"c": "m",
 			"m": "server message",
 		})))
+		fmt.Printf("xx->%v\n", "003")
 		_, err = cr.Writev2([]byte{}, util.Map{
 			"c": "m",
 			"m": "server message",
@@ -262,11 +276,16 @@ func TestRc(t *testing.T) {
 		}
 		crs = append(crs, cr)
 	}
-	fmt.Println("xxxx->002")
+	fmt.Println("=== xxxx->002\n\n\n")
 	//login by remote command.
 	for i := 5; i < 10; i++ {
+		addrs := []string{}
+		// for j := 0; j < i-3; j++ {
+		addrs = append(addrs, "127.0.0.1:10801")
+		// }
 		ch := &rc_c_h{}
-		cr := NewRC_Runner_m_j(bp, "127.0.0.1:10801", ch)
+		cr := NewRC_Runner_m_j(bp, strings.Join(addrs, ","), ch)
+		cr.Uuid = util.UUID()
 		cr.StartMonitor()
 		cr.SetShowSlow(1)
 		ch.Handle(cr)
@@ -291,7 +310,8 @@ func TestRc(t *testing.T) {
 			return
 		}
 	}
-	fmt.Println("xxxx->003")
+	fmt.Println("=== xxxx->003\n\n\n")
+	// time.Sleep(1000 * time.Second)
 	// return
 	//
 	//
@@ -309,9 +329,9 @@ func TestRc(t *testing.T) {
 			t.Error(err.Error())
 			return
 		}
-		fmt.Println("xxxx->004-2")
+		fmt.Println("xxxx->004-2\n")
 	}
-	fmt.Println("xxxx->004")
+	fmt.Println("=== xxxx->004\n\n\n")
 	//calling all
 	err = sh.CallM("")
 	if err != nil {

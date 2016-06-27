@@ -2,6 +2,7 @@ package impl
 
 import (
 	"fmt"
+	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/tutil"
 	"sync"
@@ -18,6 +19,7 @@ type ChanH struct {
 	M       *tutil.Monitor
 	count_  int32
 	running bool
+	Name    string
 }
 
 //new one chan handler.
@@ -48,6 +50,9 @@ func (ch *ChanH) Running() bool {
 	return ch.running
 }
 func (ch *ChanH) OnCmd(c netw.Cmd) int {
+	if ch.M != nil {
+		ch.M.Start_(fmt.Sprintf("chan/%p", c))
+	}
 	ch.cc <- c
 	return 0
 }
@@ -57,6 +62,7 @@ func (ch *ChanH) Run(gc int) {
 	if ch.running {
 		return
 	}
+	log.D("ChanH(%v) start run by %v core", ch.Name, gc)
 	for i := 0; i < gc; i++ {
 		go ch.run_c()
 	}
@@ -77,6 +83,7 @@ func (ch *ChanH) run_c() {
 			data := cmd.Data()
 			mid := ""
 			if ch.M != nil {
+				ch.M.Done(fmt.Sprintf("chan/%p", cmd))
 				mid = ch.M.Start(fmt.Sprintf("C->%v", data[0]))
 			}
 			ch.H.OnCmd(cmd)
