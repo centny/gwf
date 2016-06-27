@@ -166,19 +166,17 @@ func AuthF(r *impl.RCM_Cmd) (bool, interface{}, error) {
 type RC_Listener_m struct {
 	*impl.RC_Listener_m //listener
 	//
-	OH      *impl.OBDH //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
-	RCH     *RC_Cmd_h  //remote client command call back handler.
-	LCH     RC_Login_h
-	NAV     impl.NAV_F
-	ChanMax int
+	OH  *impl.OBDH //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
+	RCH *RC_Cmd_h  //remote client command call back handler.
+	LCH RC_Login_h
+	NAV impl.NAV_F
 }
 
 //new remote command listener by common convert function
 func NewRC_Listener_m(p *pool.BytePool, port string, h netw.CCHandler, nd impl.ND_F, vna impl.VNA_F, v2b netw.V2Byte, b2v netw.Byte2V, nav impl.NAV_F) *RC_Listener_m {
-	rcl := &RC_Listener_m{
-		ChanMax: 256,
-	}
+	rcl := &RC_Listener_m{}
 	rcl.RC_Listener_m = &impl.RC_Listener_m{}
+	rcl.RC_Listener_m.ChanMax = 2048
 	rcl.NAV = nav
 	rcl.ND, rcl.VNA, rcl.V2B, rcl.B2V, rcl.NAV = nd, vna, v2b, b2v, nav
 	rcl.RCM_S = impl.NewRCM_S(nd, vna)
@@ -206,8 +204,7 @@ func NewRC_Listener_m_j(p *pool.BytePool, port string, h netw.CCHandler) *RC_Lis
 
 //start listener
 func (r *RC_Listener_m) Run() error {
-	r.CH.Run(r.ChanMax)
-	return r.Listener.Run()
+	return r.RC_Listener_m.Run()
 }
 
 //check if exit by client id

@@ -5,6 +5,7 @@ import (
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/tutil"
+	"github.com/Centny/gwf/util"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -12,14 +13,17 @@ import (
 
 //the chan handler struct.
 type ChanH struct {
-	H       netw.CmdHandler
-	cc      chan netw.Cmd
-	Wg      sync.WaitGroup
-	Sleep   time.Duration
-	M       *tutil.Monitor
-	count_  int32
-	running bool
-	Name    string
+	H        netw.CmdHandler
+	cc       chan netw.Cmd
+	Wg       sync.WaitGroup
+	Sleep    time.Duration
+	M        *tutil.Monitor
+	count_   int32
+	process_ int32
+	running  bool
+	Name     string
+	Idle     int
+	Max      int
 }
 
 //new one chan handler.
@@ -28,6 +32,7 @@ func NewChanH(h netw.CmdHandler) *ChanH {
 		H:     h,
 		cc:    make(chan netw.Cmd, 100),
 		Sleep: 300,
+		Idle:  util.CPU(),
 	}
 }
 func NewChanH2(h netw.CmdHandler, gc int) *ChanH {
@@ -35,6 +40,7 @@ func NewChanH2(h netw.CmdHandler, gc int) *ChanH {
 		H:     h,
 		cc:    make(chan netw.Cmd, 100),
 		Sleep: 300,
+		Idle:  util.CPU(),
 	}
 	ch.Run(gc)
 	return ch
@@ -54,6 +60,11 @@ func (ch *ChanH) OnCmd(c netw.Cmd) int {
 		ch.M.Start_(fmt.Sprintf("chan/%p", c))
 	}
 	ch.cc <- c
+	process := int(atomic.LoadInt32(&ch.process_))
+	running := int(atomic.LoadInt32(&ch.count_))
+	if running < ch.Max && (running-process) < len(ch.cc) {
+		go ch.run_c()
+	}
 	return 0
 }
 
@@ -62,10 +73,14 @@ func (ch *ChanH) Run(gc int) {
 	if ch.running {
 		return
 	}
-	log.D("ChanH(%v) start run by %v core", ch.Name, gc)
-	for i := 0; i < gc; i++ {
-		go ch.run_c()
+	if gc < 1 {
+		panic("ChanH at last one core is reqquired")
 	}
+	ch.Max = gc
+	log.D("ChanH(%v) start run by %v max core", ch.Name, gc)
+	// for i := 0; i < gc; i++ {
+	// 	go ch.run_c()
+	// }
 }
 func (ch *ChanH) run_c() {
 	ch.Wg.Add(1)
@@ -80,6 +95,7 @@ func (ch *ChanH) run_c() {
 			if cmd == nil {
 				break
 			}
+			atomic.AddInt32(&ch.process_, 1)
 			data := cmd.Data()
 			mid := ""
 			if ch.M != nil {
@@ -90,7 +106,10 @@ func (ch *ChanH) run_c() {
 			if ch.M != nil {
 				ch.M.Done(mid)
 			}
-			//case <-tk:
+			atomic.AddInt32(&ch.process_, -1)
+			if len(ch.cc) < 1 && int(atomic.LoadInt32(&ch.count_)) > ch.Idle {
+				break
+			}
 		}
 	}
 	atomic.AddInt32(&ch.count_, -1)

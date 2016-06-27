@@ -167,7 +167,7 @@ type RC_Runner_m struct {
 func NewRC_Runner_m_base() *RC_Runner_m {
 	return &RC_Runner_m{
 		wait_:   make(chan byte, 1000),
-		ChanMax: 64,
+		ChanMax: 2048,
 		// w_lck: make(chan int),
 	}
 }
@@ -377,19 +377,21 @@ type RC_Listener_m struct {
 	V2B netw.V2Byte
 	B2V netw.Byte2V
 	//
-	Multi bool
+	Multi   bool
+	ChanMax int
 }
 
 func NewRC_Listener_m(p *pool.BytePool, port string, h netw.ConHandler, nd ND_F, vna VNA_F, v2b netw.V2Byte, b2v netw.Byte2V) *RC_Listener_m {
 	rc := NewRCM_S(nd, vna)
 	ch := NewChanH(rc)
 	rcl := &RC_Listener_m{
-		RCM_S: rc,
-		CH:    ch,
-		ND:    nd,
-		VNA:   vna,
-		V2B:   v2b,
-		B2V:   b2v,
+		RCM_S:   rc,
+		CH:      ch,
+		ND:      nd,
+		VNA:     vna,
+		V2B:     v2b,
+		B2V:     b2v,
+		ChanMax: 2048,
 	}
 	rcl.Listener = netw.NewListenerN2(p, port, netw.NewCCH(h, ch), rcl.NewCon)
 	return rcl
@@ -420,6 +422,11 @@ func (r *RC_Listener_m) NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) 
 		cc.SetGid(uuid)
 	}
 	return cc, nil
+}
+
+func (r *RC_Listener_m) Run() error {
+	r.CH.Run(r.ChanMax)
+	return r.Listener.Run()
 }
 
 type RC_Listener_m_j struct {
