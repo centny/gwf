@@ -355,7 +355,6 @@ func NewRC_Runner_m(p *pool.BytePool, addr string, h netw.CCHandler, rc *impl.RC
 	runner.V2B = v2b
 	runner.B2V = b2v
 	runner.TC = impl.NewRC_C()
-	runner.Dailer = netw.NewAutoDailer()
 	runner.RC = impl.NewRC_Con(nil, runner.TC)
 	runner.RCM_Con = impl.NewRCM_Con(runner.RC, nav)
 	runner.OH = impl.NewOBDH()
@@ -363,11 +362,9 @@ func NewRC_Runner_m(p *pool.BytePool, addr string, h netw.CCHandler, rc *impl.RC
 	runner.OH.AddH(MSG_C, h)
 	runner.OH.AddH(CMD_C, impl.NewRC_S(rc))
 	runner.CH = impl.NewChanH(runner.OH)
-	runner.L = netw.NewNConPool(p, netw.NewCCH(netw.NewQueueConH(runner, runner.Dailer, h), runner.CH), "RCC-")
-	runner.CH.Name = runner.L.Id()
-	runner.L.DailAddr = runner.DailAddr
-	runner.Dailer.Dail = runner.L.Dail
+	runner.L = netw.NewNConPool(p, netw.NewCCH(netw.NewQueueConH(runner, h), runner.CH), "RCC-")
 	runner.L.NewCon = runner.NewCon
+	runner.CH.Name = runner.L.Id()
 	return runner
 }
 

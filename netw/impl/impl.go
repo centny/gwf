@@ -153,7 +153,6 @@ type RC_Runner_m struct {
 	//
 	// w_lck chan int
 	//
-	Dailer  *netw.AutoDailer
 	TC      *RC_C
 	RC      *RC_Con
 	Uuid    string
@@ -187,13 +186,10 @@ func NewRC_Runner_m(addr string, bp *pool.BytePool, na NAV_F, v2b netw.V2Byte, b
 	}
 	runner.TC = NewRC_C()
 	runner.CH = NewChanH(runner.TC)
-	runner.Dailer = netw.NewAutoDailer()
 	runner.RC = NewRC_Con(nil, runner.TC)
 	runner.RCM_Con = NewRCM_Con(runner.RC, na)
-	runner.L = netw.NewNConPool(bp, netw.NewCCH(netw.NewQueueConH(runner, runner.Dailer), runner.CH), "RCC-")
+	runner.L = netw.NewNConPool(bp, netw.NewCCH(runner, runner.CH), "RCC-")
 	runner.L.NewCon = runner.NewCon
-	runner.Dailer.Dail = runner.L.Dail
-	runner.L.DailAddr = runner.DailAddr
 	return runner
 }
 
@@ -227,17 +223,10 @@ func (r *RC_Runner_m) NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) (n
 
 func (r *RC_Runner_m) Start() {
 	r.CH.Run(r.ChanMax)
-	r.Dailer.DailAll(strings.Split(r.Addr, ","))
-}
-
-func (r *RC_Runner_m) DailAddr(addr string) (net.Conn, error) {
-	return net.Dial("tcp", addr)
+	r.L.Dailer.DailAll(strings.Split(r.Addr, ","))
 }
 
 func (r *RC_Runner_m) Stop() {
-	if r.Dailer != nil {
-		r.Dailer.Stop()
-	}
 	if r.L != nil {
 		r.L.Close()
 	}

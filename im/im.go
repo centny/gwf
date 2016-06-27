@@ -267,11 +267,11 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 
 	//
 	var rl netw.ConPool
-	ncf := func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	ncf := func(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
 		cc := netw.NewCon_(rl, p, con)
 		cc.V2B_ = v2b
 		cc.B2V_ = b2v
-		return cc
+		return cc, nil
 	}
 	dip := NewDimPool(db, sid, p, v2b, b2v, nav, ncf, dim)
 	chan_h := impl.NewChanH2(obdh, util.CPU()*5)
@@ -285,12 +285,12 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 	wim := &WIM_Rh{}
 	wim.NIM_Rh = nim
 	wim.NMR_Rh = nmr
-	wim_ncf := func(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+	wim_ncf := func(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
 		cc := netw.NewCon_(rl, p, con)
 		cc.SetMod(netw.CM_L)
 		cc.V2B_ = impl.Json_V2B
 		cc.B2V_ = impl.Json_B2V
-		return cc
+		return cc, nil
 	}
 	wim_cch := netw.NewCCH(netw.NewQueueConH(dim, wim), impl.NewChanH2(wim, util.CPU()))
 	wim_l := netw.NewLConPoolV(p, wim_cch, sid, wim_ncf)
@@ -503,11 +503,11 @@ func IM_B2V(bys []byte, v interface{}) (interface{}, error) {
 	}
 }
 
-func IM_NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+func IM_NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
 	cc := netw.NewCon_(cp, p, con)
 	cc.V2B_ = IM_V2B
 	cc.B2V_ = IM_B2V
-	return cc
+	return cc, nil
 }
 
 func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int) {

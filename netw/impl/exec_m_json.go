@@ -49,9 +49,9 @@ func Json_VNA(rc *RCM_S, c netw.Cmd, v interface{}) (string, *util.Map, error) {
 	return name, &args, nil
 }
 
-func Json_NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) netw.Con {
+func Json_NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error) {
 	cc := netw.NewCon_(cp, p, con)
 	cc.V2B_ = Json_V2B
 	cc.B2V_ = Json_B2V
-	return cc
+	return cc, nil
 }

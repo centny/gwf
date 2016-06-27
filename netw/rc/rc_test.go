@@ -217,7 +217,7 @@ func TestB2V(t *testing.T) {
 }
 
 func TestRc(t *testing.T) {
-	test_rc(t, true)
+	test_rc(t, false)
 }
 func test_rc(t *testing.T, multi bool) {
 	runtime.GOMAXPROCS(util.CPU())
@@ -230,7 +230,7 @@ func test_rc(t *testing.T, multi bool) {
 	//initial server.
 	sh := &rc_s_h{}
 	lm := NewRC_Listener_m_j(bp, ":10801", sh)
-	lm.Multi = true
+	lm.Multi = multi
 	lm.LCH = sh
 	lm.RCM_S.M = tutil.NewMonitor()
 	lm.RCM_S.ShowSlow = 1
@@ -250,7 +250,9 @@ func test_rc(t *testing.T, multi bool) {
 		ch := &rc_c_h{}
 		cr := NewRC_Runner_m_j(bp, "127.0.0.1:10801", ch)
 		fmt.Println(cr.RC_Runner_m, "-->")
-		cr.Uuid = util.UUID()
+		if multi {
+			cr.Uuid = util.UUID()
+		}
 		cr.StartMonitor()
 		cr.SetShowSlow(1)
 		ch.Handle(cr)
@@ -285,7 +287,9 @@ func test_rc(t *testing.T, multi bool) {
 		// }
 		ch := &rc_c_h{}
 		cr := NewRC_Runner_m_j(bp, strings.Join(addrs, ","), ch)
-		cr.Uuid = util.UUID()
+		if multi {
+			cr.Uuid = util.UUID()
+		}
 		cr.StartMonitor()
 		cr.SetShowSlow(1)
 		ch.Handle(cr)
