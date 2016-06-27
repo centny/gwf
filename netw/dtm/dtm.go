@@ -201,7 +201,7 @@ type DTM_S struct {
 }
 
 //new the distributed task manager server impl
-func NewDTM_S(bp *pool.BytePool, addr string, h DTM_S_H, rcm *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) *DTM_S {
+func NewDTM_S(bp *pool.BytePool, addr string, h DTM_S_H, nd impl.ND_F, vna impl.VNA_F, v2b netw.V2Byte, b2v netw.Byte2V, nav impl.NAV_F) *DTM_S {
 	sh := &DTM_S{
 		H:        h,
 		sequence: 0,
@@ -209,7 +209,7 @@ func NewDTM_S(bp *pool.BytePool, addr string, h DTM_S_H, rcm *impl.RCM_S, v2b ne
 	obdh := impl.NewOBDH()
 	obdh.AddF(CMD_M_PROC, sh.OnProc)
 	obdh.AddF(CMD_M_DONE, sh.OnDone)
-	lm := rc.NewRC_Listener_m(bp, addr, netw.NewCCH(h, obdh), rcm, v2b, b2v, na)
+	lm := rc.NewRC_Listener_m(bp, addr, netw.NewCCH(h, obdh), nd, vna, v2b, b2v, nav)
 	lm.LCH = h
 	sh.RC_Listener_m = lm
 	lm.Name = "DTM_S"
@@ -218,8 +218,8 @@ func NewDTM_S(bp *pool.BytePool, addr string, h DTM_S_H, rcm *impl.RCM_S, v2b ne
 
 //new the distributed task manager server impl by json impl
 func NewDTM_S_j(bp *pool.BytePool, addr string, h DTM_S_H) *DTM_S {
-	rcm := impl.NewRCM_S_j()
-	return NewDTM_S(bp, addr, h, rcm, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
+	// rcm := impl.NewRCM_S_j()
+	return NewDTM_S(bp, addr, h, impl.Json_ND, impl.Json_VNA, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
 }
 
 //process event impl handler

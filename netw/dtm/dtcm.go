@@ -367,7 +367,7 @@ type DTCM_S struct {
 	regs=.mp4&.mkv
 	cmds=${CMD_2} %v %v_2.mp4 xx
 */
-func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *impl.RCM_S, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) (*DTCM_S, error) {
+func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, nd impl.ND_F, vna impl.VNA_F, v2b netw.V2Byte, b2v netw.Byte2V, nav impl.NAV_F) (*DTCM_S, error) {
 	var dbh, err = dbc(cfg.Val("db_con"), cfg.Val("db_name"))
 	if err != nil {
 		return nil, err
@@ -447,7 +447,7 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 		tid2proc:   map[string]string{},
 		run_c:      make(chan int, 1),
 	}
-	var dtm = NewDTM_S(bp, addr, dtcm, rcm, v2b, b2v, na)
+	var dtm = NewDTM_S(bp, addr, dtcm, nd, vna, v2b, b2v, nav)
 	dtcm.DTM_S = dtm
 	var tokens = []string{}
 	for _, client := range clients_ {
@@ -467,8 +467,8 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, rcm *imp
 
 //new DTCM_S by json
 func NewDTCM_S_j(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H) (*DTCM_S, error) {
-	rcm := impl.NewRCM_S_j()
-	return NewDTCM_S(bp, cfg, dbc, h, rcm, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
+	// rcm := impl.NewRCM_S_j()
+	return NewDTCM_S(bp, cfg, dbc, h, impl.Json_ND, impl.Json_VNA, impl.Json_V2B, impl.Json_B2V, impl.Json_NAV)
 }
 
 func (d *DTCM_S) NewTask(id, info interface{}, args ...interface{}) *Task {
