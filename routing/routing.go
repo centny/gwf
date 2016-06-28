@@ -436,6 +436,7 @@ func (h *HTTPSession) JRes(data interface{}) HResult {
 }
 func (h *HTTPSession) JsonRes(data interface{}) error {
 	h.V = data
+	h.W.Header().Set("Content-Type", "application/json;charset=utf-8")
 	dbys, err := json.Marshal(data)
 	if err != nil {
 		return err
