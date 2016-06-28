@@ -16,11 +16,11 @@ type RCTest struct {
 
 func NewRCTest(p *pool.BytePool, port string, sh netw.CCHandler, ch netw.CCHandler,
 	nd impl.ND_F, vna impl.VNA_F, v2b netw.V2Byte, b2v netw.Byte2V, na impl.NAV_F) *RCTest {
-	rcm_s := impl.NewRCM_S(nd, vna)
+	// rcm_s := impl.NewRCM_S(nd, vna)
 	rcm_c := impl.NewRCM_S(nd, vna)
 	addr := fmt.Sprintf("127.0.0.1%v", port)
 	rct := &RCTest{
-		L:    rc.NewRC_Listener_m(p, port, sh, rcm_s, v2b, b2v, na),
+		L:    rc.NewRC_Listener_m(p, port, sh, nd, vna, v2b, b2v, na),
 		R:    rc.NewRC_Runner_m(p, addr, ch, rcm_c, v2b, b2v, na),
 		Addr: addr,
 	}
