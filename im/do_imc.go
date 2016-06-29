@@ -171,12 +171,13 @@ func (d *DoImc) push(aurs []string) error {
 func (d *DoImc) OnM(i *IMC, c netw.Cmd, m *pb.ImMsg) int {
 	d.m_lck.Lock()
 	defer d.m_lck.Unlock()
-	if d.Res[i.IC.Uid] == nil {
-		d.Res[i.IC.Uid] = map[string]interface{}{}
+	uid := i.IC.Uid
+	if d.Res[uid] == nil {
+		d.Res[uid] = map[string]interface{}{}
 	}
 	log_d("receive message R(%v),A(%v)", i.IC.Uid, m.GetA())
-	v, _ := d.Res[i.IC.Uid][fmt.Sprintf("R->%v", m.GetA())].(int)
-	d.Res[i.IC.Uid][fmt.Sprintf("R->%v", m.GetA())] = v + 1
+	v, _ := d.Res[uid][fmt.Sprintf("R->%v", m.GetA())].(int)
+	d.Res[uid][fmt.Sprintf("R->%v", m.GetA())] = v + 1
 	return 0
 }
 func (d *DoImc) New(token string) (*IMC, error) {
