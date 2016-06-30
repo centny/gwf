@@ -175,6 +175,7 @@ func (d *DoImc) OnM(i *IMC, c netw.Cmd, m *pb.ImMsg) int {
 	if len(uid) < 1 || d.Res == nil {
 		return -1
 	}
+	//
 	if d.Res[uid] == nil {
 		d.Res[uid] = map[string]interface{}{}
 	}
