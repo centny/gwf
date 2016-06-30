@@ -654,9 +654,13 @@ func (l *LConPool) Close() {
 	l.cons = map[string]Con{}
 	l.cons_l.Unlock()
 }
+func (l *LConPool) Wait() {
+	l.Wg.Wait()
+}
 func (l *LConPool) add_c(c Con) {
 	l.cons_l.Lock()
 	defer l.cons_l.Unlock()
+	// fmt.Println(l.cons == nil, c == nil)
 	if _, ok := l.cons[c.Id()]; ok {
 		panic(fmt.Sprintf("conection by id(%v) already added", c.Id()))
 	}
@@ -695,6 +699,8 @@ func (l *LConPool) del_c(c Con) {
 	log_d("LConPool del connect(%v) to group(%v) on pool(%v)", c.Id(), gid, l.Id())
 }
 func (l *LConPool) Find(id string) Con {
+	l.cons_l.RLock()
+	defer l.cons_l.RUnlock()
 	if c, ok := l.cons[id]; ok {
 		return c
 	} else {

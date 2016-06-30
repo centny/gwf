@@ -2,7 +2,6 @@ package im
 
 import (
 	"fmt"
-	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/util"
@@ -368,29 +367,17 @@ func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
 	return mlen, rlen, plen, elen, dlen
 }
 func (m *MemDbH) ListUnread(r string, ct int) ([]*Msg, error) {
-	msg := Msg{}
-	var dd string = r
-	var ss string = "S-Robot"
-	var tt uint32 = 0
-	var ii string = m.NewMid()
-	msg.ImMsg = pb.ImMsg{
-		I: &ii,
-		S: &ss,
-		D: &dd,
-		R: []string{r},
-		T: &tt,
-		C: []byte("Robot Unread Message"),
+	var ms = []*Msg{}
+	for _, msg := range m.Ms {
+		for _, mms := range msg.Ms {
+			for _, mss_ := range mms {
+				if mss_.R == r && mss_.S == MS_PENDING {
+					ms = append(ms, msg)
+				}
+			}
+		}
 	}
-	msg.Ms = map[string][]*MSS{
-		r: []*MSS{
-			&MSS{
-				R: r,
-				S: MS_PENDING,
-			},
-		},
-	}
-	m.Store(&msg)
-	return []*Msg{&msg}, nil
+	return ms, nil
 }
 func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []Con, error) {
 	m.con_l.Lock()

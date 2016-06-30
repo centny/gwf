@@ -26,6 +26,8 @@ type DoImc struct {
 	//
 	m_lck sync.RWMutex
 	imcs  map[string]*IMC
+	//
+	Monitor bool
 }
 
 func NewDoImc(p *pool.BytePool, srv string, srvl bool, tokens []string, gs []string, mc int, purl, pusr string) *DoImc {
@@ -61,18 +63,21 @@ func (d *DoImc) DoV(tc int) error {
 	var err error
 	log_d("start %v connection to server", len(d.Tokens))
 	for _, token := range d.Tokens {
+		d.m_lck.Lock()
 		imc, err = d.New(token)
 		if err != nil {
 			log.E("DoImc new IMC fail with %v", err)
+			d.m_lck.Unlock()
 			return err
 		}
+		imc.StartMonitor()
 		if _, ok := d.imcs[imc.IC.Uid]; ok {
+			d.m_lck.Unlock()
 			return util.Err("having repeat token or having two token belong to one user")
 		}
 		d.imcs[imc.IC.Uid] = imc
 		imcs_ = append(imcs_, imc)
 		aurs = append(aurs, imc.IC.Uid)
-		d.m_lck.Lock()
 		d.Res[imc.IC.Uid] = map[string]interface{}{
 			"Token": token,
 		}
@@ -119,10 +124,10 @@ func (d *DoImc) sms_g(imcs map[string]*IMC, gr string, urs []string) {
 		if !ok {
 			continue
 		}
+		d.Res[imc.IC.Uid][fmt.Sprintf("S->%v", gr)] = d.Mc
 		for i := 0; i < d.Mc; i++ {
 			imc.SMS(gr, 0, fmt.Sprintf("%v->%v", gr, i))
 		}
-		d.Res[imc.IC.Uid][fmt.Sprintf("S->%v", gr)] = d.Mc
 		sc++
 	}
 	sc-- //exclude self
@@ -137,13 +142,13 @@ func (d *DoImc) sms_g(imcs map[string]*IMC, gr string, urs []string) {
 	}
 }
 func (d *DoImc) sms(a *IMC, b *IMC) {
-	for i := 0; i < d.Mc; i++ {
-		a.SMS(b.IC.Uid, 0, fmt.Sprintf("%v->%v", b.IC.Uid, i))
-	}
 	d.m_lck.Lock()
 	d.Res[a.IC.Uid][fmt.Sprintf("S->%v", b.IC.Uid)] = d.Mc
 	d.Res[b.IC.Uid][fmt.Sprintf("A->%v", a.IC.Uid)] = d.Mc
 	d.m_lck.Unlock()
+	for i := 0; i < d.Mc; i++ {
+		a.SMS(b.IC.Uid, 0, fmt.Sprintf("%v->%v", b.IC.Uid, i))
+	}
 	log_d("sending %v messaget S(%v),R(%v)", d.Mc, a.IC.Uid, b.IC.Uid)
 }
 func (d *DoImc) push(aurs []string) error {
@@ -151,6 +156,11 @@ func (d *DoImc) push(aurs []string) error {
 		return nil
 	}
 	log_d("doing push by url(%v),usr(%v)", d.PushUrl, d.PushUsr)
+	d.m_lck.Lock()
+	for _, ur := range aurs {
+		d.Res[ur][fmt.Sprintf("A->%v", d.PushUsr)] = d.Mc
+	}
+	d.m_lck.Unlock()
 	for i := 0; i < d.Mc; i++ {
 		res, err := util.HGet2(d.PushUrl, d.PushUsr, strings.Join(aurs, ","), "Push->", 0)
 		if err != nil {
@@ -161,11 +171,6 @@ func (d *DoImc) push(aurs []string) error {
 		}
 	}
 	log_d("push %v message to %v user", d.Mc, len(aurs))
-	d.m_lck.Lock()
-	for _, ur := range aurs {
-		d.Res[ur][fmt.Sprintf("A->%v", d.PushUsr)] = d.Mc
-	}
-	d.m_lck.Unlock()
 	return nil
 }
 func (d *DoImc) OnM(i *IMC, c netw.Cmd, m *pb.ImMsg) int {
@@ -202,14 +207,14 @@ func (d *DoImc) New(token string) (*IMC, error) {
 	}
 }
 func (d *DoImc) Check() bool {
-	for sr, res := range d.Res {
+	for uid, res := range d.Res {
 		for rk, v := range res {
 			if !strings.HasPrefix(rk, "A->") {
 				continue
 			}
 			tr := strings.TrimPrefix(rk, "A->")
 			if v != res[fmt.Sprintf("R->%v", tr)] {
-				log.D("DoImc(%v) checking R(%v),A(%v)->S(%v),R(%v)", d.Name, sr, tr, v, res[fmt.Sprintf("R->%v", tr)])
+				log.D("DoImc(%v) checking R(%v),A(%v)->S(%v),R(%v)", d.Name, uid, tr, v, res[fmt.Sprintf("R->%v", tr)])
 				return false
 			}
 		}
@@ -233,6 +238,14 @@ func (d *DoImc) Release() {
 	for _, imc := range d.imcs {
 		imc.Close()
 	}
+}
+
+func (d *DoImc) State() (interface{}, error) {
+	var res = util.Map{}
+	// for uid, imc := range d.imcs {
+	// 	res[uid], _ = imc.State()
+	// }
+	return res, nil
 }
 
 // func (d *DoImc) Assert() error {

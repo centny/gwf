@@ -179,6 +179,7 @@ func (n *NConRunner) StopRunner() {
 	n.Running = false
 	if n.NConPool != nil {
 		n.NConPool.Close()
+		n.NConPool.Wait()
 	}
 	log.D("stopping runner...")
 	n.wg.Wait()

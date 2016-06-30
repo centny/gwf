@@ -6,6 +6,7 @@ import (
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"math/rand"
 	"sync"
@@ -249,11 +250,22 @@ func (i *IMC) Close() {
 	if i.NConRunner != nil {
 		i.StopRunner()
 	}
+	i.chanh.Stop()
+	i.chanh.Wait()
 	if i.C != nil {
 		i.C.Stop()
 	}
-	i.chanh.Stop()
-	i.chanh.Wait()
 	i.tc.Close()
 	i.hb_wg.Wait()
+}
+
+func (i *IMC) StartMonitor() {
+	i.chanh.M = tutil.NewMonitor()
+}
+func (i *IMC) State() (interface{}, error) {
+	if i.chanh.M == nil {
+		return nil, nil
+	} else {
+		return i.chanh.M.State()
+	}
 }

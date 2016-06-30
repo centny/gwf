@@ -274,7 +274,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		return cc, nil
 	}
 	dip := NewDimPool(db, sid, p, v2b, b2v, nav, ncf, dim)
-	chan_h := impl.NewChanH2(obdh, util.CPU()*5)
+	chan_h := impl.NewChanH2(obdh, 2048)
 	cch := netw.NewCCH(netw.NewQueueConH(dim, nim), chan_h)
 	l := netw.NewListenerN(p, fmt.Sprintf(":%v", port), sid, cch, ncf)
 	l.T = timeout
@@ -292,7 +292,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 		cc.B2V_ = impl.Json_B2V
 		return cc, nil
 	}
-	wim_cch := netw.NewCCH(netw.NewQueueConH(dim, wim), impl.NewChanH2(wim, util.CPU()))
+	wim_cch := netw.NewCCH(netw.NewQueueConH(dim, wim), impl.NewChanH2(wim, 2048))
 	wim_l := netw.NewLConPoolV(p, wim_cch, sid, wim_ncf)
 	wim_l.Runner_ = netw.NewNLineRunner()
 	wim_l.T = timeout
@@ -390,7 +390,7 @@ func (l *Listener) Close() {
 func (l *Listener) ConPushSrv(addr string) {
 	obdh := impl.NewOBDH()
 	obdh.AddH(MK_PUSH_N, l)
-	l.PushConRunner = netw.NewNConRunnerN(l.P, addr, impl.NewChanH2(obdh, util.CPU()), impl.Json_NewCon)
+	l.PushConRunner = netw.NewNConRunnerN(l.P, addr, impl.NewChanH2(obdh, 2048), impl.Json_NewCon)
 	l.PushConRunner.ShowLog = false //not show the netw write data log.
 	l.PushConRunner.Tick = l.PushSrvTick
 	l.PushConRunner.TickData = []byte{MK_PUSH_HB, 'H', 'B', '-', '>'}
