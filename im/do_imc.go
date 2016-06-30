@@ -172,6 +172,9 @@ func (d *DoImc) OnM(i *IMC, c netw.Cmd, m *pb.ImMsg) int {
 	d.m_lck.Lock()
 	defer d.m_lck.Unlock()
 	uid := i.IC.Uid
+	if len(uid) < 1 {
+		return -1
+	}
 	if d.Res[uid] == nil {
 		d.Res[uid] = map[string]interface{}{}
 	}
