@@ -246,9 +246,9 @@ func (d *DoImc) Check2(delay, timeout int64) error {
 	for !d.Check() {
 		time.Sleep(time.Duration(delay) * time.Millisecond)
 		used += delay
-		if used >= timeout {
-			return util.Err("timeout")
-		}
+		// if used >= timeout {
+		// 	return util.Err("timeout")
+		// }
 	}
 	return nil
 }
