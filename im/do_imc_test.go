@@ -19,7 +19,7 @@ import (
 )
 
 func TestDoImc(t *testing.T) {
-	run_do_imc_(t, 10, 10)
+	run_do_imc_(t, 1000, 100)
 }
 
 func run_do_imc_(t *testing.T, total, tc int) {
@@ -85,7 +85,17 @@ func run_do_imc_(t *testing.T, total, tc int) {
 			res[fmt.Sprintf("I-%v", idx)] = tval
 		}
 		dolck.Unlock()
-		var msss = db.Ms
+		var msss = map[string]*Msg{}
+		for mid, msg := range db.Ms {
+			for _, mss := range msg.Ms {
+				for _, ms := range mss {
+					if ms.S == MS_DONE {
+						continue
+					}
+					msss[mid] = msg
+				}
+			}
+		}
 		return hs.MsgRes(util.Map{
 			"res":   res,
 			"mdb":   msss,
@@ -138,7 +148,6 @@ func run_do_imc_c(i int, db *MemDbH, purl string, t *testing.T, m *filter.Monito
 	fmt.Println("---->", ua, ub, uc, ud, "->", ta, tb, tc)
 	db.AddGrp(ga, []string{
 		ua, ub, uc,
-		"U-abc",
 	})
 	db.AddTokens(map[string]string{
 		ta: ua,
@@ -169,6 +178,6 @@ func run_do_imc_c(i int, db *MemDbH, purl string, t *testing.T, m *filter.Monito
 }
 
 func TestByte(t *testing.T) {
-	var bys = []byte{72, 66, 45, 62}
+	var bys = []byte{77, 45, 54, 52, 18, 5, 85, 45, 48, 45, 50, 26, 3, 71, 45, 48, 32, 0, 42, 5, 85, 45, 48, 45, 51, 50, 6, 71, 45, 48, 45, 62, 51, 58, 3, 71, 45, 48, 64, 196, 222, 145, 174, 218, 42}
 	fmt.Println(string(bys))
 }

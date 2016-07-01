@@ -527,5 +527,7 @@ func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int) {
 			}
 		}
 	}
-	log_d("SendUnread %v messages is sended to %v", len(ms), rv)
+	if len(ms) > 0 {
+		log_d("SendUnread %v messages is sended to %v", len(ms), rv)
+	}
 }

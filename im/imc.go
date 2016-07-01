@@ -99,6 +99,7 @@ func (i *IMC) Start() {
 	i.NConRunner.StartRunner()
 }
 func (i *IMC) OnCmd(c netw.Cmd) int {
+	// log.D("IMC receive %v", c.Data())
 	defer c.Done()
 	var msg pb.ImMsg
 	_, err := c.V(&msg)
@@ -113,6 +114,7 @@ func (i *IMC) OnCmd(c netw.Cmd) int {
 	// 		log.E("mark msg(%v) recv err:%v", msg, err.Error())
 	// 	}
 	// }()
+	// log.D("IMC receive ---> %v", c.Data())
 	return i.OnM(i, c, &msg)
 }
 func (i *IMC) OnConn(c netw.Con) bool {
@@ -146,7 +148,7 @@ func (i *IMC) login(c netw.Con) {
 	c.SetWait(true)
 	log.D("IMC login succes by token(%v)->%v", i.Token, i.IC)
 	i.logined = true
-	// i.UR()
+	i.UR()
 }
 func (i *IMC) HB(data string) (string, error) {
 	var res util.Map

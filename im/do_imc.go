@@ -23,9 +23,11 @@ type DoImc struct {
 	PushUrl string
 	PushUsr string
 	Res     map[string]map[string]interface{}
+	recs    map[string]bool
 	//
-	m_lck sync.RWMutex
-	imcs  map[string]*IMC
+	m_lck   sync.RWMutex
+	imcs    map[string]*IMC
+	ur_last int64
 	//
 	Monitor bool
 }
@@ -41,6 +43,7 @@ func NewDoImc(p *pool.BytePool, srv string, srvl bool, tokens []string, gs []str
 		PushUrl: purl,
 		PushUsr: pusr,
 		Res:     map[string]map[string]interface{}{},
+		recs:    map[string]bool{},
 		imcs:    map[string]*IMC{},
 	}
 }
@@ -108,10 +111,10 @@ func (d *DoImc) DoV(tc int) error {
 		for gr, urs := range gss {
 			d.sms_g(d.imcs, gr, urs)
 		}
-		err = d.push(aurs)
-		if err != nil {
-			return err
-		}
+		// err = d.push(aurs)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 	return nil
 }
@@ -178,8 +181,15 @@ func (d *DoImc) OnM(i *IMC, c netw.Cmd, m *pb.ImMsg) int {
 	defer d.m_lck.Unlock()
 	uid := i.IC.Uid
 	if len(uid) < 1 || d.Res == nil {
+		log.E("the uid(%v),res(%v) is nil or empty", uid, d.Res)
 		return -1
 	}
+	if d.recs[uid+m.GetI()+m.GetA()] {
+		log.D("the mid(%v) is received", m.GetI())
+		return 0
+	}
+	d.recs[uid+m.GetI()+m.GetA()] = true
+	i.MR(m.GetA(), m.GetI())
 	//
 	if d.Res[uid] == nil {
 		d.Res[uid] = map[string]interface{}{}
@@ -215,11 +225,21 @@ func (d *DoImc) Check() bool {
 			tr := strings.TrimPrefix(rk, "A->")
 			if v != res[fmt.Sprintf("R->%v", tr)] {
 				log.D("DoImc(%v) checking R(%v),A(%v)->S(%v),R(%v)", d.Name, uid, tr, v, res[fmt.Sprintf("R->%v", tr)])
+				if util.Now()-d.ur_last > 3000 {
+					d.UR()
+					d.ur_last = util.Now()
+				}
 				return false
 			}
 		}
 	}
 	return true
+}
+
+func (d *DoImc) UR() {
+	for _, imc := range d.imcs {
+		imc.UR()
+	}
 }
 func (d *DoImc) Check2(delay, timeout int64) error {
 	var used int64 = 0

@@ -290,6 +290,8 @@ func (m *MemDbH) RandGrp() (string, int, []string) {
 	if len(m.Grp) < 1 {
 		return "", 0, nil
 	}
+	m.g_lck.RLock()
+	defer m.g_lck.RUnlock()
 	gs := []string{}
 	for gr, _ := range m.Grp {
 		gs = append(gs, gr)
@@ -367,11 +369,13 @@ func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
 	return mlen, rlen, plen, elen, dlen
 }
 func (m *MemDbH) ListUnread(r string, ct int) ([]*Msg, error) {
+	m.ms_l.Lock()
+	defer m.ms_l.Unlock()
 	var ms = []*Msg{}
 	for _, msg := range m.Ms {
-		for _, mms := range msg.Ms {
+		for tr, mms := range msg.Ms {
 			for _, mss_ := range mms {
-				if mss_.R == r && mss_.S == MS_PENDING {
+				if tr == r && mss_.S == MS_PENDING {
 					ms = append(ms, msg)
 				}
 			}
@@ -411,13 +415,13 @@ func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []Con, error) {
 }
 
 func (m *MemDbH) AddGrp(grp string, users []string) {
-	m.u_lck.Lock()
-	defer m.u_lck.Unlock()
+	m.g_lck.Lock()
+	defer m.g_lck.Unlock()
 	m.Grp[grp] = users
 }
 func (m *MemDbH) DelGrp(grp string) {
-	m.u_lck.Lock()
-	defer m.u_lck.Unlock()
+	m.g_lck.Lock()
+	defer m.g_lck.Unlock()
 	delete(m.Grp, grp)
 }
 func (m *MemDbH) AddTokens(tokens map[string]string) {
