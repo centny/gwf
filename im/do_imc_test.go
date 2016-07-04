@@ -19,7 +19,7 @@ import (
 )
 
 func TestDoImc(t *testing.T) {
-	run_do_imc_(t, 1000, 100)
+	run_do_imc_(t, 100, 10)
 }
 
 func run_do_imc_(t *testing.T, total, tc int) {

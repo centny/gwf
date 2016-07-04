@@ -217,6 +217,10 @@ func (d *DoImc) New(token string) (*IMC, error) {
 	}
 }
 func (d *DoImc) Check() bool {
+	d.m_lck.Lock()
+	defer func() {
+		d.m_lck.Unlock()
+	}()
 	for uid, res := range d.Res {
 		for rk, v := range res {
 			if !strings.HasPrefix(rk, "A->") {
@@ -226,13 +230,14 @@ func (d *DoImc) Check() bool {
 			if v != res[fmt.Sprintf("R->%v", tr)] {
 				log.D("DoImc(%v) checking R(%v),A(%v)->S(%v),R(%v)", d.Name, uid, tr, v, res[fmt.Sprintf("R->%v", tr)])
 				if util.Now()-d.ur_last > 3000 {
-					d.UR()
+					go d.UR()
 					d.ur_last = util.Now()
 				}
 				return false
 			}
 		}
 	}
+
 	return true
 }
 
