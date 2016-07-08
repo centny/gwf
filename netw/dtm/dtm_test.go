@@ -6,6 +6,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing/httptest"
 	"github.com/Centny/gwf/util"
+	"math"
 	"runtime"
 	"testing"
 	"time"
@@ -160,3 +161,7 @@ func TestDtmBase(t *testing.T) {
 	//
 	fmt.Println("done...")
 }
+
+// func TestPow(t *testing.T) {
+// 	fmt.Println(math.Pow(2, 20) / 3600)
+// }

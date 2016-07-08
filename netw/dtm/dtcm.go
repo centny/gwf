@@ -8,6 +8,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
+	"math"
 	"reflect"
 	"regexp"
 	"strings"
@@ -617,7 +618,7 @@ func (d *DTCM_S) do_task(t *Task) int {
 	d.start_task(t)
 	if !t.IsRunning() {
 		t.Mid = ""
-		t.Next = util.Now() + 3 ^ int64(2*t.Runc-1)*1000
+		t.Next = util.Now() + int64(math.Pow(2, float64(2*t.Runc-1))*1000)
 	}
 	var err = d.Db.Update(t)
 	if err == nil {
