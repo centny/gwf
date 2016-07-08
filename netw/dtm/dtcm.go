@@ -64,6 +64,7 @@ type Task struct {
 	Sid    string           `bson:"sid" json:"sid"`       //the server id.
 	Proc   map[string]*Proc `bson:"proc" json:"proc"`     //the proc status
 	Info   interface{}      `bson:"info" json:"info"`     //the task exit message
+	Time   int64            `bson:"time" json:"time"`     //last update time
 	Status string           `bson:"status" json:"status"` //the task try time
 }
 
@@ -478,6 +479,7 @@ func (d *DTCM_S) NewTask(id, info interface{}, args ...interface{}) *Task {
 		Sid:    d.Sid,
 		Proc:   map[string]*Proc{},
 		Info:   info,
+		Time:   util.Now(),
 		Status: TKS_RUNNING,
 	}
 	for _, cmd := range d.Cmds {
