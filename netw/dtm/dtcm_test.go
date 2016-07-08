@@ -385,8 +385,11 @@ func TestDtcm(t *testing.T) {
 	dtms.StopChecker()
 	dtms.Rate(dtms.DTM_S, "cid", "tid")
 	dtms.Hand("", routing.Shared)
+	dtms.Close()
 	//
 	fmt.Println("done...")
+	time.Sleep(time.Second)
+	// fmt.Println(http.ListenAndServe(":2324", nil))
 }
 
 func TestDtcmLoc(t *testing.T) {
@@ -420,6 +423,8 @@ func TestDtcmLoc(t *testing.T) {
 		t.Error("error")
 		return
 	}
+	dtms.Close()
+	time.Sleep(time.Second)
 }
 
 func TestParseCmds(t *testing.T) {

@@ -64,6 +64,9 @@ type Task struct {
 	Sid    string           `bson:"sid" json:"sid"`       //the server id.
 	Proc   map[string]*Proc `bson:"proc" json:"proc"`     //the proc status
 	Info   interface{}      `bson:"info" json:"info"`     //the task exit message
+	Mid    string           `bson:"mid" json:"mid"`       //the running machine id
+	Runc   int              `bson:"runc" json:"runc"`     //the run times
+	Next   int64            `bson:"next" json:"next"`     //last update time
 	Time   int64            `bson:"time" json:"time"`     //last update time
 	Status string           `bson:"status" json:"status"` //the task try time
 }
@@ -550,18 +553,24 @@ func (d *DTCM_S) AddTaskV(id, info interface{}, args ...interface{}) error {
 		// log.E("%v", err)
 		return err
 	}
+	var current, max, start = d.chk_task(task)
+	if start {
+		task.Mid = util.MID()
+	}
 	err = d.Db.Add(task)
 	if err != nil {
 		log.E("DTCM_S add task by args(%v),info(%v) error->%v", args, info, err)
 		return err
 	}
-	var current, max, res = d.do_task(task)
+	if !start {
+		log.D("DTCM_S add task success by %v matched, but runner is busy now on current(%v)/max(%v)/clients(%v), task(%v) will be pending",
+			len(task.Proc), current, max, len(d.TaskC), task.Id)
+		return nil
+	}
+	var res = d.do_task(task)
 	if res == 0 {
 		log.D("DTCM_S add task success by %v matched, task(%v) will be running, current(%v)/max(%v)/clients(%v)",
 			len(task.Proc), task.Id, current, max, len(d.TaskC))
-	} else if res == 1 {
-		log.D("DTCM_S add task success by %v matched, but runner is busy now on current(%v)/max(%v)/clients(%v), task(%v) will be pending",
-			len(task.Proc), current, max, len(d.TaskC), task.Id)
 	} else {
 		log.W("DTCM_S add task having error(code:%v) by %v matched, running status is current(%v)/max(%v)/clients(%v), task(%v) will be pending",
 			res, len(task.Proc), current, max, len(d.TaskC), task.Id)
@@ -592,27 +601,32 @@ func (d *DTCM_S) AddTaskH(hs *routing.HTTPSession) routing.HResult {
 	}
 }
 
+func (d *DTCM_S) chk_task(t *Task) (int, int, bool) {
+	var max = d.Cfg.IntValV("max", 100)
+	var current = d.DTM_S_Proc.Total()
+	return current, max, max > current+len(t.Proc)
+}
+
 // //do task, it will check running
 // func (d *DTCM_S) do_task(t *Task) (int, int, int) {
 // 	d.task_l.Lock()
 // 	defer d.task_l.Unlock()
 // 	return d.do_task_(t)
 // }
-func (d *DTCM_S) do_task(t *Task) (int, int, int) {
-	var max = d.Cfg.IntValV("max", 100)
-	var current = d.DTM_S_Proc.Total()
-	if max < current+len(t.Proc) {
-		return current, max, 1
-	}
+func (d *DTCM_S) do_task(t *Task) int {
 	d.start_task(t)
+	if !t.IsRunning() {
+		t.Mid = ""
+		t.Next = util.Now() + 3 ^ int64(t.Runc)*1000
+	}
 	var err = d.Db.Update(t)
 	if err == nil {
 		d.H.OnStart(d, t)
-		return current, max, 0
+		return 0
 	} else {
 		log.E("DTCM_S update task(%v) error->%v", t.Id, err)
 		go d.stop_task(t)
-		return current, max, 2
+		return 2
 	}
 }
 
@@ -659,6 +673,7 @@ func (d *DTCM_S) start_task(t *Task) int {
 	var err error
 	var msg string
 	var busy int = 0
+	t.Runc += 1
 	for cmd, proc := range t.Proc {
 		if proc.Status == TKS_DONE {
 			continue
@@ -811,6 +826,10 @@ func (d *DTCM_S) mark_done_v(res interface{}, cid string, task *Task, tids []str
 		delete(d.tid2task, tid)
 		delete(d.tid2proc, tid)
 	}
+	if !task.IsRunning() {
+		task.Mid = ""
+		task.Next = util.Now() + 3 ^ int64(task.Runc)*1000
+	}
 	var rerr = d.Db.Update(task)
 	if rerr == nil {
 		d.check_done(task)
@@ -834,6 +853,7 @@ func (d *DTCM_S) check_done(task *Task) {
 		d.do_done(task)
 		return
 	}
+
 	cmtry := d.Cfg.IntValV("max_try", 100)
 	if mtry < cmtry {
 		return
@@ -892,9 +912,10 @@ func (d *DTCM_S) loop_checker(delay int64) {
 
 //do checker
 func (d *DTCM_S) do_checker() {
-	var max = d.Cfg.IntValV("max", 100)
-	d.do_checker_(max)
+	// var max = d.Cfg.IntValV("max", 100)
+	d.do_checker_(1)
 }
+
 func (d *DTCM_S) do_checker_(max int) {
 	defer func() {
 		var err = recover()

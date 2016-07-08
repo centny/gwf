@@ -54,3 +54,7 @@ func ReadMachineId() []byte {
 	copy(id, hw.Sum(nil))
 	return id
 }
+
+func MID() string {
+	return hex.EncodeToString(MachineId)
+}
