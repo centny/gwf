@@ -617,7 +617,7 @@ func (d *DTCM_S) do_task(t *Task) int {
 	d.start_task(t)
 	if !t.IsRunning() {
 		t.Mid = ""
-		t.Next = util.Now() + 3 ^ int64(t.Runc)*1000
+		t.Next = util.Now() + 3 ^ int64(2*t.Runc-1)*1000
 	}
 	var err = d.Db.Update(t)
 	if err == nil {
@@ -828,7 +828,7 @@ func (d *DTCM_S) mark_done_v(res interface{}, cid string, task *Task, tids []str
 	}
 	if !task.IsRunning() {
 		task.Mid = ""
-		task.Next = util.Now() + 3 ^ int64(task.Runc)*1000
+		task.Next = util.Now() + 3 ^ int64(2*task.Runc-1)*1000
 	}
 	var rerr = d.Db.Update(task)
 	if rerr == nil {
