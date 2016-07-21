@@ -92,8 +92,14 @@ func (m *Monitor) State() (interface{}, error) {
 		})
 	}
 	sort.Sort(util.NewMapSorterV(used, "/avg", 0, true))
+	//
+	var pending = map[string]int64{}
+	for k, v := range m.Pending {
+		pending[k] = v
+	}
+	//
 	return util.Map{
 		"used":    used,
-		"pending": m.Pending,
+		"pending": pending,
 	}, nil
 }
