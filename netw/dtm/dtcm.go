@@ -965,11 +965,16 @@ func (d *DTCM_S) do_checker_(max int) {
 
 func (d *DTCM_S) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	var total, ts, err = d.Db.List(nil, hs.RVal("status"), 0, d.Cfg.IntValV("max", 100))
+	var err_msg = ""
+	if err != nil {
+		err_msg = err.Error()
+		log.E("DTCM_S list fail with error(%v)", err)
+	}
 	var res = util.Map{
 		"proc":      d.DTM_S_Proc,
 		"total":     total,
 		"running_c": len(d.tasks),
-		"err":       err,
+		"err":       err_msg,
 	}
 	if hs.RVal("tasks") == "1" {
 		res["tasks"] = ts
