@@ -249,6 +249,8 @@ type DbH interface {
 	List(running []string, status string, skip, limit int) (int, []*Task, error)
 	//find task
 	Find(id string) (*Task, error)
+	//
+	ClearSyncTask() error
 }
 
 //the database creator func
@@ -291,6 +293,9 @@ func (m *MemH) List(running []string, status string, skip, limit int) (int, []*T
 }
 func (m *MemH) Find(id string) (*Task, error) {
 	return m.Data[id], m.Errs["Find"]
+}
+func (m *MemH) ClearSyncTask() error {
+	return nil
 }
 
 type DoNoneH struct {
@@ -377,6 +382,7 @@ func NewDTCM_S(bp *pool.BytePool, cfg *util.Fcfg, dbc DB_C, h DTCM_S_H, nd impl.
 	if err != nil {
 		return nil, err
 	}
+	dbh.ClearSyncTask()
 	//
 	var cmds = cfg.Val("cmds")
 	if len(cmds) < 1 {

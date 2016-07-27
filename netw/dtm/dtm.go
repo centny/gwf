@@ -29,8 +29,14 @@ func slog(format string, args ...interface{}) {
 }
 
 const (
-	CMD_M_PROC = 10
-	CMD_M_DONE = 20
+	CMD_M_PROC   = 10
+	CMD_M_DONE   = 20
+	CMD_M_STATUS = 30
+)
+
+const (
+	DCS_ACTIVATED   = "activated"
+	DCS_UNACTIVATED = "unactivated"
 )
 
 //the DTM handler
@@ -47,6 +53,8 @@ type DTM_S_H interface {
 	OnStop(d *DTM_S, cid, tid string)
 	//done event
 	OnDone(d *DTM_S, args util.Map, cid, tid string, code int, err string, used int64)
+	//status event
+	OnStatus(d *DTM_S, cid string, args util.Map)
 	//check and return minial used client id
 	MinUsedCid(d *DTM_S, args ...interface{}) string
 	//
@@ -55,9 +63,10 @@ type DTM_S_H interface {
 
 //the default DTM process handler
 type DTM_S_Proc struct {
-	Rates map[string]map[string]float64 `json:"rates"`  //process rate
-	AllC  int                           `json:"all_c"`  //all client count
-	TaskC map[string]int                `json:"task_c"` //client count by id
+	Rates   map[string]map[string]float64 `json:"rates"`    //process rate
+	AllC    int                           `json:"all_c"`    //all client count
+	TaskC   map[string]int                `json:"task_c"`   //client count by id
+	StatusC util.Map                      `json:"status_c"` //client status by id
 	//
 	proc_l sync.RWMutex
 	cid    int64
@@ -66,11 +75,12 @@ type DTM_S_Proc struct {
 //new the default DTM process handler
 func NewDTM_S_Proc() *DTM_S_Proc {
 	return &DTM_S_Proc{
-		Rates:  map[string]map[string]float64{},
-		AllC:   0,
-		TaskC:  map[string]int{},
-		proc_l: sync.RWMutex{},
-		cid:    0,
+		Rates:   map[string]map[string]float64{},
+		AllC:    0,
+		TaskC:   map[string]int{},
+		StatusC: util.Map{},
+		proc_l:  sync.RWMutex{},
+		cid:     0,
 	}
 }
 
@@ -133,6 +143,12 @@ func (d *DTM_S_Proc) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int
 	slog("DTM_S_Proc done success with cid(%v),tid(%v),code(%v),err(%v),used(%v)", cid, tid, code, err, used)
 }
 
+func (d *DTM_S_Proc) OnStatus(dtm *DTM_S, cid string, args util.Map) {
+	d.proc_l.Lock()
+	defer d.proc_l.Unlock()
+	d.StatusC[cid] = args
+}
+
 //login event
 func (d *DTM_S_Proc) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 	d.proc_l.Lock()
@@ -140,6 +156,7 @@ func (d *DTM_S_Proc) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 	cid := atomic.AddInt64(&d.cid, 1)
 	cid_ := fmt.Sprintf("C-%v", cid)
 	d.TaskC[cid_] = 0
+	d.StatusC[cid_] = util.Map{"status": DCS_UNACTIVATED}
 	return cid_, nil
 }
 
@@ -163,9 +180,14 @@ func (d *DTM_S_Proc) OnClose(c netw.Con) {
 
 //minial used client id
 func (d *DTM_S_Proc) MinUsedCid(dtm *DTM_S, args ...interface{}) string {
+	d.proc_l.RLock()
+	defer d.proc_l.RUnlock()
 	var tcid string = ""
 	var min int = 999
 	for cid, tc := range d.TaskC {
+		if d.StatusC.StrValP("/"+cid+"/status") != DCS_ACTIVATED {
+			continue
+		}
 		if tc < min {
 			tcid = cid
 			min = tc
@@ -174,6 +196,8 @@ func (d *DTM_S_Proc) MinUsedCid(dtm *DTM_S, args ...interface{}) string {
 	return tcid
 }
 func (d *DTM_S_Proc) Rate(dtm *DTM_S, cid, tid string) float64 {
+	d.proc_l.RLock()
+	defer d.proc_l.RUnlock()
 	if cv, ok := d.Rates[cid]; ok {
 		if tv, ok := cv[tid]; ok {
 			return tv
@@ -207,12 +231,14 @@ func NewDTM_S(bp *pool.BytePool, addr string, h DTM_S_H, nd impl.ND_F, vna impl.
 		sequence: 0,
 	}
 	obdh := impl.NewOBDH()
-	obdh.AddF(CMD_M_PROC, sh.OnProc)
-	obdh.AddF(CMD_M_DONE, sh.OnDone)
+	obdh.AddF(CMD_M_PROC, sh.OnProcH)
+	obdh.AddF(CMD_M_DONE, sh.OnDoneH)
+	// obdh.AddF(CMD_M_STATUS, sh.OnStatusH)
 	lm := rc.NewRC_Listener_m(bp, addr, netw.NewCCH(h, obdh), nd, vna, v2b, b2v, nav)
 	lm.LCH = h
 	sh.RC_Listener_m = lm
 	lm.Name = "DTM_S"
+	lm.AddHFunc("change_status", sh.ChangeStatusH)
 	return sh
 }
 
@@ -223,7 +249,7 @@ func NewDTM_S_j(bp *pool.BytePool, addr string, h DTM_S_H) *DTM_S {
 }
 
 //process event impl handler
-func (d *DTM_S) OnProc(c netw.Cmd) int {
+func (d *DTM_S) OnProcH(c netw.Cmd) int {
 	var args util.Map
 	_, err := c.V(&args)
 	if err != nil {
@@ -246,7 +272,7 @@ func (d *DTM_S) OnProc(c netw.Cmd) int {
 }
 
 //done event impl handler
-func (d *DTM_S) OnDone(c netw.Cmd) int {
+func (d *DTM_S) OnDoneH(c netw.Cmd) int {
 	var args util.Map
 	_, err := c.V(&args)
 	if err != nil {
@@ -270,6 +296,11 @@ func (d *DTM_S) OnDone(c netw.Cmd) int {
 	slog("DTM_S OnDone will call handler done event by code(%v),tid(%v),err_m(%v),used(%v)", code, tid, err_m, used)
 	d.H.OnDone(d, args, d.ConCid(c), tid, code, err_m, used)
 	return 0
+}
+
+func (d *DTM_S) ChangeStatusH(rc *impl.RCM_Cmd) (interface{}, error) {
+	d.H.OnStatus(d, d.ConCid(rc), *rc.Map)
+	return util.Map{"code": 0}, nil
 }
 
 //connection event
@@ -430,6 +461,15 @@ func (d *DTM_C) OnConn(c netw.Con) bool {
 	return true
 }
 
+func (d *DTM_C) do_login(token string) {
+	var err = d.Login_(token)
+	if err != nil {
+		log.E("DTM_C login fail with error(%v)", err)
+		return
+	}
+	d.ChangeStatus(DCS_ACTIVATED, nil)
+}
+
 //connection event
 func (d *DTM_C) OnClose(c netw.Con) {
 }
@@ -522,6 +562,19 @@ func (d *DTM_C) NotifyProc(tid string, rate float64) error {
 		"tid":  tid,
 		"rate": rate,
 	})
+	return err
+}
+
+func (d *DTM_C) ChangeStatus(status string, args util.Map) error {
+	if args == nil {
+		args = util.Map{"status": status}
+	} else {
+		args["status"] = status
+	}
+	var res, err = d.VExec_m("change_status", args)
+	if err == nil && res.IntVal("code") != 0 {
+		err = util.Err("change status fail with error(%v)", util.S2Json(res))
+	}
 	return err
 }
 

@@ -6,7 +6,7 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing/httptest"
 	"github.com/Centny/gwf/util"
-	"math"
+
 	"runtime"
 	"testing"
 	"time"
@@ -42,6 +42,7 @@ func TestDtmBase(t *testing.T) {
 	dtmc.Start()
 	go dtmc.RunProcH()
 	dtmc.Login_("abc")
+	dtmc.ChangeStatus(DCS_ACTIVATED, nil)
 	fmt.Println("---->")
 	if len(dtms.CmdCs()) < 1 {
 		t.Error("clinet not found")
