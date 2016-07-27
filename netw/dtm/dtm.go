@@ -156,7 +156,7 @@ func (d *DTM_S_Proc) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 	cid := atomic.AddInt64(&d.cid, 1)
 	cid_ := fmt.Sprintf("C-%v", cid)
 	d.TaskC[cid_] = 0
-	d.StatusC[cid_] = util.Map{"status": DCS_UNACTIVATED}
+	d.StatusC[cid_] = util.Map{"status": DCS_ACTIVATED}
 	return cid_, nil
 }
 
