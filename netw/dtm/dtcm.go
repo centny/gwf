@@ -51,6 +51,7 @@ type Proc struct {
 	Tid    string      `bson:"tid" json:"tid"`       //task id
 	Cmds   string      `bson:"cmds" json:"cmds"`     //commands
 	Done   float32     `bson:"done" json:"done"`     //the complete rate
+	Code   int         `bson:"code" json:"code"`     //the task exit code
 	Msg    string      `bson:"msg" json:"msg"`       //the task exit message
 	Try    int32       `bson:"try" json:"try"`       //the task try time
 	Time   int64       `bson:"time" json:"time"`     //last update time
@@ -92,6 +93,9 @@ func (t *Task) CheckDone() (int, bool) {
 			if max_try < proc.Try {
 				max_try = proc.Try
 			}
+		}
+		if proc.Code == 413 {
+			max_try = math.MaxInt32
 		}
 	}
 	return int(max_try), max_try < 0
@@ -765,7 +769,7 @@ func (d *DTCM_S) OnStop(dtm *DTM_S, cid, tid string) {
 	d.DTM_S_Proc.OnStop(dtm, cid, tid)
 	d.task_l.Lock()
 	defer d.task_l.Unlock()
-	d.mark_done(nil, cid, tid, "STOPPED", TKS_COV_ERR)
+	d.mark_done(nil, cid, tid, 0, "STOPPED", TKS_COV_ERR)
 }
 
 //done event
@@ -774,9 +778,9 @@ func (d *DTCM_S) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int, er
 	d.task_l.Lock()
 	defer d.task_l.Unlock()
 	if code == 0 {
-		d.mark_done(args, cid, tid, "", TKS_DONE)
+		d.mark_done(args, cid, tid, code, "", TKS_DONE)
 	} else {
-		d.mark_done(args, cid, tid, fmt.Sprintf("done error (code:%v,err:%v)", code, err), TKS_COV_ERR)
+		d.mark_done(args, cid, tid, code, fmt.Sprintf("done error (code:%v,err:%v)", code, err), TKS_COV_ERR)
 	}
 	go d.do_checker_(1)
 	slog("DTCM_S done success with cid(%v),tid(%v),code(%v),err(%v),used(%v)", cid, tid, code, err, used)
@@ -803,21 +807,21 @@ func (d *DTCM_S) OnClose(c netw.Con) {
 		tids[task.Id] = append(tids[task.Id], tid)
 	}
 	for tid, task := range tasks {
-		d.mark_done_v(nil, cid, task, tids[tid], "Runner Closed", TKS_COV_ERR)
+		d.mark_done_v(nil, cid, task, tids[tid], 0, "Runner Closed", TKS_COV_ERR)
 	}
 }
 
 //mark task done
-func (d *DTCM_S) mark_done(res interface{}, cid, tid, msg, status string) {
+func (d *DTCM_S) mark_done(res interface{}, cid, tid string, code int, msg, status string) {
 	var task = d.tid2task[tid]
 	if task == nil {
 		log.E("DTCM_S mark done task error(not found) by tid(%v)", tid)
 		return
 	}
 	log.D("DTCM_S runner(%v/%v) is done on task(%v)", tid, cid, task.Id)
-	d.mark_done_v(res, cid, task, []string{tid}, msg, status)
+	d.mark_done_v(res, cid, task, []string{tid}, code, msg, status)
 }
-func (d *DTCM_S) mark_done_v(res interface{}, cid string, task *Task, tids []string, msg, status string) {
+func (d *DTCM_S) mark_done_v(res interface{}, cid string, task *Task, tids []string, code int, msg, status string) {
 	for _, tid := range tids {
 		var proc = task.Proc[d.tid2proc[tid]]
 		if proc == nil {
@@ -826,6 +830,7 @@ func (d *DTCM_S) mark_done_v(res interface{}, cid string, task *Task, tids []str
 		proc.Cid = ""
 		proc.Tid = ""
 		proc.Time = util.Now()
+		proc.Code = code
 		proc.Msg = msg
 		proc.Status = status
 		proc.Res = res
@@ -860,7 +865,6 @@ func (d *DTCM_S) check_done(task *Task) {
 		d.do_done(task)
 		return
 	}
-
 	cmtry := d.Cfg.IntValV("max_try", 100)
 	if mtry < cmtry {
 		return
