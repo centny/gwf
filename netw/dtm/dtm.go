@@ -299,6 +299,7 @@ func (d *DTM_S) OnDoneH(c netw.Cmd) int {
 }
 
 func (d *DTM_S) ChangeStatusH(rc *impl.RCM_Cmd) (interface{}, error) {
+	slog("DTM_S change status to %v", util.S2Json(rc.Map))
 	d.H.OnStatus(d, d.ConCid(rc), *rc.Map)
 	return util.Map{"code": 0}, nil
 }
