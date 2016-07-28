@@ -251,7 +251,7 @@ type DbH interface {
 	//delete task to db
 	Del(t *Task) error
 	//list task from db
-	List(running []string, status string, skip, limit int) (int, []*Task, error)
+	List(mid string, running []string, status string, skip, limit int) (int, []*Task, error)
 	//find task
 	Find(id string) (*Task, error)
 	//
@@ -287,7 +287,7 @@ func (m *MemH) Del(t *Task) error {
 	delete(m.Data, t.Id)
 	return m.Errs["Del"]
 }
-func (m *MemH) List(running []string, status string, skip, limit int) (int, []*Task, error) {
+func (m *MemH) List(mid string, running []string, status string, skip, limit int) (int, []*Task, error) {
 	var ts []*Task
 	for _, task := range m.Data {
 		if task.Status == status || len(status) < 1 {
@@ -926,7 +926,7 @@ func (d *DTCM_S) loop_checker(delay int64) {
 //do checker
 func (d *DTCM_S) do_checker() {
 	// var max = d.Cfg.IntValV("max", 100)
-	d.do_checker_(1)
+	d.do_checker_(10)
 }
 
 func (d *DTCM_S) do_checker_(max int) {
@@ -946,7 +946,7 @@ func (d *DTCM_S) do_checker_(max int) {
 		rids = append(rids, rid)
 	}
 	d.task_l.Unlock()
-	total, ts, err := d.Db.List(rids, TKS_RUNNING, 0, max)
+	total, ts, err := d.Db.List(util.MID(), rids, TKS_RUNNING, 0, max)
 	if err != nil {
 		log.E("DTCM_S do check error->%v", err)
 		return
@@ -976,7 +976,7 @@ func (d *DTCM_S) do_checker_(max int) {
 }
 
 func (d *DTCM_S) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
-	var total, ts, err = d.Db.List(nil, hs.RVal("status"), 0, d.Cfg.IntValV("max", 100))
+	var total, ts, err = d.Db.List("", nil, hs.RVal("status"), 0, d.Cfg.IntValV("max", 100))
 	var err_msg = ""
 	if err != nil {
 		err_msg = err.Error()
