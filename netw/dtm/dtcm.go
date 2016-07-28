@@ -70,6 +70,7 @@ type Task struct {
 	Runc   int              `bson:"runc" json:"runc"`     //the run times
 	Next   int64            `bson:"next" json:"next"`     //last update time
 	Time   int64            `bson:"time" json:"time"`     //last update time
+	Code   int              `bson:"code" json:"code"`     //the task exit code
 	Status string           `bson:"status" json:"status"` //the task try time
 }
 
@@ -838,6 +839,7 @@ func (d *DTCM_S) mark_done_v(res interface{}, cid string, task *Task, tids []str
 		delete(d.tid2task, tid)
 		delete(d.tid2proc, tid)
 	}
+	task.Code = code
 	if !task.IsRunning() {
 		task.Mid = ""
 		task.Next = util.Now() + 3 ^ int64(2*task.Runc-1)*1000
