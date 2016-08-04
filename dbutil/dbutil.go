@@ -431,3 +431,11 @@ func CovInvI(vals []int64) string {
 	}
 	return strings.Join(nvals, ",")
 }
+
+func DbStrJoin(val []string) string {
+	var tval = []string{}
+	for _, v := range val {
+		tval = append(tval, fmt.Sprintf("\"%v\"", v))
+	}
+	return strings.Join(tval, ",")
+}

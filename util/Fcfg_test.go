@@ -26,6 +26,13 @@ func TestInit(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+	if f.Val("abc_conf") != `1
+2
+3` {
+		fmt.Println("->\n", f.Val("abc_conf"))
+		t.Error("error")
+		return
+	}
 	for key, val := range f.Map {
 		fmt.Println(key, ":", val)
 	}
@@ -37,6 +44,8 @@ func TestInit(t *testing.T) {
 	fmt.Println(f.FloatVal("floata"))
 	fmt.Println(f.FloatVal("nfound"))
 	fmt.Println(f.FloatVal("a"))
+	fmt.Println(f.Val("abc_conf"))
+	fmt.Println("\n\n\n\n")
 	f.Del("nfound")
 	f.Del("a")
 	fmt.Println(f.Show())

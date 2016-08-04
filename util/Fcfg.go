@@ -265,6 +265,33 @@ func (f *Fcfg) InitWithReader2(base string, reader *bufio.Reader) error {
 	}
 	return nil
 }
+func (f *Fcfg) InitWithConfReader2(reader *bufio.Reader) error {
+	var key string = ""
+	var val string = ""
+	for {
+		//read one line
+		bys, err := ReadLine(reader, 10000, false)
+		if err != nil {
+			if len(key) > 0 {
+				f.Map[key] = strings.Trim(val, "\n")
+				key, val = "", ""
+			}
+			break
+		}
+		line := string(bys)
+		if regexp.MustCompile("^\\[[^\\]]*\\][\t ]*$").MatchString(line) {
+			sec := strings.Trim(line, "\t []")
+			if len(key) > 0 {
+				f.Map[key] = strings.Trim(val, "\n")
+				key, val = "", ""
+			}
+			key = sec
+		} else {
+			val += line + "\n"
+		}
+	}
+	return nil
+}
 
 func (f *Fcfg) exec(base, line string) error {
 	ps := strings.Split(line, "#")
@@ -350,7 +377,11 @@ func (f *Fcfg) InitWithFile(tfile *os.File) error {
 	if !strings.HasSuffix(dir, "/") {
 		dir += string(filepath.Separator)
 	}
-	return f.InitWithReader2(dir, reader)
+	if strings.HasSuffix(tfile.Name(), ".conf") {
+		return f.InitWithConfReader2(reader)
+	} else {
+		return f.InitWithReader2(dir, reader)
+	}
 }
 
 //initial the configure by network .properties URL.
@@ -378,9 +409,13 @@ func (f *Fcfg) InitWithURL2(url string, wait bool) error {
 	if err == nil {
 		turl, _ := nurl.Parse(url)
 		turl.Path, _ = filepath.Split(turl.Path)
-		return f.InitWithReader2(
-			fmt.Sprintf("%v://%v%v", turl.Scheme, turl.Host, turl.Path),
-			bufio.NewReader(bytes.NewBufferString(sres)))
+		if strings.HasSuffix(turl.Path, ".conf") {
+			return f.InitWithConfReader2(bufio.NewReader(bytes.NewBufferString(sres)))
+		} else {
+			return f.InitWithReader2(
+				fmt.Sprintf("%v://%v%v", turl.Scheme, turl.Host, turl.Path),
+				bufio.NewReader(bytes.NewBufferString(sres)))
+		}
 	} else {
 		return err
 	}
@@ -388,6 +423,7 @@ func (f *Fcfg) InitWithURL2(url string, wait bool) error {
 func (f *Fcfg) InitWithData(data string) error {
 	return f.InitWithReader(bufio.NewReader(bytes.NewBufferString(data)))
 }
+
 func (f *Fcfg) EnvReplace(val string) string {
 	return f.EnvReplaceV(val, false)
 }
