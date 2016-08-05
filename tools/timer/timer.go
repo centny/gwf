@@ -42,6 +42,7 @@ func RegisterV(delay int64, id string, t Timer) {
 		go loop_timer()
 	}
 	timer_lck.Unlock()
+	log.D("Register timer(%v/%v) success", id, t.Name())
 }
 
 func Register(delay int64, t Timer) {
@@ -54,11 +55,17 @@ func Register2(delay int64, f func(uint64) error) {
 
 func RemoveV(id string) {
 	timer_lck.Lock()
+	var t = timer_m[id]
 	delete(timer_m, id)
 	delete(timer_d, id)
 	delete(timer_l, id)
 	delete(timer_i, id)
 	timer_lck.Unlock()
+	if t == nil {
+		log.W("Register timer(%v) fail with not found", id)
+	} else {
+		log.D("Register timer(%v/%v) success", id, t.Name())
+	}
 }
 
 func Remove(t Timer) {
