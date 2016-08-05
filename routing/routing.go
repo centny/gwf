@@ -444,6 +444,12 @@ func (h *HTTPSession) JsonRes(data interface{}) error {
 	h.W.Write(dbys)
 	return nil
 }
+func (h *HTTPSession) MsgResF(code int, data interface{}) HResult {
+	h.V = data
+	h.W.Header().Set("Content-Type", "application/json;charset=utf-8")
+	fmt.Fprintf(h.W, `{"code":%v,"data":%v}`, code, data)
+	return HRES_RETURN
+}
 func (h *HTTPSession) MsgRes(data interface{}) HResult {
 	return h.JRes(http_res(0, data, "", ""))
 }
