@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -47,8 +48,10 @@ func DbRow2Map(rows *sql.Rows) []util.Map {
 				mm[field] = vv.Int()
 			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 				mm[field] = vv.Uint()
-			case reflect.Float32, reflect.Float64:
-				mm[field] = vv.Float()
+			case reflect.Float32:
+				mm[field], _ = strconv.ParseFloat(fmt.Sprintf("%v", vv.Interface()), 64)
+			case reflect.Float64:
+				mm[field] = vv.Interface().(float64)
 			case reflect.Slice:
 				mm[field] = string(rawValue.Interface().([]byte))
 			case reflect.String:
@@ -293,6 +296,47 @@ func DbQueryString2(tx *sql.Tx, query string, args ...interface{}) ([]string, er
 	rv := []string{}
 	for rows.Next() {
 		var sv string
+		rows.Scan(&sv)
+		rv = append(rv, sv)
+	}
+	return rv, nil
+}
+
+func DbQueryInterface(db *sql.DB, query string, args ...interface{}) ([]interface{}, error) {
+	if db == nil {
+		return nil, errors.New("db is nil")
+	}
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	rv := []interface{}{}
+	for rows.Next() {
+		var sv interface{}
+		rows.Scan(&sv)
+		rv = append(rv, sv)
+	}
+	return rv, nil
+}
+
+func DbQueryInterface2(tx *sql.Tx, query string, args ...interface{}) ([]interface{}, error) {
+	if tx == nil {
+		return nil, errors.New("tx is nil")
+	}
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query(args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	rv := []interface{}{}
+	for rows.Next() {
+		var sv interface{}
 		rows.Scan(&sv)
 		rv = append(rv, sv)
 	}
