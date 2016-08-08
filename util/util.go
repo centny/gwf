@@ -420,31 +420,31 @@ func Md5(fn string) (string, error) {
 	}
 	sha_h := md5.New()
 	_, err = bufio.NewReader(f).WriteTo(sha_h)
-	return fmt.Sprintf("%x", sha_h.Sum(nil)), err
+	return base64.StdEncoding.EncodeToString(sha_h.Sum(nil)), err
 }
 
 func Md5_b(bys []byte) string {
 	md5_h := md5.New()
 	md5_h.Write(bys)
-	return fmt.Sprintf("%x", md5_h.Sum(nil))
+	return base64.StdEncoding.EncodeToString(md5_h.Sum(nil))
 }
 
 func Sha1_b(bys []byte) string {
 	sha_h := sha1.New()
 	sha_h.Write(bys)
-	return fmt.Sprintf("%x", sha_h.Sum(nil))
+	return base64.StdEncoding.EncodeToString(sha_h.Sum(nil))
 }
 
 func Sha256_b(bys []byte) string {
 	sha_h := sha256.New()
 	sha_h.Write(bys)
-	return fmt.Sprintf("%x", sha_h.Sum(nil))
+	return base64.StdEncoding.EncodeToString(sha_h.Sum(nil))
 }
 
 func Sha512_b(bys []byte) string {
 	sha_h := sha512.New()
 	sha_h.Write(bys)
-	return fmt.Sprintf("%x", sha_h.Sum(nil))
+	return base64.StdEncoding.EncodeToString(sha_h.Sum(nil))
 }
 
 func ChkVer(n string, o string) (int, error) {
