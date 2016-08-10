@@ -93,7 +93,7 @@ func M2S(m Map, dest interface{}) {
 				if len(df) < 1 {
 					df = D_DATEFORMAT
 				}
-				t, err := time.Parse(df, v.(string))
+				t, err := time.ParseInLocation(df, v.(string), time.Local)
 				if err != nil {
 					slog("%v", err.Error())
 					continue

@@ -166,6 +166,9 @@ func Time(timestamp int64) time.Time {
 func Now() int64 {
 	return Timestamp(time.Now())
 }
+func NowSec() int64 {
+	return Timestamp(time.Now()) / 1000 * 1000
+}
 func AryExist(ary interface{}, obj interface{}) bool {
 	switch reflect.TypeOf(ary).Kind() {
 	case reflect.Slice:

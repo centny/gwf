@@ -504,3 +504,27 @@ func TestReflectName(t *testing.T) {
 	fmt.Println(ReflectName(abc3))
 	fmt.Println(FuncName(TestReflectName))
 }
+
+func TestATime(t *testing.T) {
+	sv := "2016-08-10 22:48:47"
+	xx, _ := time.ParseInLocation("2006-01-02 15:04:05", sv, time.Local)
+	if xx.Format("2006-01-02 15:04:05") != sv {
+		t.Error("error")
+		return
+	}
+	if Time(1470840527000).Format("2006-01-02 15:04:05") != sv {
+		t.Error("error")
+		return
+	}
+	if Time(Timestamp(xx)).Format("2006-01-02 15:04:05") != sv {
+		t.Error("error")
+		return
+	}
+	if Timestamp(xx) != 1470840527000 {
+		t.Error("error")
+		return
+	}
+	// fmt.Println(util.Timestamp(xx))
+	// fmt.Println(util.Time(1470840527000).Format("2006-01-02 15:04:05"))
+	// fmt.Println(util.Timestamp(xx), 1470869327000, 1470840527000)
+}
