@@ -297,7 +297,11 @@ func (m *MemH) List(mid string, running []string, status string, skip, limit int
 	return len(m.Data), ts, m.Errs["List"]
 }
 func (m *MemH) Find(id string) (*Task, error) {
-	return m.Data[id], m.Errs["Find"]
+	if t := m.Data[id]; t != nil {
+		return t, m.Errs["Find"]
+	} else {
+		return nil, util.NOT_FOUND
+	}
 }
 func (m *MemH) ClearSyncTask() error {
 	return nil
@@ -548,16 +552,17 @@ func (d *DTCM_S) AddTaskV(id, info interface{}, args ...interface{}) error {
 		return err
 	}
 	task, err := d.Db.Find(fmt.Sprintf("%v", id))
-	if err != nil {
-		err = util.Err("DTCM_S find task by id(%v) error->%v",
-			id, err)
-		return err
-	}
-	if task != nil {
-		err = util.Err("DTCM_S add task fail by id(%v),args(%v)->the task is already exist->%v",
-			id, util.S2Json(args), util.S2Json(task))
-		log.E("%v", err)
-		return err
+	if err != util.NOT_FOUND {
+		if err != nil {
+			err = util.Err("DTCM_S find task by id(%v) error->%v",
+				id, err)
+			return err
+		} else {
+			err = util.Err("DTCM_S add task fail by id(%v),args(%v)->the task is already exist->%v",
+				id, util.S2Json(args), util.S2Json(task))
+			log.E("%v", err)
+			return err
+		}
 	}
 	task = d.NewTask(id, info, args...)
 	if len(task.Proc) < 1 {

@@ -32,7 +32,8 @@ func (m *Mem_err) Del(t *Task) error {
 	delete(m.Data, t.Id)
 	return m.E3
 }
-func (m *Mem_err) List(rids []string, status string, skip, limit int) (int, []*Task, error) {
+
+func (m *Mem_err) List(mid string, rids []string, status string, skip, limit int) (int, []*Task, error) {
 	var ts []*Task
 	for _, task := range m.Data {
 		ts = append(ts, task)
@@ -40,7 +41,15 @@ func (m *Mem_err) List(rids []string, status string, skip, limit int) (int, []*T
 	return len(m.Data), ts, m.E4
 }
 func (m *Mem_err) Find(id string) (*Task, error) {
-	return m.Data[id], m.E5
+	if t := m.Data[id]; t != nil {
+		return t, m.E5
+	} else {
+		return nil, util.NOT_FOUND
+	}
+}
+
+func (m *Mem_err) ClearSyncTask() error {
+	return nil
 }
 
 type dtcm_s_h struct {
@@ -293,7 +302,7 @@ func TestDtcm(t *testing.T) {
 	tdb.E2 = util.Err("mock error")
 	err = dtms.AddTask(nil, "abc.mkv", "fsf")
 	if err != nil {
-		t.Error("error")
+		t.Error(err)
 		return
 	}
 	err = dtms.AddTask(nil, "abc.mkv", "fsf")
