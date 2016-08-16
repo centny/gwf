@@ -650,8 +650,11 @@ func (d *DTCM_S) do_task(t *Task) int {
 func (d *DTCM_S) min_used_cid(t *Task, proc *Proc) (string, string) {
 	var tcid string = ""
 	var min int = 999
-	var nm_c, nm_m = 0, 0
+	var not_match_c, not_match_max = 0, 0
 	for cid, tc := range d.TaskC {
+		if d.StatusC.StrValP("/"+cid+"/status") != DCS_ACTIVATED {
+			continue
+		}
 		var msgc = d.MsgC(cid)
 		if msgc == nil {
 			log.E("DTCM_S client not found by id(%v)", cid)
@@ -660,11 +663,11 @@ func (d *DTCM_S) min_used_cid(t *Task, proc *Proc) (string, string) {
 		var token = msgc.Kvs().StrVal("token")
 		var client = d.T2C[token]
 		if !client.Match(t.Args...) {
-			nm_c += 1
+			not_match_c += 1
 			continue
 		}
 		if tc >= client.Max {
-			nm_m += 1
+			not_match_max += 1
 			continue
 		}
 		if tc < min {
@@ -676,7 +679,7 @@ func (d *DTCM_S) min_used_cid(t *Task, proc *Proc) (string, string) {
 		//matched
 		return tcid, ""
 	}
-	if nm_m > 0 {
+	if not_match_max > 0 {
 		//client matched, but busy
 		return "", "all client is busy"
 	} else {
