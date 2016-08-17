@@ -174,6 +174,7 @@ func (d *DTM_S_Proc) OnClose(c netw.Con) {
 		d.AllC -= d.TaskC[cid]
 		delete(d.TaskC, cid)
 		delete(d.Rates, cid)
+		delete(d.StatusC, cid)
 	}
 	slog("DTM_S_Proc close success with cid(%v", cid)
 }
