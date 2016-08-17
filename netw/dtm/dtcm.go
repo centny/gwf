@@ -872,7 +872,7 @@ func (d *DTCM_S) check_done(task *Task) {
 	delete(d.tasks, task.Id)
 	mtry, done := task.CheckDone()
 	if done {
-		d.do_done(task)
+		d.do_done(task, true)
 		return
 	}
 	cmtry := d.Cfg.IntValV("max_try", 100)
@@ -885,15 +885,19 @@ func (d *DTCM_S) check_done(task *Task) {
 	if rerr != nil {
 		log.E("DTCM_S update task error by %v ->%v", util.S2Json(task), rerr)
 	}
+	d.do_done(task, false)
+
 }
 
 //do done
-func (d *DTCM_S) do_done(task *Task) {
+func (d *DTCM_S) do_done(task *Task, del bool) {
 	var err = d.H.OnDone(d, task)
 	if err == nil {
-		err = d.Db.Del(task)
-		if err != nil {
-			log.E("DTCM_S delete task error by %v ->%v", util.S2Json(task), err)
+		if del {
+			err = d.Db.Del(task)
+			if err != nil {
+				log.E("DTCM_S delete task error by %v ->%v", util.S2Json(task), err)
+			}
 		}
 		return
 	}
@@ -970,7 +974,7 @@ func (d *DTCM_S) do_checker_(max int) {
 		}
 		if task.IsDone() {
 			d.task_l.Lock()
-			d.do_done(task)
+			d.do_done(task, true)
 			d.task_l.Unlock()
 			continue
 		}
