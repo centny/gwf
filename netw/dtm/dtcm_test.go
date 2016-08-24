@@ -113,6 +113,9 @@ func TestDtcm(t *testing.T) {
 		return
 	}
 	var dtmc = StartDTM_C(cfg_c)
+	fmt.Println("xxx->")
+	// dtmc.ChangeStatus(DCS_ACTIVATED, nil)
+	// time.Sleep(1000 * time.Second)
 	//
 	func() {
 		var cfg_c_x = util.NewFcfg3()
@@ -123,6 +126,7 @@ func TestDtcm(t *testing.T) {
 		}
 		cfg_c_x.SetVal("token", "ax1")
 		StartDTM_C(cfg_c_x)
+
 	}()
 	time.Sleep(time.Second)
 	fmt.Println("---->")

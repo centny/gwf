@@ -417,6 +417,7 @@ type DTM_C struct {
 	Tasks   map[string]*exec.Cmd //running task
 	tasks_l sync.RWMutex
 	tasks_c map[string]chan string
+	OnLogin func(c netw.Con, token string, err error)
 }
 
 //new the distributed task manager client impl
@@ -458,18 +459,23 @@ func (d *DTM_C) OnConn(c netw.Con) bool {
 	c.SetWait(true)
 	var token = d.Cfg.Val("token")
 	if len(token) > 0 {
-		go d.Login_(token)
+		go d.do_login(c, token)
 	}
 	return true
 }
 
-func (d *DTM_C) do_login(token string) {
+func (d *DTM_C) do_login(c netw.Con, token string) {
 	var err = d.Login_(token)
 	if err != nil {
 		log.E("DTM_C login fail with error(%v)", err)
+	}
+	if d.OnLogin != nil {
+		d.OnLogin(c, token, err)
 		return
 	}
-	d.ChangeStatus(DCS_ACTIVATED, nil)
+	if err == nil {
+		d.ChangeStatus(DCS_ACTIVATED, nil)
+	}
 }
 
 //connection event
@@ -573,6 +579,7 @@ func (d *DTM_C) ChangeStatus(status string, args util.Map) error {
 	} else {
 		args["status"] = status
 	}
+	log.D("DTM_C do change status to %v", status)
 	var res, err = d.VExec_m("change_status", args)
 	if err == nil && res.IntVal("code") != 0 {
 		err = util.Err("change status fail with error(%v)", util.S2Json(res))
