@@ -124,7 +124,9 @@ func (l *Listener) do_run(con net.Conn) {
 func (l *Listener) Close() {
 	l.Running = false
 	l.LConPool.Close()
-	l.L.Close()
+	if l.L != nil {
+		l.L.Close()
+	}
 }
 
 //wait the listener close.

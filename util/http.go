@@ -241,30 +241,34 @@ func (h *HClient) HTTPPost2(url string, fields map[string]string) Map {
 }
 
 func (h *HClient) DLoad(spath string, header map[string]string, ufmt string, args ...interface{}) error {
+	_, err := h.DLoadV(spath, header, ufmt, args...)
+	return err
+}
+func (h *HClient) DLoadV(spath string, header map[string]string, ufmt string, args ...interface{}) (int64, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf(ufmt, args...), nil)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	for k, v := range header {
 		req.Header.Set(k, v)
 	}
 	res, err := h.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if res.StatusCode != 200 {
-		return Err("http response code:%v", res.StatusCode)
+		return 0, Err("http response code:%v", res.StatusCode)
 	}
 	f, err := os.OpenFile(spath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer f.Close()
 	defer res.Body.Close()
 	buf := bufio.NewWriter(f)
-	_, err = io.Copy(buf, res.Body)
+	dlen, err := io.Copy(buf, res.Body)
 	buf.Flush()
-	return err
+	return dlen, err
 }
 
 func HGet(ufmt string, args ...interface{}) (string, error) {
@@ -272,6 +276,9 @@ func HGet(ufmt string, args ...interface{}) (string, error) {
 }
 func HGet2(ufmt string, args ...interface{}) (Map, error) {
 	return HTTPClient.HGet2(ufmt, args...)
+}
+func HGet3(ufmt string, args ...interface{}) (int, string, error) {
+	return HTTPClient.HGet_H(nil, ufmt, args...)
 }
 func HPost(url string, fields map[string]string) (string, error) {
 	return HTTPClient.HPost(url, fields)
@@ -333,6 +340,10 @@ func HTTPPost2(url string, fields map[string]string) Map {
 
 func DLoad(spath string, ufmt string, args ...interface{}) error {
 	return HTTPClient.DLoad(spath, map[string]string{}, ufmt, args...)
+}
+
+func DLoadV(spath string, ufmt string, args ...interface{}) (int64, error) {
+	return HTTPClient.DLoadV(spath, map[string]string{}, ufmt, args...)
 }
 
 func readAllStr(r io.Reader) (string, error) {

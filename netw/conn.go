@@ -69,10 +69,11 @@ func DailN(p *pool.BytePool, addr string, h CCHandler, ncf NewConF) (*NConPool, 
 }
 
 type AutoDailer struct {
-	Addrs   map[Con]string
-	a_lck   sync.RWMutex
-	Running bool
-	Dail    func(addr string) (Con, error)
+	Addrs      map[Con]string
+	a_lck      sync.RWMutex
+	Running    bool
+	Dail       func(addr string) (Con, error)
+	OnDailFail func(addr string, err error)
 }
 
 func NewAutoDailer() *AutoDailer {
@@ -116,6 +117,9 @@ func (a *AutoDailer) Try(addr string) error {
 			a.Addrs[con] = addr
 			a.a_lck.Unlock()
 			break
+		}
+		if a.OnDailFail != nil {
+			a.OnDailFail(addr, err)
 		}
 		if tempDelay == 0 {
 			tempDelay = 5 * time.Millisecond

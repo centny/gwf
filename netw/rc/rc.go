@@ -187,6 +187,7 @@ func NewRC_Listener_m(p *pool.BytePool, port string, h netw.CCHandler, nd impl.N
 	rcl.RCH = NewRC_Cmd_h()
 	rcl.RCH.H = h
 	rcl.RCH.L = rcl
+	rcl.LCH = rcl.RCH
 	rcl.OH.AddH(CMD_C, rcl.RCH)
 	//
 	rcl.CH = impl.NewChanH(rcl.OH)
