@@ -407,10 +407,18 @@ func (r *RC_Runner_m) Writev2(bys []byte, val interface{}) (int, error) {
 }
 
 func (r *RC_Runner_m) Login_(token string) error {
+	return r.LoginV(token, nil)
+}
+func (r *RC_Runner_m) LoginV(token string, args util.Map) error {
 	log.I("RC_Runner_m(%v) login by token(%v)", r.Name, token)
-	res, err := r.VExec_m("login_", util.Map{
-		"token": token,
-	})
+	if args == nil {
+		args = util.Map{
+			"token": token,
+		}
+	} else {
+		args["token"] = token
+	}
+	res, err := r.VExec_m("login_", args)
 	if err != nil {
 		return err
 	}
@@ -472,12 +480,23 @@ func (r *RC_Runner_m) State() (interface{}, error) {
 }
 
 type AutoLoginH struct {
-	Runner *RC_Runner_m
-	Token  string
+	Runner  *RC_Runner_m
+	Token   string
+	OnLogin func(a *AutoLoginH, err error)
 }
 
+func NewAutoLoginH(token string) *AutoLoginH {
+	return &AutoLoginH{
+		Token: token,
+	}
+}
 func (a *AutoLoginH) OnConn(c netw.Con) bool {
-	go a.Runner.Login_(a.Token)
+	go func() {
+		var err = a.Runner.Login_(a.Token)
+		if a.OnLogin != nil {
+			a.OnLogin(a, err)
+		}
+	}()
 	return true
 }
 

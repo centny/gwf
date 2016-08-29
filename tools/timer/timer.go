@@ -28,17 +28,20 @@ var timer_m = map[string]Timer{}  //id map to timer
 var timer_d = map[string]int64{}  //id map to delay
 var timer_l = map[string]int64{}  //id map to last
 var timer_i = map[string]uint64{} //id map to index
+var timer_w = map[string]bool{}   //id map to index
+var running = map[string]bool{}
 var timer_lck = sync.RWMutex{}
-var running = false
+var trunning = false
 
-func RegisterV(delay int64, id string, t Timer) {
+func RegisterV(delay int64, id string, t Timer, wait bool) {
 	timer_lck.Lock()
 	timer_m[id] = t
 	timer_d[id] = delay / 100 * 100
 	timer_l[id] = util.Now()
 	timer_i[id] = 0
-	if !running {
-		running = true
+	timer_w[id] = wait
+	if !trunning {
+		trunning = true
 		go loop_timer()
 	}
 	timer_lck.Unlock()
@@ -46,11 +49,19 @@ func RegisterV(delay int64, id string, t Timer) {
 }
 
 func Register(delay int64, t Timer) {
-	RegisterV(delay, fmt.Sprintf("%p", t), t)
+	RegisterV(delay, fmt.Sprintf("%p", t), t, false)
 }
 
 func Register2(delay int64, f func(uint64) error) {
-	RegisterV(delay, fmt.Sprintf("%p", f), TimerF(f))
+	RegisterV(delay, fmt.Sprintf("%p", f), TimerF(f), false)
+}
+
+func Register3(delay int64, t Timer, wait bool) {
+	RegisterV(delay, fmt.Sprintf("%p", t), t, wait)
+}
+
+func Register4(delay int64, f func(uint64) error, wait bool) {
+	RegisterV(delay, fmt.Sprintf("%p", f), TimerF(f), wait)
 }
 
 func RemoveV(id string) {
@@ -78,32 +89,40 @@ func Remove2(f func(uint64) error) {
 
 func Stop() {
 	timer_lck.Lock()
-	running = false
+	trunning = false
 	timer_lck.Unlock()
 }
 
 func loop_timer() {
-	for running {
+	for trunning {
 		timer_lck.RLock()
 		now := util.Now()
 		for id, t := range timer_m {
-			if now-timer_l[id] >= timer_d[id] {
-				timer_l[id] = now
-				timer_i[id] += 1
-				go run_timer(t, timer_i[id])
+			if now-timer_l[id] < timer_d[id] {
+				continue
 			}
+			if timer_w[id] && running[id] {
+				continue
+			}
+			running[id] = true
+			timer_l[id] = now
+			timer_i[id] += 1
+			go run_timer(id, t, timer_i[id])
 		}
 		timer_lck.RUnlock()
 		time.Sleep(100 * time.Millisecond)
 	}
 }
 
-func run_timer(t Timer, i uint64) {
+func run_timer(id string, t Timer, i uint64) {
 	defer func() {
 		var err = recover()
 		if err != nil {
 			log.E("timer calling on timer(%v) panic(%v) with stack:\n", t.Name(), err, util.CallStatck())
 		}
+		timer_lck.Lock()
+		running[id] = false
+		timer_lck.Unlock()
 	}()
 	var err = t.OnTime(i)
 	if err != nil {

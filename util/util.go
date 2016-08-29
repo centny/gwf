@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -113,6 +114,14 @@ func FCopy(src string, dst string) error {
 	defer df.Close()
 	_, err = io.Copy(df, sf)
 	return err
+}
+func FRead(paths ...string) ([]byte, error) {
+	for _, path := range paths {
+		if Fexists(path) {
+			return ioutil.ReadFile(path)
+		}
+	}
+	return nil, os.ErrNotExist
 }
 func ReadLine(r *bufio.Reader, limit int, end bool) ([]byte, error) {
 	var last int64
