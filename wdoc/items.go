@@ -10,7 +10,7 @@ const DESC_L = 2
 
 //the web api doc
 type Wdoc struct {
-	XMLName xml.Name       `xml:"coverage"`
+	XMLName xml.Name       `xml:"coverage" json:"-"`
 	Tags    map[string]int `json:"tags,omitempty" xml:"-"`                //all tags
 	Pkgs    []*Pkg         `json:"pkgs,omitempty" xml:"packages>package"` //packages
 	Rate    float32        `json:"rate,omitempty" xml:"line-rate,attr"`   //rate
@@ -87,8 +87,9 @@ type Func struct {
 	Author   *Author   `json:"author,omitempty" xml:"-"`       //the func author
 	WS       []*Web    `json:"ws,omitempty" xml:"-"`           //the func web
 	See      []*See    `json:"see,omitempty" xml:"-"`          //the func see
-	Methods  []*Method `json:"-" xml:"methods>method"`         //the methods
-	Filename string    `json:"-" xml:"filename,attr"`          //the filename
+	Case     []*Case   `json:"case,omitempty" xml:"-"`
+	Methods  []*Method `json:"-" xml:"methods>method"` //the methods
+	Filename string    `json:"-" xml:"filename,attr"`  //the filename
 }
 
 func (f *Func) RateV() {
@@ -216,6 +217,17 @@ type Item struct {
 	Name string `json:"name,omitempty"` //the item name
 	Type string `json:"type,omitempty"` //the item type
 	Desc string `json:"desc,omitempty"` //the item desc
+}
+
+type Case struct {
+	WS   []*Web   `json:"ws,omitempty"`
+	Keys []string `json:"keys,omitempty"`
+	Text *Text    `json:"text,omitempty"`
+}
+
+type Text struct {
+	Title string `json:"title,omitempty"`
+	Desc  string `json:"desc,omitempty"`
 }
 
 func (i *Item) Hits() int {

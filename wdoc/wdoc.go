@@ -3,6 +3,7 @@
 package wdoc
 
 import (
+	"fmt"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
@@ -11,9 +12,11 @@ import (
 	"go/token"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -27,6 +30,7 @@ var RET_REG = regexp.MustCompile("^[^\\t]*\\t(S|I|F|A|O|V|string|int|float|array
 var multi_t = regexp.MustCompile("\t+")
 var json_m = regexp.MustCompile("(?s)^\\{.*\\}$")
 var cmd_m = regexp.MustCompile("\\@[a-z]*\\,")
+var sub_cmd_m = regexp.MustCompile("\\#[a-z]*\\([^\\)].*\\)")
 
 //Parser handler.
 type Handler interface {
@@ -104,8 +108,9 @@ type Parser struct {
 	PS      map[string]*ast.Package
 	FS      map[string]map[string]*ast.FuncDecl
 	Web     *Webs
-
-	doc *Wdoc //temp
+	Case    *Cases
+	doc     *Wdoc //temp
+	lck     sync.RWMutex
 }
 
 //create parser
@@ -117,6 +122,7 @@ func NewParser(pkg_pre, web_pre, cmdf string) *Parser {
 		PS:     map[string]*ast.Package{},
 		FS:     map[string]map[string]*ast.FuncDecl{},
 		Web:    NewWebs(web_pre+"/html", cmdf),
+		Case:   NewCases(),
 	}
 }
 
@@ -349,18 +355,74 @@ func (p *Parser) do_author(text string, author *Author) {
 func (p *Parser) do_web(pkg_path, text string, web *Web) {
 	line := strings.Trim(text, " \t")
 	line = multi_t.ReplaceAllString(line, "\t")
-	vals := strings.SplitN(line, ",", 3)
-	if len(vals) < 2 {
-		log.W("parsing web line(%v) error->%v", line, "must having key and index name")
+	vals := strings.SplitN(line, ",", 2)
+	if len(vals) < 1 {
+		log.W("Parser parsing web line(%v) error->%v", line, "must having key and index name")
 		return
 	}
-	web.Key = vals[0]
-	web.Index = vals[1]
-	if len(vals) > 2 {
-		web.Desc = vals[2]
+	var file = filepath.Join(pkg_path, vals[0])
+	if !util.Fexists(file) {
+		log.W("Parser parsing web line(%v) error->file not found->%v", line, file)
+		return
+	}
+	web.Key = util.Crc32([]byte(file))
+	web.Index = vals[0]
+	if len(vals) > 1 {
+		web.Desc = vals[1]
 	}
 	log.D("Parser adding web by path(%v),key(%v),index(%v)", pkg_path, web.Key, web.Index)
-	p.Web.AddMD2(web.Key, pkg_path, web.Index)
+	p.Web.AddWeb2(web.Key, pkg_path, web.Index)
+}
+
+func (p *Parser) do_case(pkg_path, text string, info *Func) {
+	lines := strings.SplitN(strings.TrimSpace(text), "\n", 3)
+	line := strings.Trim(lines[0], " \t")
+	if len(line) < 1 {
+		log.W("Parser parsing case line(%v) error->%v", line, "must having one name")
+		return
+	}
+	var cs = &Case{}
+	line = sub_cmd_m.ReplaceAllStringFunc(line, func(src string) string {
+		p.do_case_cmd(pkg_path, line, src, cs, info)
+		return ""
+	})
+	vals := strings.Split(line, ",")
+	for _, val := range vals {
+		val = strings.TrimSpace(val)
+		if len(val) > 0 {
+			cs.Keys = append(cs.Keys, val)
+		}
+	}
+	if len(lines) > 2 && len(strings.TrimSpace(lines[2])) > 0 {
+		cs.Text = &Text{Title: strings.TrimSpace(lines[1]), Desc: lines[2]}
+	}
+	info.Case = append(info.Case, cs)
+	p.Case.AddCase(cs, info)
+}
+
+func (p *Parser) do_case_cmd(pkg_path, line, cmd string, cs *Case, info *Func) {
+	var val = strings.Trim(cmd, "#) \t")
+	var vals = regexp.MustCompile("[\\(,]").Split(val, -1)
+	switch vals[0] {
+	case "web":
+		if len(vals) < 3 {
+			log.W("Parser parsing case line(%v) error->%v", line, "must use #web(<web file>,<title>)")
+			return
+		}
+		var file, _ = filepath.Abs(filepath.Join(pkg_path, vals[1]))
+		if !util.Fexists(file) {
+			log.W("Parser parsing case line(%v) error->file not found->%v", line, file)
+			return
+		}
+		var web = &Web{}
+		web.Key = util.Crc32([]byte(file))
+		web.Index = vals[1]
+		web.Desc = vals[2]
+		cs.WS = append(cs.WS, web)
+		info.WS = append(info.WS, web)
+	default:
+		log.W("Parser parsing case line(%v) error->unknow command(%v)", line, cmd)
+	}
 }
 
 func (p *Parser) do_see(pkg_path, text string, see *See) {
@@ -443,6 +505,8 @@ func (p *Parser) Func2Map(path, fn string, f *ast.FuncDecl) *Func {
 			var see = &See{}
 			p.do_see(path, text, see)
 			info.See = append(info.See, see)
+		case "@case,":
+			p.do_case(path, text, info)
 		default:
 			log.E("unknow command(%v) for data(%v)", cmd, text)
 		}
@@ -451,6 +515,8 @@ func (p *Parser) Func2Map(path, fn string, f *ast.FuncDecl) *Func {
 }
 
 func (p *Parser) ParseWdoc(prefix string) *Wdoc {
+	p.Web.Clear()
+	p.Case.Clear()
 	var res = &Wdoc{}
 	var pkgs_ = []*Pkg{}
 	var tags_ = map[string]int{}
@@ -487,9 +553,11 @@ func (p *Parser) ParseWdoc(prefix string) *Wdoc {
 	return res
 }
 func (p *Parser) get_wdoc() *Wdoc {
+	p.lck.Lock()
 	if p.doc == nil {
 		p.ParseWdoc(p.PkgPre)
 	}
+	p.lck.Unlock()
 	return p.doc
 }
 
@@ -569,20 +637,30 @@ func (p *Parser) ToM() *Wdoc {
 //@tag,wdoc,godoc
 //
 //@author,Centny,2016-01-28
-//@web,readme_cn,README_cn.md,the chinese doc
+//@web,README_cn.md,the chinese doc
 //@see,Webs.SrvHTTP,the webs
 //@see,./Webs.SrvHTTP
+//@case,#web(README_cn.md,the chinese doc),wdoc
+//	The Text Title
+//	the parser examp document
 func (p *Parser) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	var path = hs.R.URL.Path
 	path = strings.TrimPrefix(path, p.WebPre)
 	path = strings.TrimPrefix(path, "/")
 	if strings.HasPrefix(path, "html") {
 		return p.Web.SrvHTTP(hs)
+	} else if strings.HasPrefix(path, "all") {
+		var key string = hs.CheckVal("key")
+		var tags string = hs.CheckVal("tags")
+		return hs.JRes(p.ToMv(".*"+key+".*", tags))
+	} else if strings.HasPrefix(path, "case") {
+		fmt.Println("doing -->case ")
+		return p.Case.SrvHTTP(hs)
+	} else {
+		return hs.JRes(util.Map{
+			"err": fmt.Sprintf("unknow request path", path),
+		})
 	}
-	var key string = hs.CheckVal("key")
-	var tags string = hs.CheckVal("tags")
-	hs.JsonRes(p.ToMv(".*"+key+".*", tags))
-	return routing.HRES_RETURN
 }
 
 // func (p *Parser) LoadHtml(hs *routing.HTTPSession) routing.HResult {

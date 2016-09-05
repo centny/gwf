@@ -6,6 +6,7 @@ import (
 	"github.com/Centny/gwf/util"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -53,9 +54,15 @@ func TestParser(t *testing.T) {
 	ts := httptest.NewMuxServer()
 	ts.Mux.H("^/doc.*$", pp)
 	// ts.Mux.HFunc("^/html/.*$", pp.LoadHtml)
-	ts.G("/doc")
+	_, err = ts.G2("/doc/all")
+	if err != nil {
+		t.Error("error")
+		return
+	}
+	fp, _ := filepath.Abs("README_cn.md")
+	wid := util.Crc32([]byte(fp))
 
-	hres, err := ts.G("/doc/html/readme_cn")
+	hres, err := ts.G("/doc/html/" + wid)
 	if err != nil {
 		t.Error(err)
 		return
@@ -67,8 +74,32 @@ func TestParser(t *testing.T) {
 	}
 	fmt.Println("xxxx->")
 	fmt.Println(hres)
-	fmt.Println(ts.G("/doc/html/readme_cn/t.sh"))
-	fmt.Println(ts.G("/doc/html/readme_cn/xxx.go"))
+	fmt.Println(ts.G("/doc/html/" + wid + "/t.sh"))
+	fmt.Println(ts.G("/doc/html/" + wid + "/xxx.go"))
+	//
+	//test case
+	mres, err := ts.G2("/doc/case/list")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if mres.IntVal("wdoc") != 1 {
+		t.Error("error")
+		fmt.Println(util.S2Json(mres))
+		return
+	}
+	mres, err = ts.G2("/doc/case/data?key=%v", "wdoc")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if len(mres.AryMapVal("text")) != 1 {
+		t.Error("error")
+		fmt.Println(util.S2Json(mres))
+		return
+	}
+	ts.G2("/doc/case/xx")
+	ts.G2("/doc/case/data?key=%v", "abc")
 	//
 	//
 	//test error
@@ -233,4 +264,8 @@ func TestMarkDown(t *testing.T) {
 
 func TestMatch(t *testing.T) {
 	fmt.Println(regexp.MustCompile(".*\\.[(md)(MD)]+$").MatchString("xxxdd.md"))
+}
+
+func TestAbs(t *testing.T) {
+	fmt.Println(filepath.Abs("../../"))
 }

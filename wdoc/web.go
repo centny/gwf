@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-type MD_H struct {
+type WebH struct {
 	Base  string
 	CmdF  string
 	Index string
@@ -19,8 +19,8 @@ type MD_H struct {
 	H     http.Handler
 }
 
-func NewMD_H(base, cmdf string) *MD_H {
-	return &MD_H{
+func NewWebH(base, cmdf string) *WebH {
+	return &WebH{
 		Base: base,
 		CmdF: cmdf,
 		Reg:  regexp.MustCompile(".*\\.[(md)(MD)]+$"),
@@ -28,7 +28,7 @@ func NewMD_H(base, cmdf string) *MD_H {
 	}
 }
 
-func (m *MD_H) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
+func (m *WebH) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	var path = hs.R.URL.Path
 	if path == "" || path == "/" {
 		path += m.Index
@@ -54,7 +54,7 @@ func (m *MD_H) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 type Webs struct {
 	Pre  string
 	CmdF string
-	HS   map[string]*MD_H
+	HS   map[string]*WebH
 	Exc  []*regexp.Regexp
 }
 
@@ -62,17 +62,17 @@ func NewWebs(pre, cmdf string) *Webs {
 	return &Webs{
 		Pre:  pre,
 		CmdF: cmdf,
-		HS:   map[string]*MD_H{},
+		HS:   map[string]*WebH{},
 		Exc: []*regexp.Regexp{
 			regexp.MustCompile(".*\\.go(\\?.*)?"),
 		},
 	}
 }
-func (w *Webs) AddMD(name string, h *MD_H) {
+func (w *Webs) AddWeb(name string, h *WebH) {
 	w.HS[name] = h
 }
-func (w *Webs) AddMD2(name, base, idx string) {
-	var md = NewMD_H(base, w.CmdF)
+func (w *Webs) AddWeb2(name, base, idx string) {
+	var md = NewWebH(base, w.CmdF)
 	md.Index = idx
 	w.HS[name] = md
 }
@@ -106,4 +106,6 @@ func (w *Webs) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 		fmt.Fprintf(hs.W, "the web by name(%v) error->not found", name)
 		return routing.HRES_RETURN
 	}
+}
+func (w *Webs) Clear() {
 }
