@@ -374,12 +374,12 @@ func (p *Parser) do_web(pkg_path, text string, web *Web) {
 	p.Web.AddWeb2(web.Key, pkg_path, web.Index)
 }
 
-func (p *Parser) do_case(pkg_path, text string, info *Func) {
+func (p *Parser) do_case(pkg_path, text string, info *Func) bool {
 	lines := strings.SplitN(strings.TrimSpace(text), "\n", 3)
 	line := strings.Trim(lines[0], " \t")
 	if len(line) < 1 {
 		log.W("Parser parsing case line(%v) error->%v", line, "must having one name")
-		return
+		return false
 	}
 	var cs = &Case{}
 	line = sub_cmd_m.ReplaceAllStringFunc(line, func(src string) string {
@@ -398,6 +398,7 @@ func (p *Parser) do_case(pkg_path, text string, info *Func) {
 	}
 	info.Case = append(info.Case, cs)
 	p.Case.AddCase(cs, info)
+	return true
 }
 
 func (p *Parser) do_case_cmd(pkg_path, line, cmd string, cs *Case, info *Func) {
@@ -479,6 +480,7 @@ func (p *Parser) Func2Map(path, pkg, fn string, f *ast.FuncDecl) *Func {
 	if len(cmds) < 1 || len(cmds) != len(dataes)-1 {
 		return info
 	}
+	var do_cased = false
 	for idx, cmd := range cmds {
 		var text = strings.Trim(dataes[idx+1], " \t\n")
 		// log.D("parsing command(%v) by text(%v)", cmd, text)
@@ -507,10 +509,15 @@ func (p *Parser) Func2Map(path, pkg, fn string, f *ast.FuncDecl) *Func {
 			p.do_see(path, text, see)
 			info.See = append(info.See, see)
 		case "@case,":
-			p.do_case(path, text, info)
+			do_cased = p.do_case(path, text, info)
 		default:
 			log.E("unknow command(%v) for data(%v)", cmd, text)
 		}
+	}
+	if !do_cased { //add to default case
+		var cs = &Case{}
+		cs.Keys = []string{"default"}
+		p.Case.AddCase(cs, info)
 	}
 	return info
 }
