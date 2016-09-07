@@ -8,9 +8,11 @@ import (
 )
 
 type CaseL struct {
-	TS []*Text          `json:"text"`
-	WS map[string]*Web  `json:"webs"`
-	FS map[string]*Func `json:"func"`
+	TS   []*Text `json:"text"`
+	WS   []*Web  `json:"webs"`
+	FS   []*Func `json:"func"`
+	ws_m map[string]bool
+	fs_m map[string]bool
 }
 
 type Cases struct {
@@ -28,24 +30,41 @@ func (c *Cases) AddCase(cs *Case, info *Func) {
 		var cl = c.Data[key]
 		if cl == nil {
 			cl = &CaseL{
-				WS: map[string]*Web{},
-				FS: map[string]*Func{},
+				ws_m: map[string]bool{},
+				fs_m: map[string]bool{},
 			}
 			c.Data[key] = cl
 		}
 		for _, web := range cs.WS {
-			cl.WS[web.Index] = web
+			if cl.ws_m[web.Key] {
+				continue
+			}
+			cl.WS = append(cl.WS, web)
+			cl.ws_m[web.Key] = true
 		}
 		if cs.Text != nil {
 			cl.TS = append(cl.TS, cs.Text)
 		}
-		cl.FS[info.Name] = info
+		var fk = info.Pkg + "/" + info.Name
+		if cl.fs_m[fk] {
+			continue
+		}
+		cl.FS = append(cl.FS, info)
+		cl.fs_m[fk] = true
 	}
 }
-func (c *Cases) ListCases() map[string]int {
-	var res = map[string]int{}
+func (c *Cases) ListCases() []util.Map {
+	var res = []util.Map{}
 	for key, cl := range c.Data {
-		res[key] = len(cl.FS)
+		var desc = ""
+		for _, text := range cl.TS {
+			desc += text.Title + ";"
+		}
+		res = append(res, util.Map{
+			"title":     key,
+			"api_count": len(cl.FS),
+			"desc":      desc,
+		})
 	}
 	return res
 }

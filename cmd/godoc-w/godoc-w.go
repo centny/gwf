@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -43,7 +44,7 @@ func main() {
 		return
 	}
 	runtime.GOMAXPROCS(util.CPU())
-	var wd = "."
+	var wd, _ = filepath.Abs(".")
 	if len(path) > 0 {
 		wd = path[0]
 	}
@@ -61,6 +62,7 @@ func main() {
 		mux.H("^.*$", filter.NewCORS2("*"))
 		mux.H("^/doc.*$", pars)
 		mux.Handler("^.*$", http.FileServer(http.Dir(www)))
+		mux.ShowLog = true
 		fmt.Println(http.ListenAndServe(addr, mux))
 	} else if len(out) > 0 {
 		err := pars.ParseDir(wd, inc_, exc_)

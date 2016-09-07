@@ -451,9 +451,10 @@ func (p *Parser) do_see(pkg_path, text string, see *See) {
 }
 
 //parse matched func to Func
-func (p *Parser) Func2Map(path, fn string, f *ast.FuncDecl) *Func {
+func (p *Parser) Func2Map(path, pkg, fn string, f *ast.FuncDecl) *Func {
 	var info = &Func{
 		Name: fn,
+		Pkg:  pkg,
 	}
 	if f.Doc == nil {
 		return info
@@ -518,12 +519,18 @@ func (p *Parser) ParseWdoc(prefix string) *Wdoc {
 	p.Web.Clear()
 	p.Case.Clear()
 	var res = &Wdoc{}
+	var pkg string
 	var pkgs_ = []*Pkg{}
 	var tags_ = map[string]int{}
 	for name, fs := range p.FS {
+		pkgs := strings.SplitN(name, "src/", 2)
+		if len(pkgs) == 2 {
+			pkg = pkgs[1]
+		}
+		name = strings.TrimPrefix(name, prefix)
 		var tfs = []*Func{}
 		for fn, f := range fs {
-			ff := p.Func2Map(name, fn, f)
+			ff := p.Func2Map(name, pkg, fn, f)
 			if ff == nil {
 				continue
 			}
@@ -536,13 +543,8 @@ func (p *Parser) ParseWdoc(prefix string) *Wdoc {
 			continue
 		}
 		sort.Sort(funcs_l(tfs))
-		names := strings.SplitN(name, "src/", 2)
-		if len(names) == 2 {
-			name = names[1]
-		}
-		name = strings.TrimPrefix(name, prefix)
 		pkgs_ = append(pkgs_, &Pkg{
-			Name:  name,
+			Name:  pkg,
 			Funcs: tfs,
 		})
 	}
@@ -640,8 +642,8 @@ func (p *Parser) ToM() *Wdoc {
 //@web,README_cn.md,the chinese doc
 //@see,Webs.SrvHTTP,the webs
 //@see,./Webs.SrvHTTP
-//@case,#web(README_cn.md,the chinese doc),wdoc
-//	The Text Title
+//@case,#web(README_cn.md,Web API文档编写说明),wdoc
+//	The Web API document
 //	the parser examp document
 func (p *Parser) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 	var path = hs.R.URL.Path
@@ -654,7 +656,6 @@ func (p *Parser) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 		var tags string = hs.CheckVal("tags")
 		return hs.JRes(p.ToMv(".*"+key+".*", tags))
 	} else if strings.HasPrefix(path, "case") {
-		fmt.Println("doing -->case ")
 		return p.Case.SrvHTTP(hs)
 	} else {
 		return hs.JRes(util.Map{
