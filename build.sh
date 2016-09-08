@@ -44,7 +44,8 @@ echo "Running Test"
 #  github.com/Centny/gwf/im\
 # "
 pkgs="\
-  github.com/Centny/gwf/netw/dtm\
+  github.com/Centny/gwf/io\
+  github.com/Centny/gwf/util/util\
 "
 echo "mode: set" > a.out
 for p in $pkgs;
@@ -62,15 +63,15 @@ cat coverage.json | gocov-xml -b $GOPATH/src > coverage.xml
 cat coverage.json | gocov-html coverage.json > coverage.html
 
 ######
-go install github.com/Centny/gwf
-go install github.com/Centny/gwf/im/imc
-go install github.com/Centny/gwf/cmd/cfgs
-go install github.com/Centny/gwf/cmd/emma
-go install github.com/Centny/gwf/cmd/fcfg
-go install github.com/Centny/gwf/cmd/gpkg
-go install github.com/Centny/gwf/cmd/hj
-go install github.com/Centny/gwf/cmd/mexec
-go install github.com/Centny/gwf/cmd/rnet
-go install github.com/Centny/gwf/cmd/rweb
-go install github.com/Centny/gwf/cmd/fperf
-go install github.com/Centny/gwf/cmd/godoc-w
+# go install github.com/Centny/gwf
+# go install github.com/Centny/gwf/im/imc
+# go install github.com/Centny/gwf/cmd/cfgs
+# go install github.com/Centny/gwf/cmd/emma
+# go install github.com/Centny/gwf/cmd/fcfg
+# go install github.com/Centny/gwf/cmd/gpkg
+# go install github.com/Centny/gwf/cmd/hj
+# go install github.com/Centny/gwf/cmd/mexec
+# go install github.com/Centny/gwf/cmd/rnet
+# go install github.com/Centny/gwf/cmd/rweb
+# go install github.com/Centny/gwf/cmd/fperf
+# go install github.com/Centny/gwf/cmd/godoc-w

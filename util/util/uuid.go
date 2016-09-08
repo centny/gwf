@@ -12,16 +12,18 @@ import (
 	"time"
 )
 
-var uuidCounter uint32 = 0
+//the uuid counter
+var uuidCounter uint32
 
+//UUID create on uuid by machine id and counter
 func UUID() string {
 	var b [12]byte
 	// Timestamp, 4 bytes, big endian
 	binary.BigEndian.PutUint32(b[:], uint32(time.Now().Unix()))
 	// Machine, first 3 bytes of md5(hostname)
-	b[4] = MachineId[0]
-	b[5] = MachineId[1]
-	b[6] = MachineId[2]
+	b[4] = MachineID[0]
+	b[5] = MachineID[1]
+	b[6] = MachineID[2]
 	// Pid, 2 bytes, specs don't specify endianness, but we use big endian.
 	pid := os.Getpid()
 	b[7] = byte(pid >> 8)
@@ -34,11 +36,12 @@ func UUID() string {
 	return hex.EncodeToString(b[:])
 }
 
-var MachineId = ReadMachineId()
+//MachineID current machine id
+var MachineID = ReadMachineID()
 
-// readMachineId generates and returns a machine id.
+//ReadMachineID generates and returns a machine id.
 // If this function fails to get the hostname it will cause a runtime error.
-func ReadMachineId() []byte {
+func ReadMachineID() []byte {
 	var sum [3]byte
 	id := sum[:]
 	hostname, err1 := os.Hostname()
@@ -55,6 +58,7 @@ func ReadMachineId() []byte {
 	return id
 }
 
+//MID current string machine id
 func MID() string {
-	return hex.EncodeToString(MachineId)
+	return hex.EncodeToString(MachineID)
 }

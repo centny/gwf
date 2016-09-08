@@ -3,11 +3,8 @@ package util
 import (
 	"errors"
 	"fmt"
-	"runtime"
 	"strconv"
 	"strings"
-	"sync"
-	"sync/atomic"
 )
 
 type Array struct {
@@ -43,23 +40,6 @@ type Pair struct {
 
 func Err(f string, args ...interface{}) error {
 	return errors.New(fmt.Sprintf(f, args...))
-}
-
-type WaitGroup struct {
-	sync.WaitGroup
-	c int32
-}
-
-func (w *WaitGroup) Add(i int) {
-	w.WaitGroup.Add(i)
-	atomic.AddInt32(&w.c, int32(i))
-}
-func (w *WaitGroup) Done() {
-	w.WaitGroup.Done()
-	atomic.AddInt32(&w.c, int32(-1))
-}
-func (w *WaitGroup) Size() int {
-	return int(w.c)
 }
 
 func ParseInt(s string) (int, error) {
@@ -100,14 +80,6 @@ func ParseInts(ss []string) ([]int, error) {
 }
 func ParseInts2(s, sep string) ([]int, error) {
 	return ParseInts(strings.Split(s, sep))
-}
-func CPU() int {
-	i := runtime.NumCPU()
-	if i < 2 {
-		return i
-	} else {
-		return i - 1
-	}
 }
 
 func AryS2Map(vals []string) map[string]bool {

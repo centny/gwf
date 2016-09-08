@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+//package files to zip package file, the file name in zip package is the file path which is trimed by base
+//	zf: the zip file
+//	base: the folder path
+//	fs: all file path to package to zip file
 func Zip(zf string, base string, fs ...string) error {
 	zf_o, err := os.OpenFile(zf, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
@@ -32,6 +36,10 @@ func Zip(zf string, base string, fs ...string) error {
 	}
 	return w.Close()
 }
+
+//unpackage file to folder
+// zf: the zip file
+// out: the out folder
 func Unzip(zf string, out string) error {
 	r, err := zip.OpenReader(zf)
 	if err != nil {

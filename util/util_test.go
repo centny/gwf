@@ -23,144 +23,11 @@ func TestDoWeb(t *testing.T) {
 	go DoWeb(":65432", "./")
 	time.Sleep(200 * time.Millisecond)
 }
-func TestFexist(t *testing.T) {
-	fmt.Println(Fexists("/usr/local"))
-	fmt.Println(Fexists("/usr/locals"))
-	fmt.Println(Fexists("/usr/local/s"))
-}
 
-func TestFile(t *testing.T) {
-	fmt.Println(os.Open("/tmp/kkgg"))
-}
-
-func TestFWrite(t *testing.T) {
-	err := FWrite("/tmp/test.txt", "data")
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-	err = FAppend("/tmp/test.txt", "data")
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-	err = FWrite("/kk/kkfd/d", "data")
-	if err == nil {
-		t.Error("not error")
-	}
-	err = FAppend("/kk/kkfd/d", "data")
-	if err == nil {
-		t.Error("not error")
-	}
-	err = FCopy("/tmp/test.txt", "/tmp/test2.txt")
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-	err = FCopy("/kk/kkfd/d", "data")
-	if err == nil {
-		t.Error("not error")
-	}
-	err = FCopy("/tmp/test.txt", "/dsss/dd.txt")
-	if err == nil {
-		t.Error("not error")
-	}
-	os.Remove("/tmp/test.txt")
-}
-func TestFTouch(t *testing.T) {
-	os.RemoveAll("/tmp/kkk")
-	os.RemoveAll("/tmp/abc.log")
-	fmt.Println(FTouch("/tmp/abc.log"))
-	fmt.Println(FTouch("/tmp/kkk/abc.log"))
-	fmt.Println(FTouch("/tmp/kkk/abc.log"))
-	fmt.Println(FTouch("/tmp/kkk"))
-	fmt.Println(FTouch("/var/libbb"))
-	fmt.Println(Fexists(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm', '/', 'a'})))
-	fmt.Println(FTouch(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm', '/', 'a'})))
-	//
-}
-func TestFTouch2(t *testing.T) {
-	os.RemoveAll("/tmp/tkk")
-	fmt.Println(FTouch2("/tmp/tkk", os.ModePerm))
-}
 func TestBytePtrFromString(t *testing.T) {
 	bys, err := syscall.BytePtrFromString(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm'}))
 	fmt.Println(bys, err)
 	fmt.Println(os.MkdirAll(string([]byte{'/', 't', 'm', 'p', 0, '/', 'm'}), os.ModePerm))
-}
-
-// func TestFTouch2(t *testing.T) {
-// 	fmt.Println(exec.Command("mkdir", "/tmp/fcg_dir").Run())
-// 	fmt.Println(exec.Command("chmod", "000", "/tmp/fcg_dir").Run())
-// 	fmt.Println(FTouch("/tmp/fcg_dir/aaa/a.log"))
-// 	fmt.Println(exec.Command("rm", "-rf", "/tmp/fcg_dir").Run())
-// }
-
-func TestReadLine(t *testing.T) {
-	f := func(end bool) {
-		bf := bytes.NewBufferString("abc\ndef\nghi\n")
-		r := bufio.NewReader(bf)
-		for {
-			bys, err := ReadLine(r, 10000, end)
-			// bys, isp, err := r.ReadLine()
-			fmt.Println(string(bys), err)
-			if err != nil {
-				break
-			}
-		}
-	}
-	f(true)
-	f(false)
-}
-
-func TestTimestamp(t *testing.T) {
-	tt := Timestamp(time.Now())
-	bt := Time(tt)
-	t2 := Timestamp(bt)
-	fmt.Println(1392636938688)
-	fmt.Println(tt)
-	fmt.Println(t2)
-	if tt != t2 {
-		t.Error("convert invalid")
-		return
-	}
-}
-
-func TestAryExist(t *testing.T) {
-	iary := []int{1, 2, 3, 4, 5, 6}
-	if !AryExist(iary, 2) {
-		t.Error("value exis in array.")
-		return
-	}
-	if AryExist(iary, 8) {
-		t.Error("value not exis in array.")
-		return
-	}
-	//
-	fary := []float32{1.0, 2.0, 3.0, 4.0, 5.0}
-	if !AryExist(fary, float32(1.0)) {
-		t.Error("value exis in array.")
-		return
-	}
-	if AryExist(fary, float32(8.0)) {
-		t.Error("value not exis in array.")
-		return
-	}
-	//
-	sary := []string{"a", "b", "c", "d", "e", "f"}
-	if !AryExist(sary, "c") {
-		t.Error("value exis in array.")
-		return
-	}
-	if AryExist(sary, "g") {
-		t.Error("value not exis in array.")
-		return
-	}
-	ab := ""
-	if AryExist(ab, 8) {
-		t.Error("value exis in array.")
-		return
-	}
 }
 
 func TestExec(t *testing.T) {
@@ -172,16 +39,6 @@ func TestDLoad(t *testing.T) {
 	DLoad("/tmp/index.html", "http://www.baidu.com")
 	os.Remove("/tmp/index.html")
 	DLoad("/tmp/s.html", "")
-}
-
-func TestIsType(t *testing.T) {
-	if !IsType(t, "T") {
-		t.Error("not right")
-	}
-	fmt.Println(IsType(nil, "A"))
-	fmt.Println(IsType(t, ""))
-	fmt.Println(IsType(t, " "))
-	fmt.Println(IsType(t, "\t"))
 }
 
 func TestAppend(t *testing.T) {
@@ -202,73 +59,8 @@ func TestOs(t *testing.T) {
 	fmt.Println(runtime.GOOS)
 }
 
-func TestFileProtocol(t *testing.T) {
-	fmt.Println(FileProtocolPath("~"))
-	fmt.Println(FileProtocolPath("sfdsf"))
-	fmt.Println(FileProtocolPath("/sdfs/sfdsf"))
-	fmt.Println(FileProtocolPath("C:\\s\\sdfs"))
-	fmt.Println(FileProtocolPath("file://C:/s/sdfs"))
-}
 func TestHome(t *testing.T) {
 	fmt.Println(os.Getenv("HOME"))
-}
-
-func TestStr2Int(t *testing.T) {
-	fmt.Println(Str2Int("abc"))
-	fmt.Println(Str2Int("11"))
-	fmt.Println(Str2Int("11,22"))
-	fmt.Println(Str2Int("11,"))
-	fmt.Println(Str2Int("11,ssd"))
-	vals, err := Str2IntV("0/1/2/3", "/")
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-	for idx, val := range vals {
-		if idx != val {
-			t.Error("error")
-			return
-		}
-	}
-	_, err = Str2IntV("0/1x/2/3", "/")
-	if err == nil {
-		t.Error("not error")
-		return
-	}
-}
-
-func TestIs2Ss(t *testing.T) {
-	fmt.Println(Int2Str([]int64{1, 2}))
-	fmt.Println(Is2Ss([]int64{1, 2}))
-}
-
-func TestReadW(t *testing.T) {
-	r := bufio.NewReader(&Sw{})
-	buf := make([]byte, 3)
-	var las int64
-	ReadW(r, buf, &las)
-	fmt.Println(string(buf))
-	fmt.Println(Now())
-	ReadW(r, buf, &las)
-}
-
-type Sw struct {
-	i int
-}
-
-func (s *Sw) Read(p []byte) (n int, err error) {
-	if s.i < 1 {
-		s.i = 1
-		p[0] = 'A'
-		return 1, nil
-	} else if s.i < 2 {
-		s.i = 2
-		p[0] = 'B'
-		p[1] = 'C'
-		return 2, nil
-	} else {
-		return 0, Err("ssdsd")
-	}
 }
 
 // func TestFsize(t *testing.T) {
@@ -286,11 +78,6 @@ func (s *Sw) Read(p []byte) (n int, err error) {
 // 	w := bufio.NewWriter(c)
 
 // }
-
-func TestCrc32(t *testing.T) {
-	fmt.Println(Crc32([]byte("fwnfiuchvwhrwiuv cs")))
-	fmt.Println(Crc32([]byte("fwnfiuchvwhrwiuv cs.png")))
-}
 
 type RW_ struct {
 	r int
@@ -424,13 +211,6 @@ func TestCopyp(t *testing.T) {
 	f.Close()
 }
 
-func TestJoin(t *testing.T) {
-	fmt.Println("...")
-	fmt.Println(Join([]int{1, 2, 3}, ","))
-	fmt.Println(Join([]float64{1.1, 2.2, 3.3}, ","))
-	fmt.Println(Join([]string{"1", "2", "3"}, ","))
-}
-
 type xxk struct {
 	Kk int64 `json:"kk"`
 }
@@ -463,46 +243,6 @@ func TestBysSize(t *testing.T) {
 	fmt.Println(BysSize(1024*1024*1024*1024 + 1))
 	fmt.Println(BysSize(1024 * 1024 * 1024 * 1024 * 1024))
 	fmt.Println(BysSize(1024*1024*1024*1024*1024 + 1))
-}
-
-func TestTrimAryS(t *testing.T) {
-	vals := TrimAryS([]string{"xa", " ", "xb", "\t", "xc", "", "xa"}, " \t")
-	if len(vals) != 4 {
-		t.Error("error")
-		return
-	}
-	if vals[0] != "xa" || vals[1] != "xb" || vals[2] != "xc" || vals[3] != "xa" {
-		t.Error("error")
-		return
-	}
-	vals = TrimAryS_V([]string{"xa", " ", "xb", "\t", "xc", "xb", "", "xa"}, " \t", true)
-	if len(vals) != 3 {
-		t.Error("error")
-		return
-	}
-	if vals[0] != "xa" || vals[1] != "xb" || vals[2] != "xc" {
-		t.Error("error")
-		return
-	}
-	fmt.Println("done...")
-}
-
-func TestReflectName(t *testing.T) {
-	var abc = []string{}
-	var abc2 = []*testing.T{}
-	var abc3 = []testing.T{}
-	fmt.Println(StructName(t))
-	fmt.Println(StructName(TestReflectName))
-	fmt.Println(StructName(abc))
-	fmt.Println(StructName(abc2))
-	fmt.Println(StructName(abc3))
-	fmt.Println("...")
-	fmt.Println(ReflectName(t))
-	fmt.Println(ReflectName(TestReflectName))
-	fmt.Println(ReflectName(abc))
-	fmt.Println(ReflectName(abc2))
-	fmt.Println(ReflectName(abc3))
-	fmt.Println(FuncName(TestReflectName))
 }
 
 func TestATime(t *testing.T) {

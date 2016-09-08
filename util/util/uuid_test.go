@@ -7,4 +7,5 @@ import (
 
 func TestUUID(t *testing.T) {
 	fmt.Println(UUID())
+	fmt.Println(MID())
 }
