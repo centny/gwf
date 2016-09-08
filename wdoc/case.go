@@ -2,15 +2,17 @@ package wdoc
 
 import (
 	"fmt"
+	"path"
+
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
-	"path"
 )
 
 type CaseL struct {
-	TS   []*Text `json:"text"`
-	WS   []*Web  `json:"webs"`
-	FS   []*Func `json:"func"`
+	TS []*Text `json:"text"`
+	WS []*Web  `json:"webs"`
+	FS []*Func `json:"func"`
+
 	ws_m map[string]bool
 	fs_m map[string]bool
 }

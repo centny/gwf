@@ -4,9 +4,6 @@ package wdoc
 
 import (
 	"fmt"
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/routing"
-	"github.com/Centny/gwf/util"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -18,6 +15,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/routing"
+	"github.com/Centny/gwf/util"
 )
 
 //the @arg command regex
@@ -398,6 +399,7 @@ func (p *Parser) do_case(pkg_path, text string, info *Func) bool {
 	}
 	info.Case = append(info.Case, cs)
 	p.Case.AddCase(cs, info)
+	log.D("Parser adding case by path(%v),keys(%v)", pkg_path, cs.Keys)
 	return true
 }
 
@@ -421,6 +423,8 @@ func (p *Parser) do_case_cmd(pkg_path, line, cmd string, cs *Case, info *Func) {
 		web.Desc = vals[2]
 		cs.WS = append(cs.WS, web)
 		info.WS = append(info.WS, web)
+		p.Web.AddWeb2(web.Key, pkg_path, web.Index)
+		log.D("Parser adding web by path(%v),key(%v),index(%v)", pkg_path, web.Key, web.Index)
 	default:
 		log.W("Parser parsing case line(%v) error->unknow command(%v)", line, cmd)
 	}
