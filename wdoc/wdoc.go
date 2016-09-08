@@ -394,8 +394,11 @@ func (p *Parser) do_case(pkg_path, text string, info *Func) bool {
 			cs.Keys = append(cs.Keys, val)
 		}
 	}
-	if len(lines) > 2 && len(strings.TrimSpace(lines[2])) > 0 {
-		cs.Text = &Text{Title: strings.TrimSpace(lines[1]), Desc: lines[2]}
+	if len(lines) > 1 && len(strings.TrimSpace(lines[1])) > 0 {
+		cs.Text = &Text{Title: strings.TrimSpace(lines[1])}
+		if len(lines) > 2 && len(strings.TrimSpace(lines[2])) > 0 {
+			cs.Text.Desc = lines[2]
+		}
 	}
 	info.Case = append(info.Case, cs)
 	p.Case.AddCase(cs, info)
