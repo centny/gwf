@@ -70,7 +70,7 @@ func (c *Cases) ListCases() []util.Map {
 			"desc":      desc,
 		})
 	}
-	sort.Sort(util.NewMapSorter(res, "title", 1))
+	sort.Sort(util.NewMapSorter(res, "title", 2))
 	return res
 }
 func (c *Cases) FindCase(key string) *CaseL {
