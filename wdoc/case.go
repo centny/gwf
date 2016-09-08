@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path"
 
+	"sort"
+
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
 )
@@ -68,6 +70,7 @@ func (c *Cases) ListCases() []util.Map {
 			"desc":      desc,
 		})
 	}
+	sort.Sort(util.NewMapSorter(res, "title", 1))
 	return res
 }
 func (c *Cases) FindCase(key string) *CaseL {
