@@ -31,7 +31,7 @@ var RET_REG = regexp.MustCompile("^[^\\t]*\\t(S|I|F|A|O|V|string|int|float|array
 var multi_t = regexp.MustCompile("\t+")
 var json_m = regexp.MustCompile("(?s)^\\{.*\\}$")
 var cmd_m = regexp.MustCompile("\\@[a-z]*\\,")
-var sub_cmd_m = regexp.MustCompile("\\#[a-z]*\\([^\\)].*\\)")
+var sub_cmd_m = regexp.MustCompile("\\#[a-z]*\\([^\\)]*\\)")
 
 //Parser handler.
 type Handler interface {
