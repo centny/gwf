@@ -49,6 +49,12 @@ func TestWriter(t *testing.T) {
 	fmt.Println(w.Flush())
 }
 
+type sortStruct struct {
+	S string
+	I int
+	F float64
+}
+
 func TestSorter(t *testing.T) {
 	// A := []int{1, 2}
 	// V := reflect.ValueOf(A)
@@ -64,6 +70,9 @@ func TestSorter(t *testing.T) {
 	// V.Index(1).Set(reflect.ValueOf(x))
 	// fmt.Println(A)
 	//
+	//
+
+	//test int sort
 	var intVals = []int{1, 5, 0, 2, 4, 3}
 	NewIntSorter(intVals).Sort(false)
 	for idx, val := range intVals {
@@ -80,5 +89,117 @@ func TestSorter(t *testing.T) {
 			t.Error("error")
 			return
 		}
+	}
+	//
+	//test struct sort
+	var sVals = []sortStruct{
+		sortStruct{
+			S: "b",
+			I: 2,
+			F: 2,
+		},
+		sortStruct{
+			S: "c",
+			I: 3,
+			F: 3,
+		},
+		sortStruct{
+			S: "a",
+			I: 1,
+			F: 1,
+		},
+	}
+	NewFieldIntSorter("I", sVals).Sort(false)
+	if sVals[2].I != 3 {
+		t.Error("error")
+		fmt.Println(sVals)
+		return
+	}
+	NewFieldIntSorter("I", sVals).Sort(true)
+	if sVals[2].I != 1 {
+		t.Error("error")
+		fmt.Println(sVals)
+		return
+	}
+	NewFieldFloatSorter("F", sVals).Sort(false)
+	if sVals[2].F != 3 {
+		t.Error("error")
+		fmt.Println(sVals)
+		return
+	}
+	NewFieldFloatSorter("F", sVals).Sort(true)
+	if sVals[2].F != 1 {
+		t.Error("error")
+		fmt.Println(sVals)
+		return
+	}
+	NewFieldStringSorter("S", sVals).Sort(false)
+	if sVals[2].S != "c" {
+		t.Error("error")
+		fmt.Println(sVals)
+		return
+	}
+	NewFieldStringSorter("S", sVals).Sort(true)
+	if sVals[2].S != "a" {
+		t.Error("error")
+		fmt.Println(sVals)
+		return
+	}
+	//
+	//test *struct sort
+	var sVals2 = []*sortStruct{
+		&sortStruct{
+			S: "b",
+			I: 2,
+			F: 2,
+		},
+		&sortStruct{
+			S: "c",
+			I: 3,
+			F: 3,
+		},
+		&sortStruct{
+			S: "a",
+			I: 1,
+			F: 1,
+		},
+	}
+	fmt.Println(sVals2)
+	NewFieldIntSorter("I", sVals2).Sort(false)
+	fmt.Println(sVals2)
+	if sVals2[2].I != 3 {
+		t.Error("error")
+		fmt.Println(sVals2)
+		return
+	}
+	NewFieldIntSorter("I", sVals2).Sort(true)
+	if sVals2[2].I != 1 {
+		t.Error("error")
+		fmt.Println(sVals2)
+		return
+	}
+	NewFieldFloatSorter("F", sVals2).Sort(false)
+	if sVals2[2].F != 3 {
+		t.Error("error")
+		fmt.Println(sVals2)
+		return
+	}
+	NewFieldFloatSorter("F", sVals2).Sort(true)
+	if sVals2[2].F != 1 {
+		t.Error("error")
+		fmt.Println(sVals2)
+		return
+	}
+	NewFieldStringSorter("S", sVals2).Sort(false)
+	if sVals2[2].S != "c" {
+		t.Error("error")
+		fmt.Println(sVals)
+		return
+	}
+	NewFieldStringSorter("S", sVals2).Sort(true)
+	if sVals2[2].S != "a" {
+		t.Error("error")
+		fmt.Println(sVals2)
+		return
 	}
 }

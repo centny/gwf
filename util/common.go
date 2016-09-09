@@ -180,7 +180,7 @@ func NewFieldFloatSorter(key string, vals interface{}) *Sorter {
 }
 
 func NewFieldStringSorter(key string, vals interface{}) *Sorter {
-	return NewSorter(FieldFloatLess(key), vals)
+	return NewSorter(FieldStringLess(key), vals)
 }
 
 func (s *Sorter) Len() int {
@@ -262,9 +262,9 @@ type FieldIntLess string
 func (f FieldIntLess) Less(a, b interface{}, desc bool) bool {
 	var key = string(f)
 	if desc {
-		return IntVal(reflect.ValueOf(a).FieldByName(key).Interface()) > IntVal(reflect.ValueOf(b).FieldByName(key).Interface())
+		return IntVal(reflect.Indirect(reflect.ValueOf(a)).FieldByName(key).Interface()) > IntVal(reflect.Indirect(reflect.ValueOf(b)).FieldByName(key).Interface())
 	}
-	return IntVal(reflect.ValueOf(a).FieldByName(key).Interface()) < IntVal(reflect.ValueOf(b).FieldByName(key).Interface())
+	return IntVal(reflect.Indirect(reflect.ValueOf(a)).FieldByName(key).Interface()) < IntVal(reflect.Indirect(reflect.ValueOf(b)).FieldByName(key).Interface())
 }
 
 type FieldFloatLess string
@@ -272,9 +272,9 @@ type FieldFloatLess string
 func (f FieldFloatLess) Less(a, b interface{}, desc bool) bool {
 	var key = string(f)
 	if desc {
-		return FloatVal(reflect.ValueOf(a).FieldByName(key).Interface()) > FloatVal(reflect.ValueOf(b).FieldByName(key).Interface())
+		return FloatVal(reflect.Indirect(reflect.ValueOf(a)).FieldByName(key).Interface()) > FloatVal(reflect.Indirect(reflect.ValueOf(b)).FieldByName(key).Interface())
 	}
-	return FloatVal(reflect.ValueOf(a).FieldByName(key).Interface()) < FloatVal(reflect.ValueOf(b).FieldByName(key).Interface())
+	return FloatVal(reflect.Indirect(reflect.ValueOf(a)).FieldByName(key).Interface()) < FloatVal(reflect.Indirect(reflect.ValueOf(b)).FieldByName(key).Interface())
 }
 
 type FieldStringLess string
@@ -282,7 +282,7 @@ type FieldStringLess string
 func (f FieldStringLess) Less(a, b interface{}, desc bool) bool {
 	var key = string(f)
 	if desc {
-		return StrVal(reflect.ValueOf(a).FieldByName(key).Interface()) > StrVal(reflect.ValueOf(b).FieldByName(key).Interface())
+		return StrVal(reflect.Indirect(reflect.ValueOf(a)).FieldByName(key).Interface()) > StrVal(reflect.Indirect(reflect.ValueOf(b)).FieldByName(key).Interface())
 	}
-	return StrVal(reflect.ValueOf(a).FieldByName(key).Interface()) < StrVal(reflect.ValueOf(b).FieldByName(key).Interface())
+	return StrVal(reflect.Indirect(reflect.ValueOf(a)).FieldByName(key).Interface()) < StrVal(reflect.Indirect(reflect.ValueOf(b)).FieldByName(key).Interface())
 }
