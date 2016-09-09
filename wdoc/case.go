@@ -86,6 +86,9 @@ func (c *Cases) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 		if data == nil {
 			data = &CaseL{}
 		}
+		util.NewFieldStringSorter("Name", data.FS).Sort(false)
+		util.NewFieldStringSorter("Title", data.TS).Sort(false)
+		util.NewFieldStringSorter("Index", data.TS).Sort(false)
 		return hs.JRes(data)
 	default:
 		return hs.JRes(util.Map{

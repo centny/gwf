@@ -2,8 +2,6 @@ package wdoc
 
 import (
 	"fmt"
-	"github.com/Centny/gwf/routing/httptest"
-	"github.com/Centny/gwf/util"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +9,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Centny/gwf/routing/httptest"
+	"github.com/Centny/gwf/util"
 )
 
 func TestParser(t *testing.T) {
@@ -78,17 +79,19 @@ func TestParser(t *testing.T) {
 	fmt.Println(ts.G("/doc/html/" + wid + "/xxx.go"))
 	//
 	//test case
-	mres, err := ts.G2("/doc/case/list")
+	mstr, err := ts.G("/doc/case/list")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if mres.IntVal("wdoc") != 1 {
+	var mary []util.Map
+	util.Json2Ss(mstr, &mary)
+	if len(mary) < 2 || mary[1].StrVal("title") != "wdoc" {
 		t.Error("error")
-		fmt.Println(util.S2Json(mres))
+		fmt.Println(util.S2Json(mary))
 		return
 	}
-	mres, err = ts.G2("/doc/case/data?key=%v", "wdoc")
+	mres, err := ts.G2("/doc/case/data?key=%v", "wdoc")
 	if err != nil {
 		t.Error(err)
 		return

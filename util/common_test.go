@@ -48,3 +48,37 @@ func TestWriter(t *testing.T) {
 	fmt.Println(w.Write([]byte("sfs")))
 	fmt.Println(w.Flush())
 }
+
+func TestSorter(t *testing.T) {
+	// A := []int{1, 2}
+	// V := reflect.ValueOf(A)
+	// x, y := V.Index(0).Interface(), V.Index(1).Interface()
+	// V.Index(0).Set(reflect.ValueOf(y))
+	// V.Index(1).Set(reflect.ValueOf(x))
+	// fmt.Println(A)
+	//
+	// A := []string{"world", "hello"}
+	// V := reflect.ValueOf(A)
+	// x, y := V.Index(0).Interface(), V.Index(1).Interface()
+	// V.Index(0).Set(reflect.ValueOf(y))
+	// V.Index(1).Set(reflect.ValueOf(x))
+	// fmt.Println(A)
+	//
+	var intVals = []int{1, 5, 0, 2, 4, 3}
+	NewIntSorter(intVals).Sort(false)
+	for idx, val := range intVals {
+		if idx != val {
+			fmt.Println(idx, val, intVals)
+			t.Error("error")
+			return
+		}
+	}
+	NewIntSorter(intVals).Sort(true)
+	for idx, val := range intVals {
+		if val != 5-idx {
+			fmt.Println(5-idx, val, intVals)
+			t.Error("error")
+			return
+		}
+	}
+}
