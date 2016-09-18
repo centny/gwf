@@ -6,7 +6,7 @@ go:
 install:
   - go get golang.org/x/net/websocket
   - go get github.com/go-sql-driver/mysql
-  - go get github.com/golang/protobuf/protobuf
+  - go get github.com/golang/protobuf/proto
 after_script:
   -killall -w ssdb-server
   - rm -rf ./res/var/*
