@@ -2,11 +2,15 @@ package impl
 
 import (
 	"encoding/json"
+	"net"
+
+	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
-	"net"
 )
+
+var ErrTooLarge = util.Err("data too large")
 
 func Json_NAV(rc *RCM_Con, name string, args interface{}) (interface{}, error) {
 	return util.Map{
@@ -15,12 +19,17 @@ func Json_NAV(rc *RCM_Con, name string, args interface{}) (interface{}, error) {
 	}, nil
 }
 
-func Json_V2B(v interface{}) ([]byte, error) {
+func Json_V2B(v interface{}) (data []byte, err error) {
 	if sv, ok := v.(string); ok {
-		return []byte(sv), nil
+		data = []byte(sv)
 	} else {
-		return json.Marshal(v)
+		data, err = json.Marshal(v)
 	}
+	if err == nil && len(data) > 60000 {
+		log.E("Json_V2B write data(%v) too large by limit(60000)", len(data))
+		err = ErrTooLarge
+	}
+	return
 }
 
 func Json_B2V(bys []byte, v interface{}) (interface{}, error) {
