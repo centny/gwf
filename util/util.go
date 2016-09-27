@@ -210,6 +210,15 @@ func Exec2(cmds string) (string, error) {
 	return string(bys), err
 }
 
+func NewCmd(cmds string) *exec.Cmd {
+	switch runtime.GOOS {
+	case "windows":
+		return exec.Command("cmd", "/C", cmds)
+	default:
+		return exec.Command("bash", "-c", cmds)
+	}
+}
+
 func IsType(v interface{}, t string) bool {
 	t = strings.Trim(t, " \t")
 	if v == nil || len(t) < 1 {
