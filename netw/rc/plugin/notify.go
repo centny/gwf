@@ -17,14 +17,14 @@ var NotifyMessageMark byte = 165
 
 //Message is the notify message
 type Message struct {
-	ID     string   `bson:"_id" json:"id"`      //the message id
-	Oid    string   `bson:"oid" json:"oid"`     //the owner id
-	Owner  string   `bson:"owner" json:"owner"` //the owner type
-	Type   string   `bson:"type" json:"type"`   //the message type
-	Attrs  util.Map `bson:"attrs" json:"attrs"` //external attributes
-	Marked []string `bson:"attrs" json:"attrs"` //the key of already mark done
-	Count  int      `bson:"done" json:"done"`   //the done count
-	Time   int64    `bson:"time" json:"time"`   //the create time
+	ID     string   `bson:"_id" json:"id"`        //the message id
+	Oid    string   `bson:"oid" json:"oid"`       //the owner id
+	Owner  string   `bson:"owner" json:"owner"`   //the owner type
+	Type   string   `bson:"type" json:"type"`     //the message type
+	Attrs  util.Map `bson:"attrs" json:"attrs"`   //external attributes
+	Marked []string `bson:"marked" json:"marked"` //the key of already mark done
+	Count  int      `bson:"count" json:"count"`   //the done count
+	Time   int64    `bson:"time" json:"time"`     //the create time
 }
 
 //NotifyDb is the notify server database interface.
@@ -34,7 +34,7 @@ type NotifyDb interface {
 	//remove message, controling by remove count
 	RemoveMessage(id string) error
 	//done message
-	DoneMessage(key string, id string) (*Message, error)
+	DoneMessage(mid, key string) (*Message, error)
 	//return the message remove count by type
 	RemoveCount(mtype string) (int, error)
 	//list message by message fields.
@@ -102,7 +102,7 @@ func (n *NotifySrv) MarkH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	if err != nil {
 		return "", err
 	}
-	msg, err := n.Db.DoneMessage(key, mid)
+	msg, err := n.Db.DoneMessage(mid, key)
 	if err != nil {
 		log.E("NotifySrv done message by key(%v),id(%v) fail with %v", key, mid, err)
 		return "", err
@@ -167,17 +167,19 @@ func (n *NotifySrv) loopChan() {
 		select {
 		case msg := <-n.msgChan:
 			if msg == nil {
+				n.running = false
 				break
 			}
 			n.notifyMessage(msg)
 		case cid := <-n.cidChan:
 			if cid == nil {
+				n.running = false
 				break
 			}
 			n.notifyClient(cid.StrVal("cid"), cid.StrVal("type"))
 		}
 	}
-	n.running = false
+	log.D("NotifySrv loop is stopped...")
 }
 
 func (n *NotifySrv) notifyMessage(m *Message) {
@@ -316,10 +318,10 @@ func (n *NotifyMemDb) RemoveMessage(id string) error {
 }
 
 //DoneMessage @see NotifyDb
-func (n *NotifyMemDb) DoneMessage(key string, id string) (msg *Message, err error) {
+func (n *NotifyMemDb) DoneMessage(mid, key string) (msg *Message, err error) {
 	n.Lck.Lock()
 	defer n.Lck.Unlock()
-	msg = n.MS[id]
+	msg = n.MS[mid]
 	if msg == nil {
 		return nil, util.NOT_FOUND
 	}
