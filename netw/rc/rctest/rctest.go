@@ -2,6 +2,7 @@ package rctest
 
 import (
 	"fmt"
+
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/netw/rc"
@@ -10,7 +11,11 @@ import (
 
 type RCTest struct {
 	L    *rc.RC_Listener_m
+	Lmh  *impl.OBDH
+	Lch  *netw.QueueConH
 	R    *rc.RC_Runner_m
+	Rmh  *impl.OBDH
+	Rch  *netw.QueueConH
 	Addr string
 }
 
@@ -36,7 +41,12 @@ func NewRCTest_j(p *pool.BytePool, port string, sh netw.CCHandler, ch netw.CCHan
 }
 
 func NewRCTest_j2(addr string) *RCTest {
-	return NewRCTest_j(pool.BP, addr, netw.NewDoNotH(), netw.NewDoNotH())
+	var lmh, rmh = impl.NewOBDH(), impl.NewOBDH()
+	var lch, rch = netw.NewQueueConH(), netw.NewQueueConH()
+	var rct = NewRCTest_j(pool.BP, addr, netw.NewCCH(lch, lmh), netw.NewCCH(rch, rmh))
+	rct.Lmh, rct.Rmh = lmh, rmh
+	rct.Lch, rct.Rch = lch, rch
+	return rct
 }
 
 func (r *RCTest) Run() error {
