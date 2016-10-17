@@ -12,6 +12,17 @@ import (
 	"github.com/Centny/gwf/util"
 )
 
+//SharedNotify is the shared notify server instance
+var SharedNotify = NewNotifySrv(nil)
+
+//NotifyPostMessage is using SharedNotify and ignore notify when SharedNotify is not running
+func NotifyPostMessage(m *Message) error {
+	if SharedNotify.running {
+		return SharedNotify.PostMessage(m)
+	}
+	return nil
+}
+
 //NotifyMessageMark is the message mark to transfter on RC socket channel
 var NotifyMessageMark byte = 165
 
