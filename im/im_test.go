@@ -4,13 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/Centny/gwf/im/pb"
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/netw"
-	"github.com/Centny/gwf/netw/impl"
-	"github.com/Centny/gwf/pool"
-	"github.com/Centny/gwf/util"
-	"golang.org/x/net/websocket"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -19,6 +12,14 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/Centny/gwf/im/pb"
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/netw"
+	"github.com/Centny/gwf/netw/impl"
+	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/util"
+	"golang.org/x/net/websocket"
 )
 
 type rec_msg struct {
@@ -222,7 +223,8 @@ func run_im_w(p *pool.BytePool, db *MemDbH) {
 				// fmt.Println("m-->", string(tbys[1]))
 			case "li":
 				mv, _ := util.Json2Map(string(tbys[1]))
-				lr = mv.StrValP("res/r")
+				lr = mv.StrValP("res/uid")
+				fmt.Println("li-->", string(tbys[1]))
 				li_c <- 1
 				// fmt.Println("li-->", string(tbys[1]))
 			case "ur":
@@ -551,10 +553,10 @@ func run_s(db *MemDbH, p *pool.BytePool) {
 		l.Close()
 	}
 }
-func testIm(t *testing.T) {
+func TestIm(t *testing.T) {
 	runtime.GOMAXPROCS(util.CPU())
 	// ShowLog = true
-	// impl.ShowLog = true
+	// impl.ShowLog = trTue
 	// netw.ShowLog = true
 	db := NewMemDbH()
 	p := pool.NewBytePool(8, 102400)

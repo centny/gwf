@@ -2,14 +2,15 @@ package im
 
 import (
 	"fmt"
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/netw"
-	"github.com/Centny/gwf/util"
 	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/netw"
+	"github.com/Centny/gwf/util"
 )
 
 //the memory implement DbH interface for testing
@@ -363,12 +364,14 @@ func (m *MemDbH) Show_() (uint64, uint64, uint64, uint64, uint64) {
 	}
 	return mlen, rlen, plen, elen, dlen
 }
+
 func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
 	mlen, rlen, plen, elen, dlen := m.Show_()
 	fmt.Printf("M:%v, R(%v)-P(%v)-E(%v)=%v, D:%v\n", mlen, rlen, plen, elen, rlen-plen-elen, dlen)
 	return mlen, rlen, plen, elen, dlen
 }
-func (m *MemDbH) ListUnread(r string, ct int) ([]*Msg, error) {
+
+func (m *MemDbH) ListUnread(r string, ct int, lastMid string) ([]*Msg, error) {
 	m.ms_l.Lock()
 	defer m.ms_l.Unlock()
 	var ms = []*Msg{}

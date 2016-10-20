@@ -15,6 +15,9 @@ package im
 
 import (
 	"fmt"
+	"net"
+	"time"
+
 	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
@@ -23,8 +26,6 @@ import (
 	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
 	"github.com/golang/protobuf/proto"
-	"net"
-	"time"
 )
 
 var ShowLog bool = false
@@ -93,7 +94,7 @@ type DbH interface {
 	Store(m *Msg) error
 	MarkRecv(uid, avaliable string, mids []string) error
 	//send unread message
-	ListUnread(uid string, login_type int) ([]*Msg, error)
+	ListUnread(uid string, login_type int, last int64) ([]*Msg, error)
 }
 
 //
@@ -510,8 +511,8 @@ func IM_NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error
 	return cc, nil
 }
 
-func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int) {
-	ms, err := db.ListUnread(rv, ct)
+func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int, last int64) {
+	ms, err := db.ListUnread(rv, ct, last)
 	if err != nil {
 		log.E("ListUnread by R(%v),ct(%v) error:%v", rv, ct, err.Error())
 		return

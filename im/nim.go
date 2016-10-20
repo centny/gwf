@@ -2,14 +2,15 @@ package im
 
 import (
 	"fmt"
+	"strings"
+	"sync/atomic"
+
 	"github.com/Centny/gwf/im/pb"
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
-	"strings"
-	"sync/atomic"
 )
 
 const (
@@ -443,11 +444,17 @@ func (n *NIM_Rh) UR(r netw.Cmd) int {
 	if r.Closed() {
 		return -1
 	}
+	var args util.Map
+	_, err := r.V(&args)
+	if err != nil {
+		log.W("UR V fail:%v", err.Error())
+		return n.writev_ce(r, err.Error())
+	}
 	tr := n.Db.FUsrR(r)
 	if len(tr) < 1 {
 		return n.writev_ce(r, "not login")
 	}
-	SendUnread(n.SS, n.Db, r, tr, 0)
+	SendUnread(n.SS, n.Db, r, tr, 0, args.IntVal("last"))
 	return n.writev_c(r, "OK")
 }
 func (n *NIM_Rh) HB(r netw.Cmd) int {
