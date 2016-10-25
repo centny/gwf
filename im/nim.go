@@ -180,15 +180,23 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 		return -1
 	}
 	//
-	var iv int
 	dr_rc := map[string][]*pb.RC{} //
+	offline := map[string][]string{}
 	for r, ur := range gur {
-		iv = n.send_ms(r, ur, mc, dr_rc)
+		off, iv := n.send_ms(r, ur, mc, dr_rc)
 		if iv != 0 {
 			return iv
 		}
+		if len(off) > 0 {
+			offline[r] = off
+		}
 	}
-	return n.do_dis(mc, dr_rc)
+	n.do_dis(mc, dr_rc)
+	n.Db.DoOffline(offline, mc)
+	if err != nil {
+		log.E("do offline message(%v) err:%v", mc, err.Error())
+	}
+	return 0
 }
 func (n *NIM_Rh) DoRobot(mc *Msg) int {
 	if len(mc.R) < 1 {
@@ -214,14 +222,14 @@ func (n *NIM_Rh) DoRobot(mc *Msg) int {
 }
 
 //
-func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.RC) int {
+func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.RC) (offline []string, code int) {
 	if len(ur) < 1 {
-		return 0
+		return nil, 0
 	}
 	cons, err := n.Db.ListCon(ur)
 	if err != nil {
 		log.E("list Con by R(%v) err:%v", ur, err.Error())
-		return -1
+		return nil, -1
 	}
 	log_d("found %v online user for RS(%v) in S(%v)", len(cons), ur, n.SS.Id())
 	c_sid := n.SS.Id()         //current server id.
@@ -273,9 +281,9 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 		if tr == sender {
 			continue
 		}
-		// mc.ams(tr, &MSS{R: r, S: MS_PENDING})
+		offline = append(offline, tr)
 	}
-	return 0
+	return offline, 0
 }
 func (n *NIM_Rh) do_dis(mc *Msg, dr_rc map[string][]*pb.RC) int {
 	if n.DS == nil {

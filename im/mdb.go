@@ -371,7 +371,7 @@ func (m *MemDbH) Show() (uint64, uint64, uint64, uint64, uint64) {
 	return mlen, rlen, plen, elen, dlen
 }
 
-func (m *MemDbH) ListUnread(r string, ct int, lastMid string) ([]*Msg, error) {
+func (m *MemDbH) ListUnread(r string, ct int, last int64) ([]*Msg, error) {
 	m.ms_l.Lock()
 	defer m.ms_l.Unlock()
 	var ms = []*Msg{}
@@ -461,6 +461,10 @@ func (m *MemDbH) ClearMsg(urs []string) {
 		delete(m.Usr, ur)
 		delete(m.U2M, ur)
 	}
+}
+
+func (m *MemDbH) DoOffline(offline map[string][]string, msg *Msg) error {
+	return nil
 }
 
 // func (m *MemDbH) ListPcm(sid string) ([]*PCM, error) {

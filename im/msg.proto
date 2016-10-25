@@ -9,9 +9,7 @@ message ImMsg {
 	required bytes c = 6;//the content.
 	optional string a = 7;
 	optional int64 time = 8;
-	optional string mark = 9; //the message type mark.
-	optional string subm = 10;//the message submark.
-	optional int64 mid = 11; //the mark id.
+	optional string status = 9; //the message receive status
 }
 
 message RC {

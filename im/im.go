@@ -95,6 +95,8 @@ type DbH interface {
 	MarkRecv(uid, avaliable string, mids []string) error
 	//send unread message
 	ListUnread(uid string, login_type int, last int64) ([]*Msg, error)
+	//calling when having the offline message.
+	DoOffline(offline map[string][]string, msg *Msg) error
 }
 
 //
@@ -521,6 +523,7 @@ func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int, last int64) {
 		m.D = &rv
 		for _, mss := range m.Ms[rv] {
 			m.A = &mss.R
+			m.Status = &mss.S
 			err = ss.Send(r.Id(), &m.ImMsg)
 			if err != nil {
 				log.W("sending unread message(%v) error:%v", &m.ImMsg, err.Error())
