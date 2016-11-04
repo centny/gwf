@@ -164,6 +164,9 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	}
 	log_d("receive message(%v) to R(%v) in S(%v)", mc, gur, n.SS.Id())
 	mid := n.Db.NewMid()
+	if len(mc.GetI()) > 0 {
+		mid = mid + "@" + mc.GetI()
+	}
 	mc.I = &mid
 	for r, ur := range gur {
 		for _, tr := range ur {
