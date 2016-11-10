@@ -94,7 +94,7 @@ type DbH interface {
 	Store(m *Msg) error
 	MarkRecv(uid, avaliable string, mids []string) error
 	//send unread message
-	ListUnread(uid string, login_type int, last int64) ([]*Msg, error)
+	ListUnread(uid string, login_type int, args util.Map) ([]*Msg, error)
 	//calling when having the offline message.
 	DoOffline(offline map[string][]string, msg *Msg) error
 }
@@ -513,8 +513,8 @@ func IM_NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error
 	return cc, nil
 }
 
-func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int, last int64) {
-	ms, err := db.ListUnread(rv, ct, last)
+func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int, args util.Map) {
+	ms, err := db.ListUnread(rv, ct, args)
 	if err != nil {
 		log.E("ListUnread by R(%v),ct(%v) error:%v", rv, ct, err.Error())
 		return

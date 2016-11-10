@@ -186,7 +186,7 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	dr_rc := map[string][]*pb.RC{} //
 	offline := map[string][]string{}
 	for r, ur := range gur {
-		off, iv := n.send_ms(r, ur, mc, dr_rc)
+		off, iv := n.send_ms(mc.Id() , r, ur, mc, dr_rc)
 		if iv != 0 {
 			return iv
 		}
@@ -225,7 +225,7 @@ func (n *NIM_Rh) DoRobot(mc *Msg) int {
 }
 
 //
-func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.RC) (offline []string, code int) {
+func (n *NIM_Rh) send_ms(cid string,r string, ur []string, mc *Msg, dr_rc map[string][]*pb.RC) (offline []string, code int) {
 	if len(ur) < 1 {
 		return nil, 0
 	}
@@ -238,8 +238,9 @@ func (n *NIM_Rh) send_ms(r string, ur []string, mc *Msg, dr_rc map[string][]*pb.
 	c_sid := n.SS.Id()         //current server id.
 	sr_ed := map[string]byte{} //already exec
 	sender := mc.GetS()
+	// done:=MS_DONE
 	for _, con := range cons { //do online user
-		if con.Uid == sender {
+		if con.Cid==cid {
 			continue
 		}
 		sr_ed[con.Uid] = 1
@@ -465,7 +466,7 @@ func (n *NIM_Rh) UR(r netw.Cmd) int {
 	if len(tr) < 1 {
 		return n.writev_ce(r, "not login")
 	}
-	SendUnread(n.SS, n.Db, r, tr, 0, args.IntVal("last"))
+	SendUnread(n.SS, n.Db, r, tr, 0, args)
 	return n.writev_c(r, "OK")
 }
 func (n *NIM_Rh) HB(r netw.Cmd) int {
