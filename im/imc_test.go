@@ -151,7 +151,7 @@ func TestMessageToSelf(t *testing.T) {
 		fmt.Println("-->", imc2.RC)
 		time.Sleep(300 * time.Millisecond)
 	}
-	if imc2.RC < 10 {
+	if imc2.RC != 10 {
 		t.Error("time out")
 		return
 	}
@@ -164,7 +164,7 @@ func TestMessageToSelf(t *testing.T) {
 		fmt.Println("-->", imc.RC)
 		time.Sleep(300 * time.Millisecond)
 	}
-	if imc.RC < 10 {
+	if imc.RC != 10 {
 		t.Error("time out")
 		return
 	}

@@ -186,7 +186,7 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	dr_rc := map[string][]*pb.RC{} //
 	offline := map[string][]string{}
 	for r, ur := range gur {
-		off, iv := n.send_ms(mc.Id(), r, ur, mc, dr_rc)
+		off, iv := n.send_ms(mc.Id(), r, ur, mc, dr_rc, true)
 		if iv != 0 {
 			return iv
 		}
@@ -195,7 +195,7 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 		}
 	}
 	//send to other device
-	n.send_ms(mc.Id(), mc.GetR()[0], []string{mc.GetS()}, mc, dr_rc)
+	n.send_ms(mc.Id(), mc.GetR()[0], []string{mc.GetS()}, mc, dr_rc, false)
 	n.do_dis(mc, dr_rc)
 	n.Db.DoOffline(offline, mc)
 	if err != nil {
@@ -227,7 +227,7 @@ func (n *NIM_Rh) DoRobot(mc *Msg) int {
 }
 
 //
-func (n *NIM_Rh) send_ms(cid string, r string, ur []string, mc *Msg, dr_rc map[string][]*pb.RC) (offline []string, code int) {
+func (n *NIM_Rh) send_ms(cid string, r string, ur []string, mc *Msg, dr_rc map[string][]*pb.RC, noself bool) (offline []string, code int) {
 	if len(ur) < 1 {
 		return nil, 0
 	}
@@ -239,7 +239,7 @@ func (n *NIM_Rh) send_ms(cid string, r string, ur []string, mc *Msg, dr_rc map[s
 	log_d("found %v online user for RS(%v) in S(%v)", len(cons), ur, n.SS.Id())
 	c_sid := n.SS.Id() //current server id.
 	sender := mc.GetS()
-	sr_ed := n.send_cons(c_sid, sender, r, cons, mc, dr_rc)
+	sr_ed := n.send_cons(c_sid, sender, r, cons, mc, dr_rc, noself)
 	// done:=MS_DONE
 
 	// log_d("sr_ed---->%v in S(%v)", sr_ed, c_sid)
@@ -254,11 +254,10 @@ func (n *NIM_Rh) send_ms(cid string, r string, ur []string, mc *Msg, dr_rc map[s
 	}
 	return offline, 0
 }
-func (n *NIM_Rh) send_cons(c_sid, sender, r string, cons []Con, mc *Msg, dr_rc map[string][]*pb.RC) map[string]byte {
+func (n *NIM_Rh) send_cons(c_sid, sender, r string, cons []Con, mc *Msg, dr_rc map[string][]*pb.RC, noself bool) map[string]byte {
 	sr_ed := map[string]byte{} //already exec
 	for _, con := range cons { //do online user
-		if con.Cid == mc.Id() {
-			fmt.Printf("--->%v->%v\n", con, mc.Id())
+		if con.Cid == mc.Id() || (noself && con.Uid == sender) {
 			continue
 		}
 		sr_ed[con.Uid] = 1
