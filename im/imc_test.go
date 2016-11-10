@@ -2,15 +2,17 @@ package im
 
 import (
 	"fmt"
+
 	"github.com/Centny/gwf/util"
 	// "github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/routing/httptest"
 	// "github.com/Centny/gwf/netw/impl"
-	"github.com/Centny/gwf/pool"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/Centny/gwf/pool"
 )
 
 func TestIMC(t *testing.T) {
@@ -99,5 +101,72 @@ func TestIMC(t *testing.T) {
 	fmt.Println("\n\n\n")
 	fmt.Println(db.Show())
 	imc.Close()
+	fmt.Println("all done ....")
+}
+
+func TestMessageToSelf(t *testing.T) {
+	runtime.GOMAXPROCS(util.CPU())
+	ShowLog = true
+	// impl.ShowLog = true
+	// netw.ShowLog = true
+	db := NewMemDbH()
+	db.Tokens["token"] = "u1"
+	p := pool.NewBytePool(8, 102400)
+	l := NewListner3(db, fmt.Sprintf("S-vx-%v", 0), p, 9790, 1000000)
+	go func() {
+		err := l.Run()
+		if err != nil {
+			panic(err.Error())
+		}
+	}()
+	time.Sleep(time.Second)
+	srvs, err := db.ListSrv("")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	imc := NewIMC3(pool.BP, srvs, "token")
+	// imc.ShowLog = true
+	imc.TickData = []byte{}
+	imc.Start()
+	imc2 := NewIMC3(pool.BP, srvs, "token")
+	// imc2.ShowLog = true
+	imc2.TickData = []byte{}
+	imc2.Start()
+	imc.LC.Wait()
+	imc2.LC.Wait()
+	imc.StartHB()
+	imc2.StartHB()
+	fmt.Println("imc--->01-02")
+	fmt.Println(imc.IC)
+	fmt.Println(imc2.IC)
+	imc.UR()
+	imc2.UR()
+	time.Sleep(time.Second)
+	for i := 0; i < 10; i++ {
+		imc.SMS("xx1", 0, "imc1-00--->")
+	}
+	fmt.Println("imc--->01-03")
+	for i := 0; i < 10 && imc2.RC < 10; i++ {
+		fmt.Println("-->", imc2.RC)
+		time.Sleep(300 * time.Millisecond)
+	}
+	if imc2.RC < 10 {
+		t.Error("time out")
+		return
+	}
+	fmt.Println("\n\n\n")
+	db.Grp["G-abc"] = []string{"U-a", "U-b", "u1"}
+	for i := 0; i < 10; i++ {
+		imc2.SMS("G-abc", 0, "imc1-00--->")
+	}
+	for i := 0; i < 10 && imc.RC < 10; i++ {
+		fmt.Println("-->", imc.RC)
+		time.Sleep(300 * time.Millisecond)
+	}
+	if imc.RC < 10 {
+		t.Error("time out")
+		return
+	}
 	fmt.Println("all done ....")
 }

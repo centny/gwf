@@ -470,7 +470,7 @@ func wait_rec(db *MemDbH) {
 }
 func run_c(db *MemDbH, p *pool.BytePool) {
 	crun = true
-	xl, yl := 10, 10
+	xl, yl := 3, 3
 	client_c = uint64(xl * yl * 2)
 	cc_ws.Add(xl * yl * 2)
 	cc_ws2.Add(1)
