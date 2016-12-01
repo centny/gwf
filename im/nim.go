@@ -28,9 +28,6 @@ type NMR_Rh struct {
 	Db DbH
 }
 
-func NewNMR_Rh(db DbH) *NMR_Rh {
-	return &NMR_Rh{Db: db}
-}
 func (n *NMR_Rh) OnCmd(r netw.Cmd) int {
 	defer func() {
 		r.Done()
@@ -82,17 +79,8 @@ type NIM_Rh struct {
 	Running  bool
 	PushChan chan string
 	M        *tutil.Monitor
-	//
-	sync chan util.Map
 }
 
-func NewNIM_Rh(db DbH) *NIM_Rh {
-	return &NIM_Rh{
-		Db:       db,
-		PushChan: make(chan string, 10000),
-		sync:     make(chan util.Map, 100000),
-	}
-}
 func (n *NIM_Rh) OnConn(c netw.Con) bool {
 	return n.Db.OnConn(c)
 }
@@ -468,7 +456,7 @@ func (n *NIM_Rh) UR(r netw.Cmd) int {
 		r.Done()
 		err := recover()
 		if err != nil {
-			log.E("NIM_Rh UR panic by error(%v), the stack:\n%v\n", err, util.CallStatck())
+			log.E("NIM_Rh LI panic by error(%v), the stack:\n%v\n", err, util.CallStatck())
 			r.Close()
 		}
 	}()
@@ -485,13 +473,7 @@ func (n *NIM_Rh) UR(r netw.Cmd) int {
 	if len(tr) < 1 {
 		return n.writev_ce(r, "not login")
 	}
-	// SendUnread(n.SS, n.Db, r, tr, 0, args)
-	log_d("do ur success, the %v will be added to task", tr)
-	n.sync <- util.Map{
-		"args": args,
-		"uid":  tr,
-		"cid":  r.Id(),
-	}
+	SendUnread(n.SS, n.Db, r, tr, 0, args)
 	return n.writev_c(r, "OK")
 }
 func (n *NIM_Rh) HB(r netw.Cmd) int {
@@ -529,13 +511,13 @@ func (n *NIM_Rh) GR(r netw.Cmd) int {
 func (n *NIM_Rh) Push(mid string) {
 	n.PushChan <- mid
 }
-func (n *NIM_Rh) StartLoopTask(gc int) {
+func (n *NIM_Rh) StartPushTask(gc int) {
 	log.I("starting %v push task-->", gc)
 	for i := 0; i < gc; i++ {
-		go n.LoopTask()
+		go n.LoopPush()
 	}
 }
-func (n *NIM_Rh) LoopTask() {
+func (n *NIM_Rh) LoopPush() {
 	n.Running = true
 	//log.I("starting push task-->")
 	for n.Running {
@@ -549,19 +531,6 @@ func (n *NIM_Rh) LoopTask() {
 				log_d("doing push sc(%v),total(%v)->OK", sc, total)
 			} else {
 				log.W("doing push sc(%v),total(%v)->ERR:%v", sc, total, err.Error())
-			}
-		case args := <-n.sync:
-			if args == nil {
-				break
-			}
-			var tcid, tuid, targs = args.StrVal("cid"), args.StrVal("uid"), args.MapVal("args")
-			var err = n.Db.DoSync(tuid, 0, targs, func(ms []*Msg) error {
-				return SendUnread(n.SS, n.Db, tcid, tuid, 0, targs, ms)
-			})
-			if err == nil {
-				log_d("do sync for %v->OK", args.StrVal("uid"))
-			} else {
-				log.E("do sync fail with %v by %v", err, util.S2Json(args))
 			}
 		}
 	}
