@@ -386,6 +386,14 @@ func (m *MemDbH) ListUnread(r string, ct int, args util.Map) ([]*Msg, error) {
 	}
 	return ms, nil
 }
+func (m *MemDbH) DoSync(uid string, ct int, args util.Map, send func(ms []*Msg) error) error {
+	ms, err := m.ListUnread(uid, ct, args)
+	if err != nil {
+		log.E("ListUnread by R(%v),ct(%v) error:%v", uid, ct, err.Error())
+		return err
+	}
+	return send(ms)
+}
 func (m *MemDbH) ListPushTask(sid, mid string) (*Msg, []Con, error) {
 	m.con_l.Lock()
 	m.ms_l.Lock()

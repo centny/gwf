@@ -94,7 +94,8 @@ type DbH interface {
 	Store(m *Msg) error
 	MarkRecv(uid, avaliable string, mids []string) error
 	//send unread message
-	ListUnread(uid string, login_type int, args util.Map) ([]*Msg, error)
+	// ListUnread(uid string, login_type int, args util.Map) ([]*Msg, error)
+	DoSync(uid string, login_type int, args util.Map, send func(ms []*Msg) error) error
 	//calling when having the offline message.
 	DoOffline(offline map[string][]string, msg *Msg) error
 }
@@ -241,7 +242,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 	//
 	obdh := impl.NewOBDH()
 	//
-	nim := &NIM_Rh{Db: db, PushChan: make(chan string, 10000)}
+	nim := NewNIM_Rh(db)
 	nim_ob := impl.NewOBDH()
 	nim.H(nim_ob)
 	obdh.AddH(MK_NIM, nim)
@@ -255,7 +256,7 @@ func NewListnerV(db DbH, sid string, p *pool.BytePool, port int, timeout int64, 
 	obdh.AddH(MK_DRC, impl.NewRC_S(dim_m))
 	log.D("setting DIM H...")
 	//
-	nmr := &NMR_Rh{Db: db}
+	nmr := NewNMR_Rh(db)
 	obdh.AddH(MK_NMR, nmr)
 	log.D("setting NMR H...")
 	//
@@ -367,12 +368,12 @@ func (l *Listener) Run() error {
 	}
 	if len(l.PushSrvAddr) > 0 {
 		l.ConPushSrv(l.PushSrvAddr)
-		l.NIM.StartPushTask(util.CPU())
 	}
 	if len(l.WsAddr) > 0 {
 		log.I("running websocket on %v", l.WsAddr)
 		go l.WIM_L.LoopTimeout()
 	}
+	l.NIM.StartLoopTask(util.CPU())
 	return nil
 }
 
@@ -513,25 +514,21 @@ func IM_NewCon(cp netw.ConPool, p *pool.BytePool, con net.Conn) (netw.Con, error
 	return cc, nil
 }
 
-func SendUnread(ss Sender, db DbH, r netw.Cmd, rv string, ct int, args util.Map) {
-	ms, err := db.ListUnread(rv, ct, args)
-	if err != nil {
-		log.E("ListUnread by R(%v),ct(%v) error:%v", rv, ct, err.Error())
-		return
-	}
+func SendUnread(ss Sender, db DbH, cid, rv string, ct int, args util.Map, ms []*Msg) error {
 	for _, m := range ms {
 		m.D = &rv
 		for _, mss := range m.Ms[rv] {
 			m.A = &mss.R
 			m.Status = &mss.S
-			err = ss.Send(r.Id(), &m.ImMsg)
+			err := ss.Send(cid, &m.ImMsg)
 			if err != nil {
 				log.W("sending unread message(%v) error:%v", &m.ImMsg, err.Error())
-				return
+				return err
 			}
 		}
 	}
 	if len(ms) > 0 {
 		log_d("SendUnread %v messages is sended to %v", len(ms), rv)
 	}
+	return nil
 }
