@@ -7,6 +7,11 @@ package dtm
 
 import (
 	"fmt"
+	"net/http"
+	"os/exec"
+	"sync"
+	"sync/atomic"
+
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
@@ -14,10 +19,6 @@ import (
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/util"
-	"net/http"
-	"os/exec"
-	"sync"
-	"sync/atomic"
 )
 
 var ShowLog = 0
@@ -156,7 +157,11 @@ func (d *DTM_S_Proc) OnLogin(rc *impl.RCM_Cmd, token string) (string, error) {
 	cid := atomic.AddInt64(&d.cid, 1)
 	cid_ := fmt.Sprintf("C-%v", cid)
 	d.TaskC[cid_] = 0
-	d.StatusC[cid_] = util.Map{"status": DCS_UNACTIVATED}
+	d.StatusC[cid_] = util.Map{
+		"status": DCS_UNACTIVATED,
+		"remote": rc.RemoteAddr().String(),
+	}
+	rc.Kvs().SetVal("sid", cid_)
 	return cid_, nil
 }
 
@@ -169,7 +174,7 @@ func (d *DTM_S_Proc) OnConn(c netw.Con) bool {
 func (d *DTM_S_Proc) OnClose(c netw.Con) {
 	d.proc_l.Lock()
 	defer d.proc_l.Unlock()
-	var cid = c.Kvs().StrVal("cid")
+	var cid = c.Kvs().StrVal("sid")
 	if len(cid) > 0 {
 		d.AllC -= d.TaskC[cid]
 		delete(d.TaskC, cid)
