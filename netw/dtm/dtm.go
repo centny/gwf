@@ -147,7 +147,9 @@ func (d *DTM_S_Proc) OnDone(dtm *DTM_S, args util.Map, cid, tid string, code int
 func (d *DTM_S_Proc) OnStatus(dtm *DTM_S, cid string, args util.Map) {
 	d.proc_l.Lock()
 	defer d.proc_l.Unlock()
-	d.StatusC[cid] = args
+	for k, v := range args {
+		d.StatusC.SetValP("/"+cid+"/"+k, v)
+	}
 }
 
 //login event
