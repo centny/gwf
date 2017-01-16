@@ -160,7 +160,7 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 	}
 	var gur map[string][]string = map[string][]string{}
 	if len(gr) > 0 {
-		gur, err = n.Db.ListUsrR(gr)
+		gur, err = n.Db.ListUsrR(mc, gr)
 		if err != nil {
 			log.E("list user R by gr(%v) err:%v", gr, err.Error())
 			return -1
@@ -518,7 +518,7 @@ func (n *NIM_Rh) GR(r netw.Cmd) int {
 		log.W("LGR V fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
-	ur, err := n.Db.ListUsrR(args.GR)
+	ur, err := n.Db.ListUsrR(nil, args.GR)
 	if err == nil {
 		log_d("list user R by(%v)", args)
 		return n.writev_c(r, ur)

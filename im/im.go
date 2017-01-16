@@ -69,7 +69,7 @@ type DbH interface {
 	//
 	// FindUsrR(uid int64) (string, error)
 	//list all user R by group R,if gr is nil return all online user R.
-	ListUsrR(gids []string) (map[string][]string, error)
+	ListUsrR(msg *Msg, gids []string) (map[string][]string, error)
 	//sift the R to group id and user id.
 	Sift(ids []string) ([]string, []string, error)
 	//

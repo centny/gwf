@@ -121,7 +121,7 @@ func (m *MemDbH) FUsrR(c netw.Cmd) string {
 // }
 
 //list all user R by group R
-func (m *MemDbH) ListUsrR(gr []string) (map[string][]string, error) {
+func (m *MemDbH) ListUsrR(msg *Msg, gr []string) (map[string][]string, error) {
 	m.g_lck.Lock()
 	defer m.g_lck.Unlock()
 	trs := map[string][]string{}

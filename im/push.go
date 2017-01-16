@@ -1,12 +1,13 @@
 package im
 
 import (
+	"strings"
+
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
 	"github.com/Centny/gwf/util"
-	"strings"
 )
 
 type PushSrv struct {
@@ -52,7 +53,7 @@ func (p *PushSrv) PushV(s string, r []string, c []byte, t uint32) (*Msg, error) 
 	for _, r := range ur {
 		msg.Ms[r] = append(msg.Ms[r], &MSS{R: s, S: MS_PENDING})
 	}
-	gur, err := p.Db.ListUsrR(gr)
+	gur, err := p.Db.ListUsrR(msg, gr)
 	if err != nil {
 		return nil, err
 	}
