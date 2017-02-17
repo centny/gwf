@@ -75,6 +75,9 @@ func (t *TimeFlushWriter) Stop() {
 	t.buf.Flush()
 	t.running = false
 }
+func (t *TimeFlushWriter) Flush() error {
+	return t.buf.Flush()
+}
 func (t *TimeFlushWriter) WriteString(s string) (int, error) {
 	return t.buf.WriteString(s)
 }
