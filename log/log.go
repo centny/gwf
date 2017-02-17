@@ -2,10 +2,11 @@ package log
 
 import (
 	"fmt"
-	"github.com/Centny/gwf/smartio"
 	"io"
 	"log"
 	"os"
+
+	"github.com/Centny/gwf/smartio"
 )
 
 type LogLevel int
@@ -155,4 +156,13 @@ func RedirectV(out_l, err_l string, sys bool) {
 
 func ResetStd() {
 	smartio.ResetStd()
+}
+
+func Flush() {
+	if smartio.Stdout != nil {
+		smartio.Stdout.Flush()
+	}
+	if smartio.Stderr != nil {
+		smartio.Stderr.Flush()
+	}
 }
