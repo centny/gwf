@@ -512,13 +512,19 @@ func (n *NIM_Rh) GR(r netw.Cmd) int {
 			r.Close()
 		}
 	}()
+	tr := n.Db.FUsrR(r)
+	if len(tr) < 1 {
+		return n.writev_ce(r, "not login")
+	}
 	var args LGR_Arg
 	_, err := r.V(&args)
 	if err != nil {
 		log.W("LGR V fail:%v", err.Error())
 		return n.writev_ce(r, err.Error())
 	}
-	ur, err := n.Db.ListUsrR(nil, args.GR)
+	var mc Msg
+	mc.S = &tr
+	ur, err := n.Db.ListUsrR(&mc, args.GR)
 	if err == nil {
 		log_d("list user R by(%v)", args)
 		return n.writev_c(r, ur)
