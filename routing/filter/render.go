@@ -1,15 +1,16 @@
 package filter
 
 import (
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/routing"
-	"github.com/Centny/gwf/util"
 	"html/template"
 	"io/ioutil"
 	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/routing"
+	"github.com/Centny/gwf/util"
 )
 
 var REG_EXT_LINE = regexp.MustCompile("^<!--[\\s]*R:.*-->$")
@@ -98,9 +99,10 @@ type TmplF struct {
 }
 
 type Render struct {
-	Dir string
-	H   RenderH
-	Err string
+	Dir   string
+	H     RenderH
+	Err   string
+	Funcs template.FuncMap
 }
 
 func NewRender(dir string, h RenderH) *Render {
@@ -135,7 +137,11 @@ func (r *Render) NewTmplFv(path string) (tmpl *TmplF, err error) {
 		}
 		tmpl.Key = tmpl.U.Path
 	}
-	tmpl.T, err = template.New(tmpl.Path).Parse(tmpl.Text)
+	stdtmpl := template.New(tmpl.Path)
+	if r.Funcs != nil {
+		stdtmpl = stdtmpl.Funcs(r.Funcs)
+	}
+	tmpl.T, err = stdtmpl.Parse(tmpl.Text)
 	return
 }
 
