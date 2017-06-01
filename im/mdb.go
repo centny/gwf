@@ -266,7 +266,20 @@ func (m *MemDbH) Store(ms *Msg) error {
 	// }
 	return nil
 }
-func (m *MemDbH) MarkRecv(r, a string, mids []string) error {
+func (m *MemDbH) MarkRead(c netw.Cmd, uid string, args *util.Map) error {
+	var i, a string
+	err := (*args).ValidF(`
+		i,R|S,L:0;
+		a,R|S,L:0;
+		`, &i, &a)
+	if err != nil {
+		log.W("MR args(%v) fail:%v", (*args), err.Error())
+		return err
+	}
+	mids := strings.Split(i, ",")
+	if len(mids) < 1 {
+		return util.Err("the message is empty")
+	}
 	if len(mids) < 1 {
 		return util.Err("the message is empty")
 	}
@@ -274,7 +287,7 @@ func (m *MemDbH) MarkRecv(r, a string, mids []string) error {
 	defer m.ms_l.Unlock()
 	for _, mid := range mids {
 		if msg, ok := m.Ms[mid]; ok {
-			for _, mss := range msg.Ms[r] {
+			for _, mss := range msg.Ms[uid] {
 				if mss.R == a {
 					mss.S = MS_DONE
 				}

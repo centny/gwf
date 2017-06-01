@@ -53,21 +53,22 @@ func (n *NMR_Rh) OnCmd(r netw.Cmd) int {
 		log.W("MR V fail:%v", err.Error())
 		return -1
 	}
-	var i, a string
-	err = args.ValidF(`
-		i,R|S,L:0;
-		a,R|S,L:0;
-		`, &i, &a)
-	if err != nil {
-		log.W("MR args(%v) fail:%v", args, err.Error())
-		return -1
-	}
-	err = n.Db.MarkRecv(tr, a, strings.Split(i, ","))
+	// var i, a string
+	// err = args.ValidF(`
+	// 	i,R|S,L:0;
+	// 	a,R|S,L:0;
+	// 	`, &i, &a)
+	// if err != nil {
+	// 	log.W("MR args(%v) fail:%v", args, err.Error())
+	// 	return -1
+	// }
+	// err = n.Db.MarkRecv(tr, a, strings.Split(i, ","))
+	err = n.Db.MarkRead(r, tr, &args)
 	if err == nil {
-		log_d("MarkRecv by (i:%v,a:%v) success", i, a)
+		log_d("MarkRecv by (%v) success", args)
 		return 0
 	} else {
-		log.W("MarkRecv by i(%v),a(%v) fail:%v", i, a, err.Error())
+		log.W("MarkRecv by (%v) fail:%v", args, err.Error())
 		return -1
 	}
 }

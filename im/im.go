@@ -92,7 +92,8 @@ type DbH interface {
 	// Update(mid string, rs map[string]string) error
 	//store mesage
 	Store(m *Msg) error
-	MarkRecv(uid, avaliable string, mids []string) error
+	// MarkRecv(uid, avaliable string, mids []string) error
+	MarkRead(c netw.Cmd, uid string, args *util.Map) error
 	//send unread message
 	// ListUnread(uid string, login_type int, args util.Map) ([]*Msg, error)
 	DoSync(uid string, login_type int, args util.Map, send func(ms []*Msg) error) error
