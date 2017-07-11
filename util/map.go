@@ -292,7 +292,7 @@ func (m Map) StrValV(key, d string) string {
 			return val
 		}
 	} else {
-		return ""
+		return d
 	}
 }
 func (m Map) StrVal2(key string) string {
