@@ -8,15 +8,17 @@ package rc
 
 import (
 	"fmt"
+	"net"
+	"sync"
+	"sync/atomic"
+
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
 	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/tools/timer"
 	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
-	"net"
-	"sync"
-	"sync/atomic"
 )
 
 const (
@@ -338,6 +340,8 @@ type RC_Runner_m struct {
 	OH *impl.OBDH //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
 	MC netw.Con   //message connection.
 	// BC *netw.Con_
+	HbData  string
+	HbDelay int64
 }
 
 //new remote command client runner by common convert function.
@@ -363,6 +367,8 @@ func NewRC_Runner_m(p *pool.BytePool, addr string, h netw.CCHandler, rc *impl.RC
 	runner.L = netw.NewNConPool(p, netw.NewCCH(netw.NewQueueConH(runner, h), runner.CH), "RCC-")
 	runner.L.NewCon = runner.NewCon
 	runner.CH.Name = runner.L.Id()
+	runner.HbData = "live"
+	runner.HbDelay = 8000
 	return runner
 }
 
@@ -477,6 +483,14 @@ func (r *RC_Runner_m) State() (interface{}, error) {
 		res["chan"] = val
 	}
 	return res, nil
+}
+
+func (r *RC_Runner_m) OnHbTime(i uint64) error {
+	return r.HB(r.HbData)
+}
+
+func (r *RC_Runner_m) StartHbTimer() {
+	timer.Register2(r.HbDelay, r.OnHbTime)
 }
 
 type AutoLoginH struct {
