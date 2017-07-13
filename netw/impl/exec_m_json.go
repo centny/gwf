@@ -20,9 +20,12 @@ func Json_NAV(rc *RCM_Con, name string, args interface{}) (interface{}, error) {
 }
 
 func Json_V2B(v interface{}) (data []byte, err error) {
-	if sv, ok := v.(string); ok {
-		data = []byte(sv)
-	} else {
+	switch v.(type) {
+	case string:
+		data = []byte(v.(string))
+	case []byte:
+		data = v.([]byte)
+	default:
 		data, err = json.Marshal(v)
 	}
 	if err == nil && len(data) > 60000 {
@@ -32,13 +35,23 @@ func Json_V2B(v interface{}) (data []byte, err error) {
 	return
 }
 
-func Json_B2V(bys []byte, v interface{}) (interface{}, error) {
-	err := json.Unmarshal(bys, v)
-	if err == nil {
-		return v, nil
-	} else {
-		return v, util.Err("Json_B2V err(%v) by data:%v", err.Error(), string(bys))
+func Json_B2V(bys []byte, v interface{}) (data interface{}, err error) {
+	switch v.(type) {
+	case *string:
+		val := v.(*string)
+		*val = string(bys)
+	case *[]byte:
+		val := v.(*[]byte)
+		*val = make([]byte, len(bys))
+		copy(*val, bys)
+	default:
+		err = json.Unmarshal(bys, v)
 	}
+	data = v
+	if err != nil {
+		err = util.Err("Json_B2V err(%v) by data:%v", err.Error(), string(bys))
+	}
+	return
 }
 
 /*
