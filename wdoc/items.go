@@ -150,9 +150,19 @@ func (f *Func) Matched(key, tags string) bool {
 			reg.MatchString(f.Desc) ||
 			reg.MatchString(f.Name) {
 			return true
-		} else {
-			return false
 		}
+		if f.Url != nil && reg.MatchString(f.Url.Path) {
+			return true
+		}
+		for _, c := range f.Case {
+			if c.Text == nil {
+				continue
+			}
+			if reg.MatchString(c.Text.Title) || reg.MatchString(c.Text.Desc) {
+				return true
+			}
+		}
+		return false
 	}
 	return true
 }
