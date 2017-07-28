@@ -44,7 +44,10 @@ func (w *Wdoc) Filter(key, tags string) *Wdoc {
 		if len(tfs) < 1 {
 			continue
 		}
-		pkgs_ = append(pkgs_, pkg)
+		pkgs_ = append(pkgs_, &Pkg{
+			Name:  pkg.Name,
+			Funcs: tfs,
+		})
 	}
 	res.Pkgs = pkgs_
 	res.Tags = tags_
