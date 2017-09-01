@@ -8,13 +8,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/Centny/gwf/util"
 	"io/ioutil"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Centny/gwf/util"
 )
 
 //convert the sql.Rows to map array.
@@ -479,7 +480,8 @@ func CovInvI(vals []int64) string {
 func DbStrJoin(val []string) string {
 	var tval = []string{}
 	for _, v := range val {
-		tval = append(tval, fmt.Sprintf("\"%v\"", v))
+		v = strings.Replace(v, "'", "\\'", -1)
+		tval = append(tval, fmt.Sprintf("'%v'", v))
 	}
 	return strings.Join(tval, ",")
 }
