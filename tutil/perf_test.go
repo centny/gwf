@@ -30,7 +30,7 @@ func TestPerf(t *testing.T) {
 
 func TestAutoPerf(t *testing.T) {
 	runtime.GOMAXPROCS(util.CPU())
-	used, err := DoAutoPerfV(1000, 10, 10, "t2.log",
+	used, max, err := DoAutoPerfV(1000, 10, 10, "t2.log", 100,
 		func(idx, running int) error {
 			log.D("running->%d,%d", running, idx)
 			if running < 100 {
@@ -42,5 +42,5 @@ func TestAutoPerf(t *testing.T) {
 			log.D("doing->%d", v)
 			return nil
 		})
-	fmt.Println("used->", used, err)
+	fmt.Println("used->", used, max, err)
 }
