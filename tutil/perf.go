@@ -23,17 +23,21 @@ func DoPerfV(total, tc int, logf string, call func(int)) (int64, error) {
 		})
 }
 
-func DoAutoPerfV(total, tc, peradd int, logf string, pretimeout int64, precall func(idx, running int) error, call func(int) error) (used int64, max int, err error) {
+func DoAutoPerfV(total, tc, peradd int, logf string, pretimeout int64, precall func(idx, running, avg int) error, call func(int) error) (used int64, max, avg int, err error) {
 	var mlck = sync.RWMutex{}
+	var allrunning uint64
+	var allc uint64
 	used, err = DoAutoPerfV_(total, tc, logf,
 		func(idx, running int) (int, error) {
 			mlck.Lock()
 			if max < running {
 				max = running
 			}
+			allrunning += uint64(running)
+			allc++
 			mlck.Unlock()
 			beg := util.Now()
-			terr := precall(idx, running)
+			terr := precall(idx, running, int(allrunning/allc))
 			if terr == nil {
 				if util.Now()-beg < pretimeout {
 					return peradd, nil
@@ -51,6 +55,7 @@ func DoAutoPerfV(total, tc, peradd int, logf string, pretimeout int64, precall f
 				return 0, terr
 			}
 		}, call)
+	avg = int(allrunning / allc)
 	return
 }
 
