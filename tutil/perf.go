@@ -30,6 +30,9 @@ func DoAutoPerfV(total, tc, peradd int, logf string, precall func(idx, running i
 			if terr == nil {
 				return peradd, nil
 			} else if terr == FullError {
+				if running < tc {
+					return 1, nil
+				}
 				return 0, nil
 			} else {
 				return 0, terr
@@ -60,7 +63,7 @@ func DoAutoPerfV_(total, tc int, logf string, increase func(idx, running int) (i
 		tc = total
 	}
 	ws := sync.WaitGroup{}
-	ws.Add(total)
+	// ws.Add(total)
 	beg := util.Now()
 	var tidx_ int32 = 0
 	var run_call, run_next func(int)
@@ -89,11 +92,13 @@ func DoAutoPerfV_(total, tc int, logf string, increase func(idx, running int) (i
 			if ridx >= total {
 				break
 			}
+			ws.Add(1)
 			go run_call(ridx)
 		}
 	}
 	atomic.AddInt32(&tidx_, int32(tc-1))
 	for i := 0; i < tc; i++ {
+		ws.Add(1)
 		go run_call(i)
 	}
 	ws.Wait()
