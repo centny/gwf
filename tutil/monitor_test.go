@@ -13,9 +13,6 @@ func TestMonitor(t *testing.T) {
 	runtime.GOMAXPROCS(util.CPU())
 	var m = NewMonitor()
 	_, err := DoPerfV_(200, 30, "",
-		func(idx, running int) (int, error) {
-			return 1, nil
-		},
 		func(i int) error {
 			if i%10 == 0 {
 				m.State()

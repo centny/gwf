@@ -17,16 +17,14 @@ func DoPerf(tc int, logf string, call func(int)) (int64, error) {
 }
 func DoPerfV(total, tc int, logf string, call func(int)) (int64, error) {
 	return DoPerfV_(total, tc, logf,
-		func(idx, running int) (int, error) {
-			return 1, nil
-		}, func(i int) error {
+		func(i int) error {
 			call(i)
 			return nil
 		})
 }
 
 func DoAutoPerfV(total, tc, peradd int, logf string, precall func(idx, running int) error, call func(int) error) (int64, error) {
-	return DoPerfV_(total, tc, logf,
+	return DoAutoPerfV_(total, tc, logf,
 		func(idx, running int) (int, error) {
 			terr := precall(idx, running)
 			if terr == nil {
@@ -39,7 +37,14 @@ func DoAutoPerfV(total, tc, peradd int, logf string, precall func(idx, running i
 		}, call)
 }
 
-func DoPerfV_(total, tc int, logf string, increase func(idx, running int) (int, error), call func(int) error) (int64, error) {
+func DoPerfV_(total, tc int, logf string, call func(int) error) (int64, error) {
+	return DoAutoPerfV_(total, tc, logf,
+		func(idx, running int) (int, error) {
+			return 1, nil
+		}, call)
+}
+
+func DoAutoPerfV_(total, tc int, logf string, increase func(idx, running int) (int, error), call func(int) error) (int64, error) {
 	stdout := os.Stdout
 	stderr := os.Stderr
 	if len(logf) > 0 {
