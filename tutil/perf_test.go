@@ -2,11 +2,12 @@ package tutil
 
 import (
 	"fmt"
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/util"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/util"
 )
 
 func TestPerf(t *testing.T) {
@@ -25,4 +26,21 @@ func TestPerf(t *testing.T) {
 		return
 	}
 	fmt.Println("used->", used)
+}
+
+func TestAutoPerf(t *testing.T) {
+	runtime.GOMAXPROCS(util.CPU())
+	used, err := DoAutoPerfV(1000, 10, 10, "t2.log",
+		func(idx, running int) error {
+			log.D("running->%d,%d", running, idx)
+			if running < 100 {
+				return nil
+			}
+			return FullError
+		}, func(v int) error {
+			time.Sleep(100 * time.Millisecond)
+			log.D("doing->%d", v)
+			return nil
+		})
+	fmt.Println("used->", used, err)
 }
