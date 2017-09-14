@@ -116,7 +116,7 @@ func (p *Perf) monitor() {
 			p.Max = running
 		}
 		if p.ShowState {
-			fmt.Printf("State:%v\n", util.S2Json(p))
+			fmt.Fprintf(p.stdout, "State:%v\n", util.S2Json(p))
 		}
 		time.Sleep(time.Second)
 	}
