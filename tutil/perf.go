@@ -26,29 +26,7 @@ func DoPerfV(total, tc int, logf string, call func(int)) (int64, error) {
 
 func DoAutoPerfV(total, tc, peradd int, logf string, pretimeout int64, precall func(idx int, state Perf) error, call func(int) error) (used int64, max, avg int, err error) {
 	perf := &Perf{}
-	used, err = perf.Exec(total, tc, logf,
-		func(idx int, state Perf) (int, error) {
-			beg := util.Now()
-			terr := precall(idx, state)
-			if terr == nil {
-				if util.Now()-beg < pretimeout {
-					return peradd, nil
-				}
-				if int(state.Running) < tc {
-					return 1, nil
-				}
-				return 0, nil
-			} else if terr == FullError {
-				if int(state.Running) < tc {
-					return 1, nil
-				}
-				return 0, nil
-			} else {
-				return 0, terr
-			}
-		}, call)
-	max, avg = int(perf.Max), int(perf.Avg)
-	return
+	return perf.AutoExec(total, tc, peradd, logf, pretimeout, precall, call)
 }
 
 func DoPerfV_(total, tc int, logf string, call func(int) error) (int64, error) {
@@ -77,6 +55,33 @@ type Perf struct {
 	mwait          sync.WaitGroup
 	stdout, stderr *os.File
 	ShowState      bool
+}
+
+func (p *Perf) AutoExec(total, tc, peradd int, logf string, pretimeout int64, precall func(idx int, state Perf) error, call func(int) error) (used int64, max, avg int, err error) {
+	perf := &Perf{}
+	used, err = perf.Exec(total, tc, logf,
+		func(idx int, state Perf) (int, error) {
+			beg := util.Now()
+			terr := precall(idx, state)
+			if terr == nil {
+				if util.Now()-beg < pretimeout {
+					return peradd, nil
+				}
+				if int(state.Running) < tc {
+					return 1, nil
+				}
+				return 0, nil
+			} else if terr == FullError {
+				if int(state.Running) < tc {
+					return 1, nil
+				}
+				return 0, nil
+			} else {
+				return 0, terr
+			}
+		}, call)
+	max, avg = int(perf.Max), int(perf.Avg)
+	return
 }
 
 func (p *Perf) perdone(perused int64) {
