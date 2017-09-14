@@ -30,7 +30,9 @@ func TestPerf(t *testing.T) {
 
 func TestAutoPerf(t *testing.T) {
 	runtime.GOMAXPROCS(util.CPU())
-	used, max, avg, err := DoAutoPerfV(1000, 10, 10, "", 100,
+	perf := NewPerf()
+	perf.ShowState = true
+	used, max, avg, err := perf.AutoExec(1000, 10, 10, "", 100,
 		func(idx int, state Perf) error {
 			log.D("running->%d->%v", idx, util.S2Json(state))
 			if state.Running < 100 {
