@@ -25,7 +25,10 @@ func DoPerfV(total, tc int, logf string, call func(int)) (int64, error) {
 }
 
 func DoAutoPerfV(total, tc, peradd int, logf string, pretimeout int64, precall func(idx int, state Perf) error, call func(int) error) (used int64, max, avg int, err error) {
-	perf := &Perf{}
+	perf := &Perf{
+		lck:   &sync.RWMutex{},
+		mwait: &sync.WaitGroup{},
+	}
 	return perf.AutoExec(total, tc, peradd, logf, pretimeout, precall, call)
 }
 
@@ -37,7 +40,10 @@ func DoPerfV_(total, tc int, logf string, call func(int) error) (int64, error) {
 }
 
 func DoAutoPerfV_(total, tc int, logf string, increase func(idx int, state Perf) (int, error), call func(int) error) (int64, error) {
-	perf := &Perf{}
+	perf := &Perf{
+		lck:   &sync.RWMutex{},
+		mwait: &sync.WaitGroup{},
+	}
 	return perf.Exec(total, tc, logf, increase, call)
 }
 
@@ -50,16 +56,15 @@ type Perf struct {
 	PerUsedAvg     int64
 	PerUsedAll     int64
 	Done           int64
-	lck            sync.RWMutex
+	lck            *sync.RWMutex
 	mrunning       bool
-	mwait          sync.WaitGroup
+	mwait          *sync.WaitGroup
 	stdout, stderr *os.File
-	ShowState      bool
+	ShowState      bool `json:"-"`
 }
 
 func (p *Perf) AutoExec(total, tc, peradd int, logf string, pretimeout int64, precall func(idx int, state Perf) error, call func(int) error) (used int64, max, avg int, err error) {
-	perf := &Perf{}
-	used, err = perf.Exec(total, tc, logf,
+	used, err = p.Exec(total, tc, logf,
 		func(idx int, state Perf) (int, error) {
 			beg := util.Now()
 			terr := precall(idx, state)
@@ -80,7 +85,7 @@ func (p *Perf) AutoExec(total, tc, peradd int, logf string, pretimeout int64, pr
 				return 0, terr
 			}
 		}, call)
-	max, avg = int(perf.Max), int(perf.Avg)
+	max, avg = int(p.Max), int(p.Avg)
 	return
 }
 
