@@ -50,6 +50,7 @@ type Perf struct {
 	PerUsedAvg     int64
 	PerUsedAll     int64
 	Done           int64
+	Used           int64
 	lck            *sync.RWMutex
 	mrunning       bool
 	mwait          *sync.WaitGroup
@@ -62,6 +63,11 @@ func NewPerf() *Perf {
 		lck:   &sync.RWMutex{},
 		mwait: &sync.WaitGroup{},
 	}
+}
+
+func (p *Perf) String() string {
+	return fmt.Sprintf("Used:%v,Done:%v,Running:%v,Max:%v,Avg:%v,PerMax:%v,PerMin:%v,PerAvg:%v",
+		p.Used, p.Done, p.Running, p.Max, p.Avg, p.PerUsedMax, p.PerUsedMin, p.PerUsedAvg)
 }
 
 func (p *Perf) AutoExec(total, tc, peradd int, logf string, pretimeout int64, precall func(idx int, state Perf) error, call func(int) error) (used int64, max, avg int, err error) {
@@ -107,6 +113,7 @@ func (p *Perf) monitor() {
 	var allrunning, allc int32
 	p.mrunning = true
 	p.mwait.Add(1)
+	beg := util.Now()
 	for p.mrunning {
 		running := p.Running
 		allrunning += running
@@ -115,8 +122,9 @@ func (p *Perf) monitor() {
 		if p.Max < running {
 			p.Max = running
 		}
+		p.Used = util.Now() - beg
 		if p.ShowState {
-			fmt.Fprintf(p.stdout, "State:%v\n", util.S2Json(p))
+			fmt.Fprintf(p.stdout, "State:%v\n", p)
 		}
 		time.Sleep(time.Second)
 	}
