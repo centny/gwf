@@ -175,7 +175,7 @@ func (n *NIM_Rh) OnMsg(mc *Msg) int {
 		log.E("receive empty R message(%v)", mc)
 		return -1
 	}
-	log_d("receive message(%v) to R(%v) in S(%v)", mc, gur, n.SS.Id())
+	log_d("receive message(%v) to R(%v) in S(%v)", util.S2Json(mc.ImMsg), gur, n.SS.Id())
 	mid := n.Db.NewMid()
 	if len(mc.GetI()) > 0 {
 		mid = mid + "@" + mc.GetI()
@@ -275,12 +275,12 @@ func (n *NIM_Rh) send_cons(c_sid, sender, r string, cons []Con, mc *Msg, dr_rc m
 		}
 		sr_ed[con.Uid] = 1
 		if con.Sid == c_sid { //in current server
-			log_d("sending message(%v) to con(%v)", mc.ImMsg, con)
+			log_d("sending message(%v) to con(%v)", util.S2Json(mc.ImMsg), con)
 			mc.D = &con.Uid
 			mc.A = &r                            //setting current receive user R.
 			err := n.SS.Send(con.Cid, &mc.ImMsg) //send message to client.
 			if err != nil {
-				log.E("sending message(%v) to R(%v) err:%v", mc.ImMsg, con.Uid, err.Error())
+				log.E("sending message(%v) to R(%v) err:%v", util.S2Json(mc.ImMsg), con.Uid, err.Error())
 				// atomic.AddUint64(&n.DC, 1)
 				// mc.Ms[con.R] = MS_DONE //mark done
 				// mc.Ms[con.R] = MS_PENDING + MS_SEQ + r //mark done
