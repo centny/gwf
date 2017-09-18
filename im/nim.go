@@ -275,9 +275,9 @@ func (n *NIM_Rh) send_cons(c_sid, sender, r string, cons []Con, mc *Msg, dr_rc m
 		}
 		sr_ed[con.Uid] = 1
 		if con.Sid == c_sid { //in current server
-			log_d("sending message(%v) to con(%v)", util.S2Json(mc.ImMsg), con)
 			mc.D = &con.Uid
-			mc.A = &r                            //setting current receive user R.
+			mc.A = &r //setting current receive user R.
+			log_d("sending message(%v) to con(%v)", util.S2Json(mc.ImMsg), con)
 			err := n.SS.Send(con.Cid, &mc.ImMsg) //send message to client.
 			if err != nil {
 				log.E("sending message(%v) to R(%v) err:%v", util.S2Json(mc.ImMsg), con.Uid, err.Error())
