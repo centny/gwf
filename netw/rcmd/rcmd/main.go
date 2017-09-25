@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/Centny/gwf/log"
 
@@ -70,13 +71,16 @@ func runControl(args ...string) {
 		alias = "control"
 	}
 	fmt.Printf("run control by rcaddr(%v),token(%v),alias(%v)\n", rcaddr, token, alias)
+	fmt.Printf("connecting...\n")
 	err = rcmd.StartControl(alias, rcaddr, token)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("master is connected\n")
 	// rcmd.SharedControl.Wait()
 	// stdin := bufio.NewReader(os.Stdin)
 	for {
+		time.Sleep(time.Second)
 		baseline, err := String("> ")
 		if err == io.EOF {
 			break

@@ -40,7 +40,7 @@ func (c *Control) Start(rcaddr, token string) (err error) {
 	c.R.Name = c.Alias
 	auto.Runner = c.R
 	c.R.Start()
-	return
+	return c.R.Valid()
 }
 
 func (c *Control) StartCmd(cmds, logfile string) (res util.Map, err error) {
