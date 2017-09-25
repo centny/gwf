@@ -153,7 +153,9 @@ func (t *Task) Start() (err error) {
 			log.E("start task by cmds(%v) fail with create tmp file error:%v", err)
 			return
 		}
-		t.Cmd = exec.Command(BASH, "-xe", shellfile+" "+t.StrCmds)
+		realCmds := shellfile + " " + t.StrCmds
+		realCmds = strings.TrimSpace(realCmds)
+		t.Cmd = exec.Command(BASH, "-xe", realCmds)
 		// log.D("the command is :%v,%v", t.Cmd.Path, t.Cmd.Args)
 	} else {
 		log.I("creating task by cmds(%v) and logging to file(%v)", t.StrCmds, t.LogFile)
