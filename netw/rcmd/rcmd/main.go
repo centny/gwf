@@ -95,7 +95,7 @@ func runControl(args ...string) {
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
-				fmt.Printf("ls cmd fail with %v", err)
+				fmt.Printf("ls cmd fail with %v\n", err)
 			}
 			AddHistory(baseline)
 			continue
@@ -113,7 +113,7 @@ func runControl(args ...string) {
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
-				fmt.Printf("start cmd fail with %v", err)
+				fmt.Printf("start cmd fail with %v\n", err)
 			}
 			AddHistory(baseline)
 			continue
@@ -141,7 +141,7 @@ func runControl(args ...string) {
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
-				fmt.Printf("start cmd fail with %v", err)
+				fmt.Printf("start cmd fail with %v\n", err)
 			}
 			AddHistory(baseline)
 			continue
@@ -161,7 +161,7 @@ func runControl(args ...string) {
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
-				fmt.Printf("stop cmd fail with %v", err)
+				fmt.Printf("stop cmd fail with %v\n", err)
 			}
 			AddHistory(baseline)
 			continue
