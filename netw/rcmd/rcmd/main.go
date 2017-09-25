@@ -108,7 +108,7 @@ func runControl(args ...string) {
 			if len(parts) > 1 {
 				logfile = strings.TrimSpace(parts[1])
 			}
-			res, err := rcmd.SharedControl.StartCmd(cmds, 0, logfile)
+			res, err := rcmd.SharedControl.StartCmd("", cmds, logfile)
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
@@ -121,17 +121,22 @@ func runControl(args ...string) {
 			line = strings.TrimPrefix(line, "shell ")
 			line = strings.TrimSpace(line)
 			parts := strings.SplitN(line, ">", 2)
-			shellfile := strings.TrimSpace(parts[0])
+			cmds := strings.TrimSpace(parts[0])
 			logfile := ""
 			if len(parts) > 1 {
 				logfile = strings.TrimSpace(parts[1])
 			}
-			cmds, err := ioutil.ReadFile(shellfile)
+			cmdsParts := strings.SplitN(cmds, " ", 2)
+			shellStr, err := ioutil.ReadFile(cmdsParts[0])
 			if err != nil {
-				fmt.Printf("read shell file(%v) fail with %v", shellfile, err)
+				fmt.Printf("read shell file(%v) fail with %v", cmdsParts[0], err)
 				continue
 			}
-			res, err := rcmd.SharedControl.StartCmd(string(cmds), 1, logfile)
+			argsStr := ""
+			if len(cmdsParts) > 1 {
+				argsStr = cmdsParts[1]
+			}
+			res, err := rcmd.SharedControl.StartCmd(string(shellStr), argsStr, logfile)
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {

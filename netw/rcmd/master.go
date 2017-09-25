@@ -74,14 +74,13 @@ func (m *Master) isControl(cid string) bool {
 }
 
 func (m *Master) RcStartCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
-	var cmds string
-	var shell int
+	var shell, cmds string
 	var logfile string
 	err = rc.ValidF(`
-		cmds,R|S,L:0;
-		shell,O|I,O:0~1;
+		shell,O|S,L:0;
+		cmds,O|S,L:0;
 		logfile,O|S,L:0;
-		`, &cmds, &shell, &logfile)
+		`, &shell, &cmds, &logfile)
 	if err != nil {
 		return
 	}
@@ -100,8 +99,8 @@ func (m *Master) RcStartCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 		alias := rcm.Kvs().StrValV("alias", cid)
 		log.D("starting remote by cmds(%v),logfile(%v) to %v", cmds, logfile, alias)
 		tid, execErr := rcm.Exec_s("start", util.Map{
-			"cmds":    cmds,
 			"shell":   shell,
+			"cmds":    cmds,
 			"logfile": logfile,
 			"tid":     tid,
 		})

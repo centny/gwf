@@ -57,20 +57,19 @@ func (s *Slave) Start(rcaddr, token string) (err error) {
 }
 
 func (s *Slave) RcStartCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
-	var tid, cmds string
-	var shell int
+	var tid, shell, cmds string
 	var logfile string
 	err = rc.ValidF(`
 		tid,R|S,L:0;
-		cmds,R|S,L:0;
-		shell,O|I,O:0~1;
+		shell,O|S,L:0;
+		cmds,O|S,L:0;
 		logfile,O|S,L:0;
-		`, &tid, &cmds, &shell, &logfile)
+		`, &tid, &shell, &cmds, &logfile)
 	if err != nil {
 		return
 	}
 	res = ""
-	task := NewTask(tid, cmds, shell, logfile, s)
+	task := NewTask(tid, shell, cmds, logfile, s)
 	err = task.Start()
 	return task.ID, err
 }
@@ -119,19 +118,19 @@ type Task struct {
 	ID      string
 	Cmd     *exec.Cmd
 	Out     *os.File
+	Shell   string
 	StrCmds string
-	Shell   int
 	LogFile string
 	Err     error
 	wait    chan int
 	slave   *Slave
 }
 
-func NewTask(tid, cmds string, shell int, logfile string, slave *Slave) (task *Task) {
+func NewTask(tid, shell, cmds string, logfile string, slave *Slave) (task *Task) {
 	return &Task{
 		ID:      tid,
-		StrCmds: cmds,
 		Shell:   shell,
+		StrCmds: cmds,
 		LogFile: logfile,
 		wait:    make(chan int, 1),
 		slave:   slave,
@@ -147,14 +146,14 @@ func (t *Task) Start() (err error) {
 		t.LogFile = fmt.Sprintf(LOGFILE, t.ID)
 	}
 	log.I("creating task by cmds(%v) and logging to file(%v)", t.StrCmds, t.LogFile)
-	if t.Shell == 1 {
+	if len(t.Shell) > 0 {
 		shellfile := fmt.Sprintf(SHELLFILE, t.ID)
-		err = util.FWrite(shellfile, t.StrCmds)
+		err = util.FWrite(shellfile, t.Shell)
 		if err != nil {
 			log.E("start task by cmds(%v) fail with create tmp file error:%v", err)
 			return
 		}
-		t.Cmd = exec.Command(BASH, "-xc", shellfile)
+		t.Cmd = exec.Command(BASH, "-xc", shellfile+" "+t.StrCmds)
 	} else {
 		t.Cmd = exec.Command(BASH, "-c", t.StrCmds)
 	}

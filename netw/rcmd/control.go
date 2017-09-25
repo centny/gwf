@@ -43,10 +43,10 @@ func (c *Control) Start(rcaddr, token string) (err error) {
 	return c.R.Valid()
 }
 
-func (c *Control) StartCmd(cmds string, shell int, logfile string) (res util.Map, err error) {
+func (c *Control) StartCmd(shell, cmds, logfile string) (res util.Map, err error) {
 	res, err = c.R.VExec_m("start", util.Map{
-		"cmds":    cmds,
 		"shell":   shell,
+		"cmds":    cmds,
 		"logfile": logfile,
 	})
 	return
