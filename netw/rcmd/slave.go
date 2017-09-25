@@ -202,6 +202,7 @@ func (t *Task) Start() (err error) {
 func (t *Task) Stop() (err error) {
 	if t.Cmd != nil && t.Cmd.Process != nil {
 		err = t.Cmd.Process.Kill()
+		err = t.Cmd.Process.Signal(os.Interrupt)
 		<-t.wait
 	}
 	return
