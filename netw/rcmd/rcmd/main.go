@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -61,7 +61,7 @@ func runControl(args ...string) {
 		panic(err)
 	}
 	defer logfile.Close()
-	log.SetWriter(bufio.NewWriter(logfile))
+	log.SetWriter(logfile)
 	rcaddr, token := args[0], args[1]
 	alias, _ := os.Hostname()
 	if len(args) > 2 {
@@ -70,6 +70,7 @@ func runControl(args ...string) {
 	if len(alias) < 1 {
 		alias = "control"
 	}
+	SyncHistory()
 	fmt.Printf("run control by rcaddr(%v),token(%v),alias(%v)\n", rcaddr, token, alias)
 	fmt.Printf("connecting...\n")
 	err = rcmd.StartControl(alias, rcaddr, token)
@@ -90,6 +91,7 @@ func runControl(args ...string) {
 		if len(line) < 1 {
 			continue
 		}
+		StoreHistory(baseline)
 		if strings.HasPrefix(line, "ls") {
 			res, err := rcmd.SharedControl.List(cids)
 			if err == nil {
@@ -97,12 +99,15 @@ func runControl(args ...string) {
 			} else {
 				fmt.Printf("ls cmd fail with %v\n", err)
 			}
-			AddHistory(baseline)
 			continue
 		}
 		if strings.HasPrefix(line, "start") {
-			line = strings.TrimPrefix(line, "start ")
+			line = strings.TrimPrefix(line, "start")
 			line = strings.TrimSpace(line)
+			if len(line) < 1 {
+				fmt.Printf("start <commands> [<args>] [>log]\n")
+				continue
+			}
 			parts := strings.SplitN(line, ">", 2)
 			cmds := parts[0]
 			logfile := ""
@@ -115,12 +120,15 @@ func runControl(args ...string) {
 			} else {
 				fmt.Printf("start cmd fail with %v\n", err)
 			}
-			AddHistory(baseline)
 			continue
 		}
 		if strings.HasPrefix(line, "shell") {
-			line = strings.TrimPrefix(line, "shell ")
+			line = strings.TrimPrefix(line, "shell")
 			line = strings.TrimSpace(line)
+			if len(line) < 1 {
+				fmt.Printf("shell <script file> [<args>] [>log]\n")
+				continue
+			}
 			parts := strings.SplitN(line, ">", 2)
 			cmds := strings.TrimSpace(parts[0])
 			logfile := ""
@@ -143,18 +151,21 @@ func runControl(args ...string) {
 			} else {
 				fmt.Printf("start cmd fail with %v\n", err)
 			}
-			AddHistory(baseline)
 			continue
 		}
 		if strings.HasPrefix(line, "stop") {
-			line = strings.TrimPrefix(line, "stop ")
+			line = strings.TrimPrefix(line, "stop")
 			line = strings.TrimSpace(line)
+			if len(line) < 1 {
+				fmt.Printf("stop [<cid>] [<tid>]\n")
+				continue
+			}
 			line = regexp.MustCompile("[ ]+").ReplaceAllString(line, " ")
 			parts := strings.SplitN(line, " ", 2)
 			var res util.Map
 			switch len(parts) {
 			case 1:
-				res, err = rcmd.SharedControl.StopCmd("", parts[0])
+				res, err = rcmd.SharedControl.StopCmd(cids, parts[0])
 			default:
 				res, err = rcmd.SharedControl.StopCmd(parts[0], parts[1])
 			}
@@ -163,12 +174,15 @@ func runControl(args ...string) {
 			} else {
 				fmt.Printf("stop cmd fail with %v\n", err)
 			}
-			AddHistory(baseline)
 			continue
 		}
 		if strings.HasPrefix(line, "select") {
 			line = strings.TrimPrefix(line, "select")
 			line = strings.TrimSpace(line)
+			if len(line) < 1 {
+				fmt.Printf("select [<all or cids>]\n")
+				continue
+			}
 			switch line {
 			case "":
 				fmt.Printf("current selected:%v\n", cids)
@@ -190,6 +204,32 @@ func runControl(args ...string) {
 		fmt.Println("unknow:", line)
 	}
 	rcmd.StopControl()
+}
+
+var HISTORY = ""
+
+func SetHistory() {
+	usr, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	HISTORY = filepath.Join(usr.HomeDir, ".rcmd_history")
+}
+
+func StoreHistory(line string) {
+	AddHistory(line)
+	err := SaveHistory(HISTORY)
+	if err != nil {
+		log.E("save history to %v fail with %v", HISTORY, err)
+	}
+}
+
+func SyncHistory() {
+	SetHistory()
+	err := LoadHistory(HISTORY)
+	if err != nil {
+		log.E("load history to %v fail with %v", HISTORY, err)
+	}
 }
 
 func runMaster(args ...string) {
