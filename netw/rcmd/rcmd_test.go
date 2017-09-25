@@ -26,7 +26,7 @@ func TestRCmd(t *testing.T) {
 	}
 	time.Sleep(time.Second) //wait for salve connected
 	//test start and done
-	res, err := SharedControl.StartCmd("sleep 1 && echo abc", "")
+	res, err := SharedControl.StartCmd("sleep 1 && echo abc", 0, "")
 	if err != nil {
 		t.Errorf("start cmd fail with %v", err)
 		return
@@ -55,7 +55,7 @@ func TestRCmd(t *testing.T) {
 		return
 	}
 	//test start and stop all
-	res, err = SharedControl.StartCmd("sleep 10", "")
+	res, err = SharedControl.StartCmd("sleep 10", 0, "")
 	if err != nil {
 		t.Errorf("start cmd fail with %v", err)
 		return
@@ -84,7 +84,7 @@ func TestRCmd(t *testing.T) {
 	}
 	//
 	//test start and stop one
-	res, err = SharedControl.StartCmd("sleep 10", "")
+	res, err = SharedControl.StartCmd("sleep 10", 0, "")
 	if err != nil {
 		t.Errorf("start cmd fail with %v", err)
 		return
@@ -102,6 +102,35 @@ func TestRCmd(t *testing.T) {
 		t.Errorf("stop cmd fial with not result found %v", res)
 		return
 	}
+	res, err = SharedControl.List()
+	if err != nil {
+		t.Errorf("list cmd fail with %v", err)
+		return
+	}
+	if len(res) < 1 || res.StrVal("slave1") != "" {
+		t.Errorf("list cmd fial with result found %v", res)
+		return
+	}
+	//test start shell and done
+	res, err = SharedControl.StartCmd("sleep 1 && echo abc", 1, "")
+	if err != nil {
+		t.Errorf("start cmd fail with %v", err)
+		return
+	}
+	if len(res) < 1 || res.StrVal("slave1") != "#4" {
+		t.Errorf("start cmd fial with not result found %v", res)
+		return
+	}
+	res, err = SharedControl.List()
+	if err != nil {
+		t.Errorf("list cmd fail with %v", err)
+		return
+	}
+	if len(res) < 1 || res.StrVal("slave1") != "#4" {
+		t.Errorf("list cmd fial with not result found %v", res)
+		return
+	}
+	time.Sleep(2 * time.Second)
 	res, err = SharedControl.List()
 	if err != nil {
 		t.Errorf("list cmd fail with %v", err)

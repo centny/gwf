@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -105,9 +106,32 @@ func runControl(args ...string) {
 			cmds := parts[0]
 			logfile := ""
 			if len(parts) > 1 {
-				logfile = parts[1]
+				logfile = strings.TrimSpace(parts[1])
 			}
-			res, err := rcmd.SharedControl.StartCmd(cmds, logfile)
+			res, err := rcmd.SharedControl.StartCmd(cmds, 0, logfile)
+			if err == nil {
+				fmt.Println(util.S2Json(res))
+			} else {
+				fmt.Printf("start cmd fail with %v", err)
+			}
+			AddHistory(baseline)
+			continue
+		}
+		if strings.HasPrefix(line, "shell") {
+			line = strings.TrimPrefix(line, "shell ")
+			line = strings.TrimSpace(line)
+			parts := strings.SplitN(line, ">", 2)
+			shellfile := strings.TrimSpace(parts[0])
+			logfile := ""
+			if len(parts) > 1 {
+				logfile = strings.TrimSpace(parts[1])
+			}
+			cmds, err := ioutil.ReadFile(shellfile)
+			if err != nil {
+				fmt.Printf("read shell file(%v) fail with %v", shellfile, err)
+				continue
+			}
+			res, err := rcmd.SharedControl.StartCmd(string(cmds), 1, logfile)
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
