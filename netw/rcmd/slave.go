@@ -18,8 +18,8 @@ import (
 
 var SharedSlave *Slave
 var BASH = "/bin/bash"
-var LOGFILE = "/tmp/r_%v.log"
-var SHELLFILE = "/tmp/r_%v.sh"
+var LOGFILE = "/tmp/r%v.log"
+var SHELLFILE = "/tmp/r%v.sh"
 
 func StartSlave(alias, rcaddr, token string) (err error) {
 	SharedSlave = NewSlave(alias)
@@ -143,18 +143,20 @@ func (t *Task) Start() (err error) {
 	t.slave.running[t.ID] = t
 	t.slave.runningLck.Unlock()
 	if len(t.LogFile) < 1 {
-		t.LogFile = fmt.Sprintf(LOGFILE, t.ID)
+		t.LogFile = strings.Replace(fmt.Sprintf(LOGFILE, t.ID), "#", "_", 0)
 	}
-	log.I("creating task by cmds(%v) and logging to file(%v)", t.StrCmds, t.LogFile)
 	if len(t.Shell) > 0 {
-		shellfile := fmt.Sprintf(SHELLFILE, t.ID)
+		log.I("creating task by cmds(%v) and logging to file(%v), the shell is:\n%v", t.StrCmds, t.LogFile, t.Shell)
+		shellfile := strings.Replace(fmt.Sprintf(SHELLFILE, t.ID), "#", "_", 0)
 		err = util.FWrite(shellfile, t.Shell)
 		if err != nil {
 			log.E("start task by cmds(%v) fail with create tmp file error:%v", err)
 			return
 		}
 		t.Cmd = exec.Command(BASH, "-xe", shellfile+" "+t.StrCmds)
+		// log.D("the command is :%v,%v", t.Cmd.Path, t.Cmd.Args)
 	} else {
+		log.I("creating task by cmds(%v) and logging to file(%v)", t.StrCmds, t.LogFile)
 		t.Cmd = exec.Command(BASH, "-c", t.StrCmds)
 	}
 	t.Out, err = os.OpenFile(t.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
