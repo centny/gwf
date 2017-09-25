@@ -179,17 +179,17 @@ func (m *Master) RcRunCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 		}
 		alias := rcm.Kvs().StrValV("alias", cid)
 		log.D("running remote by cmds(%v) to %v", cmds, alias)
-		res, execErr := rcm.Exec_s("start", util.Map{
+		res, execErr := rcm.Exec_s("run", util.Map{
 			"shell": shell,
 			"cmds":  cmds,
 			"tid":   tid,
 		})
 		if execErr == nil {
 			allRes[alias] = res
-			log.D("%v: remote command(%v) start success by id(%v)", alias, cmds, tid)
+			log.D("%v: remote command(%v) run success by id(%v)", alias, cmds, tid)
 		} else {
 			allRes[alias] = execErr.Error()
-			log.W("%v: remote command(%v) start fail with %v", alias, cmds, execErr)
+			log.W("%v: remote command(%v) run fail with %v", alias, cmds, execErr)
 		}
 	}
 	return allRes, nil

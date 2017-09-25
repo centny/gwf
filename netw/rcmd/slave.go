@@ -212,11 +212,13 @@ func (t *Task) prepareMemLog() (err error) {
 
 func (t *Task) runCmd() {
 	t.Err = t.Cmd.Wait()
-	t.slave.OnTaskDone(t, t.Err)
+	if !t.Sync {
+		t.slave.OnTaskDone(t, t.Err)
+	}
 	if t.OutFile != nil {
 		t.OutFile.Close()
 	}
-	log.I("task(#%v) is done with error(%v)", t.ID, t.Err)
+	log.I("task(%v) is done with error(%v)", t.ID, t.Err)
 	t.removeTask()
 	t.wait <- 1
 	return
@@ -254,7 +256,7 @@ func (t *Task) Start() (err error) {
 		log.E("start task by cmds(%v) fail with start error:%v", t.StrCmds, err)
 		return
 	}
-	log.I("start task(#%v) by cmds(%v) success and loggin to file(%v)", t.ID, t.StrCmds, t.LogFile)
+	log.I("start task(%v) by cmds(%v) success and loggin to file(%v)", t.ID, t.StrCmds, t.LogFile)
 	if t.Sync {
 		t.runCmd()
 	} else {
