@@ -261,10 +261,11 @@ func (r *RC_Listener_m) TokenVal(token string) int {
 }
 
 func (r *RC_Listener_m) Login_(rc *impl.RCM_Cmd) (interface{}, error) {
-	var token string
+	var token, alias string
 	err := rc.ValidF(`
 		token,R|S,L:0;
-		`, &token)
+		alias,O|S,L:0;
+		`, &token, &alias)
 	if err != nil {
 		return nil, err
 	}
@@ -287,6 +288,7 @@ func (r *RC_Listener_m) Login_(rc *impl.RCM_Cmd) (interface{}, error) {
 	r.AddC_rc(tcid, rc)
 	rc.Kvs().SetVal("token", token)
 	rc.Kvs().SetVal("cid", tcid)
+	rc.Kvs().SetVal("alias", alias)
 	log.D("RC_Listener_m(%v) login by token(%v),old(%v) success with cid(%v)", r.Name, token, otk, tcid)
 	return util.Map{"code": 0}, nil
 }
@@ -496,6 +498,7 @@ func (r *RC_Runner_m) StartHbTimer() {
 type AutoLoginH struct {
 	Runner  *RC_Runner_m
 	Token   string
+	Args    util.Map
 	OnLogin func(a *AutoLoginH, err error)
 }
 
@@ -506,7 +509,7 @@ func NewAutoLoginH(token string) *AutoLoginH {
 }
 func (a *AutoLoginH) OnConn(c netw.Con) bool {
 	go func() {
-		var err = a.Runner.Login_(a.Token)
+		var err = a.Runner.LoginV(a.Token, a.Args)
 		if a.OnLogin != nil {
 			a.OnLogin(a, err)
 		}
