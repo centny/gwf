@@ -86,6 +86,9 @@ func runControl(args ...string) {
 			break
 		}
 		line := strings.TrimSpace(baseline)
+		if len(line) < 1 {
+			continue
+		}
 		if strings.HasPrefix(line, "ls") {
 			res, err := rcmd.SharedControl.List()
 			if err == nil {
