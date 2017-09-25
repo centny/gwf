@@ -18,6 +18,7 @@ import (
 
 var SharedSlave *Slave
 var BASH = "/bin/bash"
+var LOGFILE = "/tmp/r_%v.log"
 
 func StartSlave(alias, rcaddr, token string) (err error) {
 	SharedSlave = NewSlave(alias)
@@ -60,7 +61,7 @@ func (s *Slave) RcStartCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	err = rc.ValidF(`
 		tid,R|S,L:0;
 		cmds,R|S,L:0;
-		logfile,R|S,L:0;
+		logfile,O|S,L:0;
 		`, &tid, &cmds, &logfile)
 	if err != nil {
 		return
@@ -107,6 +108,10 @@ func (s *Slave) OnTaskDone(task *Task, err error) {
 	return
 }
 
+// func (s *Slave) Wait() {
+// 	s.R.Wait()
+// }
+
 type Task struct {
 	ID      string
 	Cmd     *exec.Cmd
@@ -128,6 +133,14 @@ func NewTask(tid, cmds, logfile string, slave *Slave) (task *Task) {
 	}
 }
 func (t *Task) Start() (err error) {
+	t.slave.runningLck.Lock()
+	// t.slave.runningSeq++
+	// t.ID = fmt.Sprintf("#%v", t.slave.runningSeq)
+	t.slave.running[t.ID] = t
+	t.slave.runningLck.Unlock()
+	if len(t.LogFile) < 1 {
+		t.LogFile = fmt.Sprintf(LOGFILE, t.ID)
+	}
 	log.I("creating task by cmds(%v) and logging to file(%v)", t.StrCmds, t.LogFile)
 	t.Cmd = exec.Command(BASH, "-c", t.StrCmds)
 	t.Out, err = os.OpenFile(t.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
@@ -143,11 +156,6 @@ func (t *Task) Start() (err error) {
 		log.E("start task by cmds(%v) fail with start error:%v", t.StrCmds, err)
 		return
 	}
-	t.slave.runningLck.Lock()
-	// t.slave.runningSeq++
-	// t.ID = fmt.Sprintf("#%v", t.slave.runningSeq)
-	t.slave.running[t.ID] = t
-	t.slave.runningLck.Unlock()
 	log.I("start task(#%v) by cmds(%v) success and loggin to file(%v)", t.ID, t.StrCmds, t.LogFile)
 	go func() {
 		t.Err = t.Cmd.Wait()

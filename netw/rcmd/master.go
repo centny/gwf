@@ -53,6 +53,10 @@ func (m *Master) OnLogin(rc *impl.RCM_Cmd, token string) (cid string, err error)
 		err = fmt.Errorf("the token must having two part split by -, but %v using", token)
 		return
 	}
+	if parts[1] == "local" && !strings.HasPrefix(rc.RemoteAddr().String(), "127.0.0.1:") {
+		err = fmt.Errorf("not local client")
+		return
+	}
 	baseCid, err := m.L.RCH.OnLogin(rc, token)
 	if err != nil {
 		return
@@ -74,7 +78,7 @@ func (m *Master) RcStartCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	var logfile string
 	err = rc.ValidF(`
 		cmds,R|S,L:0;
-		logfile,R|S,L:0;
+		logfile,O|S,L:0;
 		`, &cmds, &logfile)
 	if err != nil {
 		return
@@ -205,4 +209,8 @@ func (m *Master) OnCmd(c netw.Cmd) int {
 		}
 	}
 	return 0
+}
+
+func (m *Master) Wait() {
+	m.L.Wait()
 }

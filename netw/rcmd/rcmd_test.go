@@ -26,7 +26,7 @@ func TestRCmd(t *testing.T) {
 	}
 	time.Sleep(time.Second) //wait for salve connected
 	//test start and done
-	res, err := SharedControl.StartCmd("sleep 1", "slave.log")
+	res, err := SharedControl.StartCmd("sleep 1 && echo abc", "")
 	if err != nil {
 		t.Errorf("start cmd fail with %v", err)
 		return
@@ -55,7 +55,7 @@ func TestRCmd(t *testing.T) {
 		return
 	}
 	//test start and stop all
-	res, err = SharedControl.StartCmd("sleep 10", "slave.log")
+	res, err = SharedControl.StartCmd("sleep 10", "")
 	if err != nil {
 		t.Errorf("start cmd fail with %v", err)
 		return
@@ -84,7 +84,7 @@ func TestRCmd(t *testing.T) {
 	}
 	//
 	//test start and stop one
-	res, err = SharedControl.StartCmd("sleep 10", "slave.log")
+	res, err = SharedControl.StartCmd("sleep 10", "")
 	if err != nil {
 		t.Errorf("start cmd fail with %v", err)
 		return

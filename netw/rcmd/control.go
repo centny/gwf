@@ -17,6 +17,11 @@ func StartControl(alias, rcaddr, token string) (err error) {
 	return
 }
 
+func StopControl() {
+	SharedControl.R.Close()
+	SharedControl = nil
+}
+
 type Control struct {
 	Alias string
 	R     *rc.RC_Runner_m
@@ -68,3 +73,7 @@ func (c *Control) OnCmd(con netw.Cmd) int {
 	fmt.Println(string(con.Data()))
 	return 0
 }
+
+// func (c *Control) Wait() {
+// 	c.R.Wait()
+// }
