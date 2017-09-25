@@ -53,6 +53,15 @@ func (c *Control) StartCmd(cids, shell, cmds, logfile string) (res util.Map, err
 	return
 }
 
+func (c *Control) RunCmd(cids, shell, cmds string) (res util.Map, err error) {
+	res, err = c.R.VExec_m("run", util.Map{
+		"cids":  cids,
+		"shell": shell,
+		"cmds":  cmds,
+	})
+	return
+}
+
 func (c *Control) StopCmd(cids, tid string) (res util.Map, err error) {
 	res, err = c.R.VExec_m("stop", util.Map{
 		"cids": cids,

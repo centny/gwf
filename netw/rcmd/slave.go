@@ -1,6 +1,7 @@
 package rcmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -51,8 +52,29 @@ func (s *Slave) Start(rcaddr, token string) (err error) {
 	s.R.AddHFunc("start", s.RcStartCmdH)
 	s.R.AddHFunc("stop", s.RcStopCmdH)
 	s.R.AddHFunc("list", s.RcListCmdH)
+	s.R.AddHFunc("run", s.RcRunCmdH)
 	auto.Runner = s.R
 	s.R.Start()
+	return
+}
+
+func (s *Slave) RcRunCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
+	var tid, shell, cmds string
+	err = rc.ValidF(`
+		tid,R|S,L:0;
+		shell,O|S,L:0;
+		cmds,O|S,L:0;
+		`, &tid, &shell, &cmds)
+	if err != nil {
+		return
+	}
+	res = ""
+	task := NewTask(tid, shell, cmds, "", s)
+	task.Sync = true
+	err = task.Start()
+	if task.OutBuf != nil {
+		res = string(task.OutBuf.Bytes())
+	}
 	return
 }
 
@@ -117,13 +139,15 @@ func (s *Slave) OnTaskDone(task *Task, err error) {
 type Task struct {
 	ID      string
 	Cmd     *exec.Cmd
-	Out     *os.File
+	OutFile *os.File
+	OutBuf  *bytes.Buffer
 	Shell   string
 	StrCmds string
 	LogFile string
 	Err     error
 	wait    chan int
 	slave   *Slave
+	Sync    bool
 }
 
 func NewTask(tid, shell, cmds string, logfile string, slave *Slave) (task *Task) {
@@ -147,15 +171,7 @@ func (t *Task) writeShellFile(path, data string) (err error) {
 	return err
 }
 
-func (t *Task) Start() (err error) {
-	t.slave.runningLck.Lock()
-	// t.slave.runningSeq++
-	// t.ID = fmt.Sprintf("#%v", t.slave.runningSeq)
-	t.slave.running[t.ID] = t
-	t.slave.runningLck.Unlock()
-	if len(t.LogFile) < 1 {
-		t.LogFile = strings.Replace(fmt.Sprintf(LOGFILE, t.ID), "#", "_", -1)
-	}
+func (t *Task) prepareCmd() (err error) {
 	if len(t.Shell) > 0 {
 		log.I("creating task by cmds(%v) and logging to file(%v), the shell is:\n%v", t.StrCmds, t.LogFile, t.Shell)
 		shellfile := strings.Replace(fmt.Sprintf(SHELLFILE, t.ID), "#", "_", -1)
@@ -172,30 +188,78 @@ func (t *Task) Start() (err error) {
 		log.I("creating task by cmds(%v) and logging to file(%v)", t.StrCmds, t.LogFile)
 		t.Cmd = exec.Command(BASH, "-c", t.StrCmds)
 	}
-	t.Out, err = os.OpenFile(t.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	return
+}
+
+func (t *Task) prepareFileLog() (err error) {
+	if len(t.LogFile) < 1 {
+		t.LogFile = strings.Replace(fmt.Sprintf(LOGFILE, t.ID), "#", "_", -1)
+	}
+	t.OutFile, err = os.OpenFile(t.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		log.E("start task by cmds(%v) fail with open log file(%v) error:%v", t.StrCmds, t.LogFile, err)
 		return
 	}
-	t.Cmd.Stdout, t.Cmd.Stderr = t.Out, t.Out
+	t.Cmd.Stdout, t.Cmd.Stderr = t.OutFile, t.OutFile
+	return
+}
+
+func (t *Task) prepareMemLog() (err error) {
+	t.OutBuf = bytes.NewBuffer(nil)
+	t.Cmd.Stdout, t.Cmd.Stderr = t.OutBuf, t.OutBuf
+	return
+}
+
+func (t *Task) runCmd() {
+	t.Err = t.Cmd.Wait()
+	t.slave.OnTaskDone(t, t.Err)
+	if t.OutFile != nil {
+		t.OutFile.Close()
+	}
+	log.I("task(#%v) is done with error(%v)", t.ID, t.Err)
+	t.removeTask()
+	t.wait <- 1
+	return
+}
+
+func (t *Task) addTask() {
+	t.slave.runningLck.Lock()
+	t.slave.running[t.ID] = t
+	t.slave.runningLck.Unlock()
+}
+
+func (t *Task) removeTask() {
+	t.slave.runningLck.Lock()
+	delete(t.slave.running, t.ID)
+	t.slave.runningLck.Unlock()
+}
+
+func (t *Task) Start() (err error) {
+	err = t.prepareCmd()
+	if err != nil {
+		return
+	}
+	if t.Sync {
+		err = t.prepareMemLog()
+	} else {
+		err = t.prepareFileLog()
+	}
+	if err != nil {
+		return
+	}
+	t.addTask()
 	err = t.Cmd.Start()
 	if err != nil {
-		t.Out.Close()
-		t.Out = nil
+		t.removeTask()
 		log.E("start task by cmds(%v) fail with start error:%v", t.StrCmds, err)
 		return
 	}
 	log.I("start task(#%v) by cmds(%v) success and loggin to file(%v)", t.ID, t.StrCmds, t.LogFile)
-	go func() {
-		t.Err = t.Cmd.Wait()
-		t.slave.OnTaskDone(t, t.Err)
-		t.slave.runningLck.Lock()
-		delete(t.slave.running, t.ID)
-		t.slave.runningLck.Unlock()
-		t.Out.Close()
-		log.I("task(#%v) is done with error(%v)", t.ID, err)
-		t.wait <- 1
-	}()
+	if t.Sync {
+		t.runCmd()
+	} else {
+		go t.runCmd()
+	}
 	return
 }
 

@@ -42,6 +42,7 @@ func (m *Master) Run(rcaddr string, ts map[string]int) (err error) {
 	m.L.AddHFunc("start", m.RcStartCmdH)
 	m.L.AddHFunc("stop", m.RcStopCmdH)
 	m.L.AddHFunc("list", m.RcListCmdH)
+	m.L.AddHFunc("run", m.RcRunCmdH)
 	m.L.AddToken(ts)
 	err = m.L.Run()
 	return
@@ -148,6 +149,50 @@ func (m *Master) RcStartCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 		}
 	}
 	return started, nil
+}
+
+func (m *Master) RcRunCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
+	var shell, cmds string
+	var cids string
+	err = rc.ValidF(`
+		shell,O|S,L:0;
+		cmds,O|S,L:0;
+		cids,O|S,L:0;
+		`, &shell, &cmds, &cids)
+	if err != nil {
+		return
+	}
+	cmdCs, err := m.matchCs(cids)
+	if err != nil {
+		return
+	}
+	m.runningLck.Lock()
+	m.runningSeq++
+	tid := fmt.Sprintf("#%v", m.runningSeq)
+	m.running[tid] = 1
+	m.runningLck.Unlock()
+	allRes := util.Map{}
+	// log.D("master try start cmd(%v) on %v connections", cmds, len(cmdCs))
+	for cid, rcm := range cmdCs {
+		if !m.isSlave(cid) {
+			continue
+		}
+		alias := rcm.Kvs().StrValV("alias", cid)
+		log.D("running remote by cmds(%v) to %v", cmds, alias)
+		res, execErr := rcm.Exec_s("start", util.Map{
+			"shell": shell,
+			"cmds":  cmds,
+			"tid":   tid,
+		})
+		if execErr == nil {
+			allRes[alias] = res
+			log.D("%v: remote command(%v) start success by id(%v)", alias, cmds, tid)
+		} else {
+			allRes[alias] = execErr.Error()
+			log.W("%v: remote command(%v) start fail with %v", alias, cmds, execErr)
+		}
+	}
+	return allRes, nil
 }
 
 func (m *Master) RcStopCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {

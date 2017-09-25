@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -122,11 +123,11 @@ func runControl(args ...string) {
 			}
 			continue
 		}
-		if strings.HasPrefix(line, "shell") {
-			line = strings.TrimPrefix(line, "shell")
+		if strings.HasPrefix(line, "eval") {
+			line = strings.TrimPrefix(line, "eval")
 			line = strings.TrimSpace(line)
 			if len(line) < 1 {
-				fmt.Printf("shell <script file> [<args>] [>log]\n")
+				fmt.Printf("eval <script file> [<args>] [>log]\n")
 				continue
 			}
 			parts := strings.SplitN(line, ">", 2)
@@ -149,7 +150,55 @@ func runControl(args ...string) {
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
-				fmt.Printf("start cmd fail with %v\n", err)
+				fmt.Printf("eval shell fail with %v\n", err)
+			}
+			continue
+		}
+		if strings.HasPrefix(line, "run") {
+			line = strings.TrimPrefix(line, "run")
+			line = strings.TrimSpace(line)
+			if len(line) < 1 {
+				fmt.Printf("run <commands> [<args>]\n")
+				continue
+			}
+			res, err := rcmd.SharedControl.RunCmd(cids, "", line)
+			if err == nil {
+				buf := bytes.NewBuffer(nil)
+				for key, val := range res {
+					fmt.Fprintf(buf, "%v:\n%v\n\n", key, val)
+				}
+				fmt.Printf("%v\n", string(buf.Bytes()))
+			} else {
+				fmt.Printf("run cmd fail with %v\n", err)
+			}
+			continue
+		}
+		if strings.HasPrefix(line, "exec") {
+			line = strings.TrimPrefix(line, "exec")
+			line = strings.TrimSpace(line)
+			if len(line) < 1 {
+				fmt.Printf("exec <script file> [<args>]\n")
+				continue
+			}
+			cmdsParts := strings.SplitN(line, " ", 2)
+			shellStr, err := ioutil.ReadFile(cmdsParts[0])
+			if err != nil {
+				fmt.Printf("read shell file(%v) fail with %v\n", cmdsParts[0], err)
+				continue
+			}
+			argsStr := ""
+			if len(cmdsParts) > 1 {
+				argsStr = cmdsParts[1]
+			}
+			res, err := rcmd.SharedControl.RunCmd(cids, string(shellStr), argsStr)
+			if err == nil {
+				buf := bytes.NewBuffer(nil)
+				for key, val := range res {
+					fmt.Fprintf(buf, "%v:\n%v\n\n", key, val)
+				}
+				fmt.Printf("%v\n", string(buf.Bytes()))
+			} else {
+				fmt.Printf("exec shell fail with %v\n", err)
 			}
 			continue
 		}
@@ -172,7 +221,7 @@ func runControl(args ...string) {
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
-				fmt.Printf("stop cmd fail with %v\n", err)
+				fmt.Printf("stop shell fail with %v\n", err)
 			}
 			continue
 		}
