@@ -73,14 +73,44 @@ func (m *Master) isControl(cid string) bool {
 	return strings.HasPrefix(cid, "Ctrl-")
 }
 
+func (m *Master) matchCs(cid string) (cmdCs map[string]*impl.RCM_Con, err error) {
+	cmdCs = map[string]*impl.RCM_Con{}
+	if len(cid) > 0 {
+		allCmdCs := m.L.CmdCs()
+		for realCid, rcm := range allCmdCs {
+			alias := rcm.Kvs().StrValV("alias", realCid)
+			if alias != cid {
+				continue
+			}
+			if !m.isSlave(realCid) {
+				err = fmt.Errorf("can not send command to clien(%v), it is not slave", cid)
+				return
+			}
+			cmdCs[realCid] = rcm
+		}
+		if len(cmdCs) < 1 {
+			err = fmt.Errorf("remote client not found by id(%v)", cid)
+			return
+		}
+	} else {
+		cmdCs = m.L.CmdCs()
+	}
+	return
+}
+
 func (m *Master) RcStartCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	var shell, cmds string
-	var logfile string
+	var logfile, cid string
 	err = rc.ValidF(`
 		shell,O|S,L:0;
 		cmds,O|S,L:0;
 		logfile,O|S,L:0;
-		`, &shell, &cmds, &logfile)
+		cid,O|S,L:0;
+		`, &shell, &cmds, &logfile, &cid)
+	if err != nil {
+		return
+	}
+	cmdCs, err := m.matchCs(cid)
 	if err != nil {
 		return
 	}
@@ -90,8 +120,7 @@ func (m *Master) RcStartCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	m.running[tid] = 1
 	m.runningLck.Unlock()
 	started := util.Map{}
-	cmdCs := m.L.CmdCs()
-	log.D("master try start cmd(%v) on %v connections", cmds, len(cmdCs))
+	// log.D("master try start cmd(%v) on %v connections", cmds, len(cmdCs))
 	for cid, rcm := range cmdCs {
 		if !m.isSlave(cid) {
 			continue
@@ -125,26 +154,9 @@ func (m *Master) RcStopCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	if err != nil {
 		return
 	}
-	cmdCs := map[string]*impl.RCM_Con{}
-	if len(cid) > 0 {
-		allCmdCs := m.L.CmdCs()
-		for realCid, rcm := range allCmdCs {
-			alias := rcm.Kvs().StrValV("alias", realCid)
-			if alias != cid {
-				continue
-			}
-			if !m.isSlave(realCid) {
-				err = fmt.Errorf("can not send command to clien(%v), it is not slave", cid)
-				return
-			}
-			cmdCs[realCid] = rcm
-		}
-		if len(cmdCs) < 1 {
-			err = fmt.Errorf("remote client not found by id(%v)", cid)
-			return
-		}
-	} else {
-		cmdCs = m.L.CmdCs()
+	cmdCs, err := m.matchCs(cid)
+	if err != nil {
+		return
 	}
 	result := util.Map{}
 	for realCid, rcm := range cmdCs {
