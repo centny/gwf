@@ -169,9 +169,13 @@ func runControl(args ...string) {
 		if strings.HasPrefix(line, "select") {
 			line = strings.TrimPrefix(line, "select")
 			line = strings.TrimSpace(line)
-			if line == "all" {
+			switch line {
+			case "":
+				fmt.Printf("current selected:%v\n", cids)
+			case "all":
 				cids = ""
-			} else {
+				fmt.Printf("all client selected\n")
+			default:
 				cids = line
 			}
 			continue

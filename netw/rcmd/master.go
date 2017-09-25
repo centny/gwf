@@ -79,6 +79,7 @@ func (m *Master) matchCs(cids string) (cmdCs map[string]*impl.RCM_Con, err error
 		cmdCs = m.L.CmdCs()
 		return
 	}
+	log.D("match slave client by %v", cids)
 	allCids := map[string]bool{}
 	for _, cid := range strings.Split(cids, ",") {
 		allCids[cid] = true
