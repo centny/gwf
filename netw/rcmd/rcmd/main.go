@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/Centny/gwf/log"
 
@@ -80,7 +79,7 @@ func runControl(args ...string) {
 	// rcmd.SharedControl.Wait()
 	// stdin := bufio.NewReader(os.Stdin)
 	for {
-		time.Sleep(time.Second)
+		// time.Sleep(time.Second)
 		baseline, err := String("> ")
 		if err == io.EOF {
 			break
