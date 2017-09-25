@@ -184,7 +184,10 @@ func (m *Master) RcStopCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 }
 
 func (m *Master) RcListCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
-	cmdCs := m.L.CmdCs()
+	cmdCs, err := m.matchCs(rc.StrValV("cids", ""))
+	if err != nil {
+		return
+	}
 	result := util.Map{}
 	for cid, rcm := range cmdCs {
 		if !m.isSlave(cid) {

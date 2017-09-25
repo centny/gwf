@@ -91,7 +91,7 @@ func runControl(args ...string) {
 			continue
 		}
 		if strings.HasPrefix(line, "ls") {
-			res, err := rcmd.SharedControl.List()
+			res, err := rcmd.SharedControl.List(cids)
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {

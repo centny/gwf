@@ -61,8 +61,10 @@ func (c *Control) StopCmd(cids, tid string) (res util.Map, err error) {
 	return
 }
 
-func (c *Control) List() (res util.Map, err error) {
-	res, err = c.R.VExec_m("list", util.Map{})
+func (c *Control) List(cids string) (res util.Map, err error) {
+	res, err = c.R.VExec_m("list", util.Map{
+		"cids": cids,
+	})
 	return
 }
 
