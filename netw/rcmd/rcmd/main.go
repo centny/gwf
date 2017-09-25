@@ -130,7 +130,7 @@ func runControl(args ...string) {
 			cmdsParts := strings.SplitN(cmds, " ", 2)
 			shellStr, err := ioutil.ReadFile(cmdsParts[0])
 			if err != nil {
-				fmt.Printf("read shell file(%v) fail with %v", cmdsParts[0], err)
+				fmt.Printf("read shell file(%v) fail with %v\n", cmdsParts[0], err)
 				continue
 			}
 			argsStr := ""

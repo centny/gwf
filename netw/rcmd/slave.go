@@ -136,6 +136,17 @@ func NewTask(tid, shell, cmds string, logfile string, slave *Slave) (task *Task)
 		slave:   slave,
 	}
 }
+
+func (t *Task) writeShellFile(path, data string) (err error) {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0777)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.WriteString(data)
+	return err
+}
+
 func (t *Task) Start() (err error) {
 	t.slave.runningLck.Lock()
 	// t.slave.runningSeq++
@@ -148,14 +159,14 @@ func (t *Task) Start() (err error) {
 	if len(t.Shell) > 0 {
 		log.I("creating task by cmds(%v) and logging to file(%v), the shell is:\n%v", t.StrCmds, t.LogFile, t.Shell)
 		shellfile := strings.Replace(fmt.Sprintf(SHELLFILE, t.ID), "#", "_", -1)
-		err = util.FWrite(shellfile, t.Shell)
+		err = t.writeShellFile(shellfile, t.Shell)
 		if err != nil {
 			log.E("start task by cmds(%v) fail with create tmp file error:%v", err)
 			return
 		}
 		realCmds := shellfile + " " + t.StrCmds
 		realCmds = strings.TrimSpace(realCmds)
-		t.Cmd = exec.Command(BASH, "-xe", realCmds)
+		t.Cmd = exec.Command(BASH, "-xc", realCmds)
 		// log.D("the command is :%v,%v", t.Cmd.Path, t.Cmd.Args)
 	} else {
 		log.I("creating task by cmds(%v) and logging to file(%v)", t.StrCmds, t.LogFile)
