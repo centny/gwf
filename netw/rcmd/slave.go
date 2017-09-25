@@ -143,11 +143,11 @@ func (t *Task) Start() (err error) {
 	t.slave.running[t.ID] = t
 	t.slave.runningLck.Unlock()
 	if len(t.LogFile) < 1 {
-		t.LogFile = strings.Replace(fmt.Sprintf(LOGFILE, t.ID), "#", "_", 0)
+		t.LogFile = strings.Replace(fmt.Sprintf(LOGFILE, t.ID), "#", "_", -1)
 	}
 	if len(t.Shell) > 0 {
 		log.I("creating task by cmds(%v) and logging to file(%v), the shell is:\n%v", t.StrCmds, t.LogFile, t.Shell)
-		shellfile := strings.Replace(fmt.Sprintf(SHELLFILE, t.ID), "#", "_", 0)
+		shellfile := strings.Replace(fmt.Sprintf(SHELLFILE, t.ID), "#", "_", -1)
 		err = util.FWrite(shellfile, t.Shell)
 		if err != nil {
 			log.E("start task by cmds(%v) fail with create tmp file error:%v", err)
