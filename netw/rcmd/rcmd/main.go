@@ -79,6 +79,7 @@ func runControl(args ...string) {
 	fmt.Printf("master is connected\n")
 	// rcmd.SharedControl.Wait()
 	// stdin := bufio.NewReader(os.Stdin)
+	var cids = ""
 	for {
 		// time.Sleep(time.Second)
 		baseline, err := String("> ")
@@ -108,7 +109,7 @@ func runControl(args ...string) {
 			if len(parts) > 1 {
 				logfile = strings.TrimSpace(parts[1])
 			}
-			res, err := rcmd.SharedControl.StartCmd("", cmds, logfile)
+			res, err := rcmd.SharedControl.StartCmd(cids, "", cmds, logfile)
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
@@ -136,7 +137,7 @@ func runControl(args ...string) {
 			if len(cmdsParts) > 1 {
 				argsStr = cmdsParts[1]
 			}
-			res, err := rcmd.SharedControl.StartCmd(string(shellStr), argsStr, logfile)
+			res, err := rcmd.SharedControl.StartCmd(cids, string(shellStr), argsStr, logfile)
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
@@ -163,6 +164,16 @@ func runControl(args ...string) {
 				fmt.Printf("stop cmd fail with %v", err)
 			}
 			AddHistory(baseline)
+			continue
+		}
+		if strings.HasPrefix(line, "select") {
+			line = strings.TrimPrefix(line, "select")
+			line = strings.TrimSpace(line)
+			if line == "all" {
+				cids = ""
+			} else {
+				cids = line
+			}
 			continue
 		}
 		if strings.HasPrefix(line, "help") {

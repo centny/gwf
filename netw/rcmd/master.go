@@ -73,44 +73,48 @@ func (m *Master) isControl(cid string) bool {
 	return strings.HasPrefix(cid, "Ctrl-")
 }
 
-func (m *Master) matchCs(cid string) (cmdCs map[string]*impl.RCM_Con, err error) {
+func (m *Master) matchCs(cids string) (cmdCs map[string]*impl.RCM_Con, err error) {
 	cmdCs = map[string]*impl.RCM_Con{}
-	if len(cid) > 0 {
-		allCmdCs := m.L.CmdCs()
-		for realCid, rcm := range allCmdCs {
-			alias := rcm.Kvs().StrValV("alias", realCid)
-			if alias != cid {
-				continue
-			}
-			if !m.isSlave(realCid) {
-				err = fmt.Errorf("can not send command to clien(%v), it is not slave", cid)
-				return
-			}
-			cmdCs[realCid] = rcm
+	if len(cids) < 1 {
+		cmdCs = m.L.CmdCs()
+		return
+	}
+	allCids := map[string]bool{}
+	for _, cid := range strings.Split(cids, ",") {
+		allCids[cid] = true
+	}
+	allCmdCs := m.L.CmdCs()
+	for realCid, rcm := range allCmdCs {
+		alias := rcm.Kvs().StrValV("alias", realCid)
+		if !allCids[alias] {
+			continue
 		}
-		if len(cmdCs) < 1 {
-			err = fmt.Errorf("remote client not found by id(%v)", cid)
+		if !m.isSlave(realCid) {
+			err = fmt.Errorf("can not send command to clien(%v), it is not slave", alias)
 			return
 		}
-	} else {
-		cmdCs = m.L.CmdCs()
+		cmdCs[realCid] = rcm
+	}
+	if len(cmdCs) < 1 {
+		err = fmt.Errorf("remote client not found by id(%v)", cids)
+		return
 	}
 	return
 }
 
 func (m *Master) RcStartCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	var shell, cmds string
-	var logfile, cid string
+	var logfile, cids string
 	err = rc.ValidF(`
 		shell,O|S,L:0;
 		cmds,O|S,L:0;
 		logfile,O|S,L:0;
-		cid,O|S,L:0;
-		`, &shell, &cmds, &logfile, &cid)
+		cids,O|S,L:0;
+		`, &shell, &cmds, &logfile, &cids)
 	if err != nil {
 		return
 	}
-	cmdCs, err := m.matchCs(cid)
+	cmdCs, err := m.matchCs(cids)
 	if err != nil {
 		return
 	}
@@ -146,15 +150,15 @@ func (m *Master) RcStartCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 }
 
 func (m *Master) RcStopCmdH(rc *impl.RCM_Cmd) (res interface{}, err error) {
-	var cid, tid string
+	var cids, tid string
 	err = rc.ValidF(`
-		cid,O|S,L:0;
+		cids,O|S,L:0;
 		tid,R|S,L:0;
-		`, &cid, &tid)
+		`, &cids, &tid)
 	if err != nil {
 		return
 	}
-	cmdCs, err := m.matchCs(cid)
+	cmdCs, err := m.matchCs(cids)
 	if err != nil {
 		return
 	}
