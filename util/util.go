@@ -8,6 +8,7 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/crc32"
@@ -454,6 +455,13 @@ func Sha1_b(bys []byte) string {
 	sha_h := sha1.New()
 	sha_h.Write(bys)
 	return fmt.Sprintf("%x", sha_h.Sum(nil))
+}
+
+func MarshalMd5(v interface{}) string {
+	bys, _ := json.Marshal(v)
+	md5_h := md5.New()
+	md5_h.Write(bys)
+	return fmt.Sprintf("%x", md5_h.Sum(nil))
 }
 
 func Sha256_b(bys []byte) string {
