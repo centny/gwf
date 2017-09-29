@@ -267,8 +267,10 @@ func (t *Task) Start() (err error) {
 
 func (t *Task) Stop() (err error) {
 	if t.Cmd != nil && t.Cmd.Process != nil {
+		log.D("stop task(%v) by send kill signal to process(%v)", t.ID, t.Cmd.Process.Pid)
 		err = t.Cmd.Process.Kill()
 		err = t.Cmd.Process.Signal(os.Interrupt)
+		util.Exec("kill", "-9", fmt.Sprintf("%v", t.Cmd.Process.Pid))
 		<-t.wait
 	}
 	return

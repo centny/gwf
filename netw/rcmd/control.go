@@ -36,7 +36,7 @@ func NewControl(alias string) *Control {
 func (c *Control) Start(rcaddr, token string) (err error) {
 	auto := rc.NewAutoLoginH(token)
 	auto.Args = util.Map{"alias": c.Alias}
-	c.R = rc.NewRC_Runner_m_j(pool.BP, rcaddr, netw.NewCCH(auto, c))
+	c.R = rc.NewRC_Runner_m_j(pool.BP, rcaddr, netw.NewCCH(netw.NewQueueConH(auto, c), c))
 	c.R.Name = c.Alias
 	auto.Runner = c.R
 	c.R.Start()
@@ -77,8 +77,15 @@ func (c *Control) List(cids string) (res util.Map, err error) {
 	return
 }
 
+//OnConn see ConHandler for detail
+func (c *Control) OnConn(con netw.Con) bool {
+	fmt.Println("master is connected")
+	return true
+}
+
 //OnClose see ConHandler for detail
 func (c *Control) OnClose(con netw.Con) {
+	fmt.Println("master is disconnected")
 }
 
 //OnCmd see ConHandler for detail

@@ -78,7 +78,7 @@ func runControl(args ...string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("master is connected\n")
+	// fmt.Printf("master is connected\n")
 	// rcmd.SharedControl.Wait()
 	// stdin := bufio.NewReader(os.Stdin)
 	var cids = ""
@@ -93,20 +93,20 @@ func runControl(args ...string) {
 			continue
 		}
 		StoreHistory(baseline)
-		if strings.HasPrefix(line, "ls") {
+		if strings.HasPrefix(line, "@ls") {
 			res, err := rcmd.SharedControl.List(cids)
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
-				fmt.Printf("ls cmd fail with %v\n", err)
+				fmt.Printf("@ls cmd fail with %v\n", err)
 			}
 			continue
 		}
-		if strings.HasPrefix(line, "start") {
-			line = strings.TrimPrefix(line, "start")
+		if strings.HasPrefix(line, "@start") {
+			line = strings.TrimPrefix(line, "@start")
 			line = strings.TrimSpace(line)
 			if len(line) < 1 {
-				fmt.Printf("start <commands> [<args>] [>log]\n")
+				fmt.Printf("@start <commands> [<args>] [>log]\n")
 				continue
 			}
 			parts := strings.SplitN(line, ">", 2)
@@ -119,15 +119,15 @@ func runControl(args ...string) {
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
-				fmt.Printf("start cmd fail with %v\n", err)
+				fmt.Printf("@start cmd fail with %v\n", err)
 			}
 			continue
 		}
-		if strings.HasPrefix(line, "eval") {
-			line = strings.TrimPrefix(line, "eval")
+		if strings.HasPrefix(line, "@eval") {
+			line = strings.TrimPrefix(line, "@eval")
 			line = strings.TrimSpace(line)
 			if len(line) < 1 {
-				fmt.Printf("eval <script file> [<args>] [>log]\n")
+				fmt.Printf("@eval <script file> [<args>] [>log]\n")
 				continue
 			}
 			parts := strings.SplitN(line, ">", 2)
@@ -150,34 +150,15 @@ func runControl(args ...string) {
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
-				fmt.Printf("eval shell fail with %v\n", err)
+				fmt.Printf("@eval shell fail with %v\n", err)
 			}
 			continue
 		}
-		if strings.HasPrefix(line, "run") {
-			line = strings.TrimPrefix(line, "run")
+		if strings.HasPrefix(line, "@exec") {
+			line = strings.TrimPrefix(line, "@exec")
 			line = strings.TrimSpace(line)
 			if len(line) < 1 {
-				fmt.Printf("run <commands> [<args>]\n")
-				continue
-			}
-			res, err := rcmd.SharedControl.RunCmd(cids, "", line)
-			if err == nil {
-				buf := bytes.NewBuffer(nil)
-				for key, val := range res {
-					fmt.Fprintf(buf, "%v:\n%v\n\n", key, val)
-				}
-				fmt.Printf("%v\n", string(buf.Bytes()))
-			} else {
-				fmt.Printf("run cmd fail with %v\n", err)
-			}
-			continue
-		}
-		if strings.HasPrefix(line, "exec") {
-			line = strings.TrimPrefix(line, "exec")
-			line = strings.TrimSpace(line)
-			if len(line) < 1 {
-				fmt.Printf("exec <script file> [<args>]\n")
+				fmt.Printf("@exec <script file> [<args>]\n")
 				continue
 			}
 			cmdsParts := strings.SplitN(line, " ", 2)
@@ -194,19 +175,19 @@ func runControl(args ...string) {
 			if err == nil {
 				buf := bytes.NewBuffer(nil)
 				for key, val := range res {
-					fmt.Fprintf(buf, "%v:\n%v\n\n", key, val)
+					fmt.Fprintf(buf, "%v:\n%v\n", key, val)
 				}
 				fmt.Printf("%v\n", string(buf.Bytes()))
 			} else {
-				fmt.Printf("exec shell fail with %v\n", err)
+				fmt.Printf("@exec shell fail with %v\n", err)
 			}
 			continue
 		}
-		if strings.HasPrefix(line, "stop") {
-			line = strings.TrimPrefix(line, "stop")
+		if strings.HasPrefix(line, "@stop") {
+			line = strings.TrimPrefix(line, "@stop")
 			line = strings.TrimSpace(line)
 			if len(line) < 1 {
-				fmt.Printf("stop [<cid>] [<tid>]\n")
+				fmt.Printf("@stop [<cid>] [<tid>]\n")
 				continue
 			}
 			line = regexp.MustCompile("[ ]+").ReplaceAllString(line, " ")
@@ -221,15 +202,15 @@ func runControl(args ...string) {
 			if err == nil {
 				fmt.Println(util.S2Json(res))
 			} else {
-				fmt.Printf("stop shell fail with %v\n", err)
+				fmt.Printf("@stop shell fail with %v\n", err)
 			}
 			continue
 		}
-		if strings.HasPrefix(line, "select") {
+		if strings.HasPrefix(line, "@select") {
 			line = strings.TrimPrefix(line, "select")
 			line = strings.TrimSpace(line)
 			if len(line) < 1 {
-				fmt.Printf("select [<all or cids>]\n")
+				fmt.Printf("@select [<all or cids>]\n")
 				continue
 			}
 			switch line {
@@ -243,14 +224,35 @@ func runControl(args ...string) {
 			}
 			continue
 		}
-		if strings.HasPrefix(line, "help") {
+		if strings.HasPrefix(line, "@help") {
 			printCtrlUsage()
 			continue
+		}
+		if strings.HasPrefix(line, "@exit") {
+			break
 		}
 		if strings.HasPrefix(line, "exit") {
 			break
 		}
-		fmt.Println("unknow:", line)
+		//default as run command
+		if strings.HasPrefix(line, "@run") {
+			line = strings.TrimPrefix(line, "@run")
+			line = strings.TrimSpace(line)
+			if len(line) < 1 {
+				fmt.Printf("@run <commands> [<args>]\n")
+				continue
+			}
+		}
+		res, err := rcmd.SharedControl.RunCmd(cids, "", line)
+		if err == nil {
+			buf := bytes.NewBuffer(nil)
+			for key, val := range res {
+				fmt.Fprintf(buf, "%v:\n%v\n", key, val)
+			}
+			fmt.Printf("%v\n", string(buf.Bytes()))
+		} else {
+			fmt.Printf("@run cmd fail with %v\n", err)
+		}
 	}
 	rcmd.StopControl()
 }
@@ -334,9 +336,13 @@ func printUsage(exit int) {
 
 func printCtrlUsage() {
 	fmt.Println(`
-	ls		=>list the running task
-	start <command and args> > log file => start command
-	stop <cid> <tid> => stop command on special client
-	stop <tid> => stop command on all client
-	help	=> show this`)
+	@ls		=>list the running task.
+	@start <commands> [<args>] [>log] => start command.
+	@eval <script file> [<args>] [>log] => eval local script to remote host async.
+	@exec <script file> [<args>] => eval local script to remote host sync.
+	@stop [<cid>] [<tid>] => stop command on special client.
+	@stop <tid> => stop command on all client.
+	@select [<all or cids>] => active clients.
+	@exit => exit the current shell.
+	@help	=> show this.`)
 }
