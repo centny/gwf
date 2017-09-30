@@ -207,7 +207,7 @@ func runControl(args ...string) {
 			continue
 		}
 		if strings.HasPrefix(line, "@select") {
-			line = strings.TrimPrefix(line, "select")
+			line = strings.TrimPrefix(line, "@select")
 			line = strings.TrimSpace(line)
 			if len(line) < 1 {
 				fmt.Printf("@select [<all or cids>]\n")
