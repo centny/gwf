@@ -233,6 +233,7 @@ func (s *Server) ExecH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 		cidsMap[cid] = 1
 	}
 	reply := util.Map{}
+	replyLck := sync.RWMutex{}
 	wg := sync.WaitGroup{}
 	s.slck.RLock()
 	for _, ss := range s.sessions {
@@ -258,11 +259,13 @@ func (s *Server) ExecH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 				log.D("Server execte cmds(%v) on host(%v,%v)", cmds, session.Name, session.Addr)
 				xerr = session.Run(cmds)
 			}
+			replyLck.Lock()
 			if xerr == nil {
 				reply[session.Name] = "ok"
 			} else {
 				reply[session.Name] = xerr
 			}
+			replyLck.Unlock()
 		}(ss)
 	}
 	s.slck.RUnlock()
