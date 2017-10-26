@@ -22,6 +22,7 @@ mkdir $srv_out/www
 ##build normal
 echo "Build $srv_name normal executor..."
 go build -o $srv_out/$srv_name github.com/Centny/gwf/netw/pshell/pshell
+cp -f pshell.properties $srv_out/conf
 
 ###
 if [ "$1" != "" ];then
