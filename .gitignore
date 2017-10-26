@@ -60,3 +60,5 @@ wdoc/test/test.json
 netw/dtm/test.json
 
 .DS_Store
+
+netw/pshell/pshell/pshell
