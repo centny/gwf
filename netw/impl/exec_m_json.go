@@ -3,7 +3,6 @@ package impl
 import (
 	"encoding/json"
 	"net"
-	"reflect"
 
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
@@ -50,7 +49,7 @@ func Json_B2V(bys []byte, v interface{}) (data interface{}, err error) {
 	}
 	data = v
 	if err != nil {
-		err = util.Err("Json_B2V to %v err(%v) by data:%v", reflect.TypeOf(v), err.Error(), string(bys))
+		err = util.Err("Json_B2V err(%v) by data:%v", err.Error(), string(bys))
 	}
 	return
 }
