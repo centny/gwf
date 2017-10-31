@@ -1,11 +1,12 @@
 package impl
 
 import (
+	"regexp"
+
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
-	"regexp"
 )
 
 type NAV_F func(rc *RCM_Con, name string, args interface{}) (interface{}, error)
@@ -30,14 +31,14 @@ func (r *RCM_Con) Exec(name string, args interface{}, dest interface{}) (interfa
 	if err != nil {
 		return nil, err
 	}
-	return r.RC_Con.Exec(vv, dest)
+	return r.RC_Con.Exec_(0, true, vv, dest)
 }
 func (r *RCM_Con) Exec2(name string, args interface{}) ([]byte, error) {
 	vv, err := r.NAV(r, name, args)
 	if err != nil {
 		return nil, err
 	}
-	return r.RC_Con.Exec2(vv)
+	return r.RC_Con.ExecV(0, true, vv)
 }
 func (r *RCM_Con) ExecRes(name string, args interface{}) (*RCM_CRes, error) {
 	var crs RCM_CRes
