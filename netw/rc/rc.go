@@ -80,6 +80,16 @@ func (r *RC_Cmd_h) OnClose(c netw.Con) {
 	r.H.OnClose(c)
 }
 
+func (r *RC_Cmd_h) CloseC(cid string) {
+	r.rc_l.RLock()
+	mc, ok := r.MCS[cid]
+	r.rc_l.RUnlock()
+	if ok {
+		r.delc(mc)
+		mc.Close()
+	}
+}
+
 //add connection to connection list by underlying connection.
 func (r *RC_Cmd_h) AddC(cid string, con netw.Con) {
 	r.rc_l.Lock()
@@ -97,6 +107,8 @@ func (r *RC_Cmd_h) AddC(cid string, con netw.Con) {
 	r.MID[con.Id()] = cid
 }
 func (r *RC_Cmd_h) Exist(cid string) bool {
+	r.rc_l.RLock()
+	defer r.rc_l.RUnlock()
 	_, ok := r.CRC[cid]
 	return ok
 }
@@ -211,6 +223,10 @@ func NewRC_Listener_m_j(p *pool.BytePool, port string, h netw.CCHandler) *RC_Lis
 //start listener
 func (r *RC_Listener_m) Run() error {
 	return r.RC_Listener_m.Run()
+}
+
+func (r *RC_Listener_m) CloseC(cid string) {
+	r.RCH.CloseC(cid)
 }
 
 //check if exit by client id
