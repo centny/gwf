@@ -1,20 +1,31 @@
 package routing
 
 import (
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/util"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/util"
 )
 
 type SrvSession struct {
 	token string
 	begin int64
+	lck   sync.RWMutex
 	kvs   map[string]interface{}
 }
 
+func NewSrvSession() *SrvSession {
+	return &SrvSession{
+		lck: sync.RWMutex{},
+		kvs: map[string]interface{}{},
+	}
+}
+
 func (s *SrvSession) Val(key string) interface{} {
+	s.lck.RLock()
+	defer s.lck.RUnlock()
 	if v, ok := s.kvs[key]; ok {
 		return v
 	} else {
@@ -22,6 +33,8 @@ func (s *SrvSession) Val(key string) interface{} {
 	}
 }
 func (s *SrvSession) Set(key string, val interface{}) {
+	s.lck.Lock()
+	defer s.lck.Unlock()
 	if val == nil {
 		delete(s.kvs, key)
 	} else {
@@ -83,9 +96,8 @@ func (s *SrvSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) 
 		c.Domain = s.Domain
 		c.MaxAge = 10 * 24 * 60 * 60
 		//
-		session := &SrvSession{}
+		session := NewSrvSession()
 		session.token = c.Value
-		session.kvs = map[string]interface{}{}
 		session.Flush()
 		//
 		// s.ks_lck.Lock()
