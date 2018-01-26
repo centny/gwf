@@ -388,12 +388,19 @@ func (f *Fcfg) InitWithFile(tfile *os.File) error {
 func (f *Fcfg) InitWithURL(url string) error {
 	return f.InitWithURL2(url, true)
 }
+func (f *Fcfg) hget(url string) (sres string, err error) {
+	code, sres, err := HGet3(url)
+	if err == nil && code != 200 {
+		err = fmt.Errorf("status code(%v)", code)
+	}
+	return
+}
 func (f *Fcfg) InitWithURL2(url string, wait bool) error {
 	f.slog("loading remote configure->%v", url)
 	var sres string
 	var err error
 	for {
-		sres, err = HGet(url)
+		sres, err = f.hget(url)
 		if err == nil {
 			f.slog("loading remote configure(%v) success", url)
 			break

@@ -110,6 +110,35 @@ func TestLoad(t *testing.T) {
 	// NewFcfg2("@l:https://cfg:!DyCfg_321@192.168.1.14/WebDAV/cfg/www.properties")
 }
 
+func TestAccessLoad(t *testing.T) {
+	go func() {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			username, password, exist := r.BasicAuth()
+			if exist && username == "test" && password == "123" {
+				w.Write([]byte("a=1"))
+			} else {
+				w.WriteHeader(500)
+			}
+		})
+		http.ListenAndServe(":8335", nil)
+	}()
+	cfg := NewFcfg3()
+	err := cfg.InitWithURL2("http://txest:123@127.0.0.1:8335", false)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	err = cfg.InitWithURL2("http://test:123@127.0.0.1:8335", false)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if cfg.IntValV("a", 0) != 1 {
+		t.Error("fail")
+		return
+	}
+}
+
 func TestSection(t *testing.T) {
 	f := NewFcfg3()
 	err := f.InitWithFilePath("fcfg_data.properties?ukk=123")
