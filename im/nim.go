@@ -546,34 +546,48 @@ func (n *NIM_Rh) LoopTask() {
 	n.Running = true
 	//log.I("starting push task-->")
 	for n.Running {
-		select {
-		case mid := <-n.PushChan:
-			if len(mid) < 1 {
-				break
-			}
-			sc, total, err := n.DoPush_(mid)
-			if err == nil {
-				log_d("doing push sc(%v),total(%v)->OK", sc, total)
-			} else {
-				log.W("doing push sc(%v),total(%v)->ERR:%v", sc, total, err.Error())
-			}
-		case args := <-n.sync:
-			if args == nil {
-				break
-			}
-			var tcid, tuid, targs = args.StrVal("cid"), args.StrVal("uid"), args.MapVal("args")
-			var err = n.Db.DoSync(tuid, 0, targs, func(ms []*Msg) error {
-				return SendUnread(n.SS, n.Db, tcid, tuid, 0, targs, ms)
-			})
-			if err == nil {
-				log_d("do sync for %v->OK", args.StrVal("uid"))
-			} else {
-				log.E("do sync fail with %v by %v", err, util.S2Json(args))
-			}
+		if n.runTask() {
+			break
 		}
 	}
 	log.I("stopping push task-->")
 }
+
+func (n *NIM_Rh) runTask() bool {
+	defer func() {
+		err := recover()
+		if err != nil {
+			log.E("NIM_Rh run task panic by error(%v), the stack:\n%v\n", err, util.CallStatck())
+		}
+	}()
+	select {
+	case mid := <-n.PushChan:
+		if len(mid) < 1 {
+			return true
+		}
+		sc, total, err := n.DoPush_(mid)
+		if err == nil {
+			log_d("doing push sc(%v),total(%v)->OK", sc, total)
+		} else {
+			log.W("doing push sc(%v),total(%v)->ERR:%v", sc, total, err.Error())
+		}
+	case args := <-n.sync:
+		if args == nil {
+			return true
+		}
+		var tcid, tuid, targs = args.StrVal("cid"), args.StrVal("uid"), args.MapVal("args")
+		var err = n.Db.DoSync(tuid, 0, targs, func(ms []*Msg) error {
+			return SendUnread(n.SS, n.Db, tcid, tuid, 0, targs, ms)
+		})
+		if err == nil {
+			log_d("do sync for %v->OK", args.StrVal("uid"))
+		} else {
+			log.E("do sync fail with %v by %v", err, util.S2Json(args))
+		}
+	}
+	return false
+}
+
 func (n *NIM_Rh) DoPush_(mid string) (int, int, error) {
 	msg, cons, err := n.Db.ListPushTask(n.SS.Id(), mid)
 	if err != nil {
