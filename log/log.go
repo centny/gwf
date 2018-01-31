@@ -44,6 +44,10 @@ func SetLevel(level LogLevel) {
 	dlog.SetLevel(level)
 }
 
+func SharedLogger() *Log {
+	return &dlog
+}
+
 func SetSLevel(level string) {
 	var dlev LogLevel
 	switch level {
