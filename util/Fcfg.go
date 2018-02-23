@@ -523,10 +523,14 @@ func (f *Fcfg) String() string {
 	}
 	sort.Sort(sort.StringSlice(keys))
 	for _, k := range keys {
-		buf.WriteString(fmt.Sprintf("%v=%v\n", k, f.Map[k]))
+		val := fmt.Sprintf("%v", f.Map[k])
+		val = strings.Replace(val, "\n", "\\n", -1)
+		buf.WriteString(fmt.Sprintf("%v=%v\n", k, val))
 	}
 	for _, k := range locs {
-		buf.WriteString(fmt.Sprintf("%v=%v\n", k, f.Map[k]))
+		val := fmt.Sprintf("%v", f.Map[k])
+		val = strings.Replace(val, "\n", "\\n", -1)
+		buf.WriteString(fmt.Sprintf("%v=%v\n", k, val))
 	}
 	return buf.String()
 }
