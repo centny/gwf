@@ -199,6 +199,16 @@ func (f *Fcfg) InitWithUri(uri string) error {
 	}
 }
 
+func (f *Fcfg) InitWithUri2(uri string, wait bool) error {
+	if strings.HasPrefix(uri, "http://") {
+		return f.InitWithURL2(uri, wait)
+	} else if strings.HasPrefix(uri, "https://") {
+		return f.InitWithURL2(uri, wait)
+	} else {
+		return f.InitWithFilePath2(uri, wait)
+	}
+}
+
 func (f *Fcfg) InitWithCfg(cfg *Fcfg) {
 	for k, v := range cfg.Map {
 		f.Map[k] = v

@@ -139,6 +139,24 @@ func TestAccessLoad(t *testing.T) {
 	}
 }
 
+func TestAccessLoad2(t *testing.T) {
+	cfg := NewFcfg3()
+	err := cfg.InitWithURL2("http://txest:123@loc.m/test.properties", false)
+	if err == nil {
+		t.Error("not error")
+		return
+	}
+	err = cfg.InitWithURL2("http://test:123@127.0.0.1:8335", false)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if cfg.IntValV("a", 0) != 1 {
+		t.Error("fail")
+		return
+	}
+}
+
 func TestSection(t *testing.T) {
 	f := NewFcfg3()
 	err := f.InitWithFilePath("fcfg_data.properties?ukk=123")

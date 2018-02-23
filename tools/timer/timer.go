@@ -2,10 +2,11 @@ package timer
 
 import (
 	"fmt"
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/util"
 	"sync"
 	"time"
+
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/util"
 )
 
 type TimerF func(uint64) error
@@ -34,10 +35,17 @@ var timer_lck = sync.RWMutex{}
 var trunning = false
 
 func RegisterV(delay int64, id string, t Timer, wait bool) {
+	RegisterV_(delay, id, t, wait, false)
+}
+func RegisterV_(delay int64, id string, t Timer, wait, run bool) {
 	timer_lck.Lock()
 	timer_m[id] = t
 	timer_d[id] = delay / 100 * 100
-	timer_l[id] = util.Now()
+	if run {
+		timer_l[id] = 0
+	} else {
+		timer_l[id] = util.Now()
+	}
 	timer_i[id] = 0
 	timer_w[id] = wait
 	if !trunning {
@@ -62,6 +70,10 @@ func Register3(delay int64, t Timer, wait bool) {
 
 func Register4(delay int64, f func(uint64) error, wait bool) {
 	RegisterV(delay, fmt.Sprintf("%p", f), TimerF(f), wait)
+}
+
+func Register5(delay int64, f func(uint64) error, wait, run bool) {
+	RegisterV_(delay, fmt.Sprintf("%p", f), TimerF(f), wait, run)
 }
 
 func RemoveV(id string) {
