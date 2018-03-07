@@ -19,44 +19,49 @@ import (
 //the file configure
 //
 type Fcfg struct {
-	Map     map[string]interface{}
-	ShowLog bool
-	sec     string
-	Lines   []string
-	Seces   []string
-	SecLn   map[string]int
-	Base    string
+	Map          map[string]interface{}
+	ShowLog      bool
+	sec          string
+	Lines        []string
+	Seces        []string
+	SecLn        map[string]int
+	Base         string
+	ValPrintMask map[string]string
 }
 
 func NewFcfg(uri string) (*Fcfg, error) {
 	uri = strings.Trim(uri, " \t")
 	cfg := &Fcfg{
-		Map:     Map{},
-		ShowLog: true,
-		SecLn:   map[string]int{},
+		Map:          Map{},
+		ShowLog:      true,
+		SecLn:        map[string]int{},
+		ValPrintMask: map[string]string{},
 	}
 	return cfg, cfg.InitWithUri(uri)
 }
 func NewFcfg2(data string) (*Fcfg, error) {
 	cfg := &Fcfg{
-		Map:     Map{},
-		ShowLog: true,
-		SecLn:   map[string]int{},
+		Map:          Map{},
+		ShowLog:      true,
+		SecLn:        map[string]int{},
+		ValPrintMask: map[string]string{},
 	}
 	return cfg, cfg.InitWithData(data)
 }
 func NewFcfg3() *Fcfg {
 	return &Fcfg{
-		Map:     Map{},
-		ShowLog: true,
-		SecLn:   map[string]int{},
+		Map:          Map{},
+		ShowLog:      true,
+		SecLn:        map[string]int{},
+		ValPrintMask: map[string]string{},
 	}
 }
 func NewFcfg4(src *Fcfg) *Fcfg {
 	cfg := &Fcfg{
-		Map:     Map{},
-		ShowLog: true,
-		SecLn:   map[string]int{},
+		Map:          Map{},
+		ShowLog:      true,
+		SecLn:        map[string]int{},
+		ValPrintMask: map[string]string{},
 	}
 	cfg.InitWithCfg(src)
 	return cfg
@@ -151,11 +156,23 @@ func (f *Fcfg) Print() {
 	fmt.Println(f.Show())
 }
 func (f *Fcfg) PrintSec(sec string) {
+	mask := map[*regexp.Regexp]*regexp.Regexp{}
+	for k, v := range f.ValPrintMask {
+		mask[regexp.MustCompile(k)] = regexp.MustCompile(v)
+	}
 	sdata := ""
 	for k, v := range f.Map {
-		if strings.HasPrefix(k, sec) {
-			sdata = fmt.Sprintf("%v %v=%v\n", sdata, k, v)
+		if !strings.HasPrefix(k, sec) {
+			continue
 		}
+		val := fmt.Sprintf("%v", v)
+		for maskKey, maskVal := range mask {
+			if maskKey.MatchString(k) {
+				val = maskVal.ReplaceAllString(val, "***")
+			}
+		}
+		val = strings.Replace(val, "\n", "\\n", -1)
+		sdata = fmt.Sprintf("%v %v=%v\n", sdata, k, val)
 	}
 	fmt.Println(sdata)
 }
@@ -512,6 +529,10 @@ func (f *Fcfg) Strip(sec string) *Fcfg {
 }
 
 func (f *Fcfg) String() string {
+	mask := map[*regexp.Regexp]*regexp.Regexp{}
+	for k, v := range f.ValPrintMask {
+		mask[regexp.MustCompile(k)] = regexp.MustCompile(v)
+	}
 	buf := bytes.NewBuffer(nil)
 	keys, locs := []string{}, []string{}
 	for k, _ := range f.Map {
@@ -524,11 +545,21 @@ func (f *Fcfg) String() string {
 	sort.Sort(sort.StringSlice(keys))
 	for _, k := range keys {
 		val := fmt.Sprintf("%v", f.Map[k])
+		for maskKey, maskVal := range mask {
+			if maskKey.MatchString(k) {
+				val = maskVal.ReplaceAllString(val, "***")
+			}
+		}
 		val = strings.Replace(val, "\n", "\\n", -1)
 		buf.WriteString(fmt.Sprintf("%v=%v\n", k, val))
 	}
 	for _, k := range locs {
 		val := fmt.Sprintf("%v", f.Map[k])
+		for maskKey, maskVal := range mask {
+			if maskKey.MatchString(k) {
+				val = maskVal.ReplaceAllString(val, "***")
+			}
+		}
 		val = strings.Replace(val, "\n", "\\n", -1)
 		buf.WriteString(fmt.Sprintf("%v=%v\n", k, val))
 	}

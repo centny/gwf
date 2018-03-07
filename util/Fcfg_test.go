@@ -226,3 +226,13 @@ func TestFileMode(t *testing.T) {
 	fmt.Println(cfg.FileModeV("xx", os.ModePerm))
 	fmt.Println(cfg.FileModeV("abc2", os.ModePerm))
 }
+
+func TestFcfgMask(t *testing.T) {
+	cfg := NewFcfg3()
+	cfg.SetVal("loc/DB_DB_URL", "cny:sco@localhost")
+	cfg.ValPrintMask = map[string]string{
+		".*_DB_.*": ".*:[^@]*",
+	}
+	cfg.Print()
+	cfg.PrintSec("loc/")
+}
