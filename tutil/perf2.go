@@ -16,9 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"w.snows.io/course/dms/dmsdb/mgo"
-	"w.snows.io/course/dms/dmsdb/pg"
-	"w.snows.io/course/dms/utils"
+	"github.com/Centny/gwf/util"
 )
 
 func AutoExec2(logf string, precall func(state Perf2, ridx uint64, used int64, rerr error) (uint64, error), call func(uint64) error) (used int64, max, avg uint64, err error) {
@@ -121,14 +119,6 @@ func (p *Perf2) String() string {
 	external := p.ExternalStatus()
 	if len(external) > 0 {
 		alldis += "\n  " + external
-	}
-	pending := mgo.UserLockPending2.String()
-	if len(pending) > 0 {
-		alldis += "\n  " + pending
-	}
-	pending2 := pg.UserLockPending2.String()
-	if len(pending2) > 0 {
-		alldis += "\n  " + pending2
 	}
 	// alldis += "\n  " + fmt.Sprintf("Max:%v", mgo.UserLockPending2.Max)
 	p.NotifyReal()
@@ -270,7 +260,7 @@ func (p *Perf2) monitor() {
 	p.mwait.Add(1)
 	defer p.mwait.Done()
 
-	beg := utils.Now()
+	beg := util.Now()
 	for p.mrunning {
 		running := uint64(p.Running)
 		allrunning += running
@@ -279,7 +269,7 @@ func (p *Perf2) monitor() {
 		if p.Max < running {
 			p.Max = running
 		}
-		p.Used = utils.Now() - beg
+		p.Used = util.Now() - beg
 		if p.ShowState {
 			fmt.Fprintf(p.stdout, "->%v\n", p)
 		}
@@ -304,7 +294,7 @@ func (p *Perf2) Exec(total, tc uint64, logf string, increase func(state Perf2, r
 	go p.monitor()
 	ws := sync.WaitGroup{}
 	// ws.Add(total)
-	beg := utils.Now()
+	beg := util.Now()
 	var tidx_ uint64 = 0
 	var run_call func(ridx uint64)
 	var run_next func(ridx uint64, used int64, rerr error)
@@ -312,9 +302,9 @@ func (p *Perf2) Exec(total, tc uint64, logf string, increase func(state Perf2, r
 	run_call = func(ridx uint64) {
 		defer ws.Done()
 
-		perbeg := utils.Now()
+		perbeg := util.Now()
 		terr := call(ridx)
-		perused := utils.Now() - perbeg
+		perused := util.Now() - perbeg
 		if terr == nil {
 			p.perdone(perused)
 		} else {
@@ -354,7 +344,7 @@ func (p *Perf2) Exec(total, tc uint64, logf string, increase func(state Perf2, r
 	// 	run_next(0)
 	// }
 	ws.Wait()
-	end := utils.Now()
+	end := util.Now()
 	if len(logf) > 0 {
 		os.Stdout.Close()
 		os.Stdout = p.stdout
