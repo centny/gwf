@@ -1,12 +1,13 @@
 package netw
 
 import (
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/pool"
-	"github.com/Centny/gwf/util"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/util"
 )
 
 //the client connection pool.
@@ -152,9 +153,12 @@ type NConRunner struct {
 	ShowLog bool //setting the ShowLog to Con_
 	TickLog bool //if show the tick log.
 	wg      sync.WaitGroup
+	//
+	lastConnTime int64
 }
 
 func (n *NConRunner) OnConn(c Con) bool {
+	n.lastConnTime = util.Now()
 	if n.ConH == nil {
 		return true
 	}
@@ -225,6 +229,9 @@ func (n *NConRunner) RunTick_() {
 }
 func (n *NConRunner) Try() {
 	n.Running = true
+	if util.Now()-n.lastConnTime < 1000 {
+		time.Sleep(5 * time.Second)
+	}
 	for n.Running {
 		err := n.Dail()
 		log.D("connect to server(%v) success", n.Addr)
