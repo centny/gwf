@@ -10,15 +10,16 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/pool"
-	"github.com/Centny/gwf/util"
-	"golang.org/x/net/websocket"
 	"net"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/pool"
+	"github.com/Centny/gwf/util"
+	"golang.org/x/net/websocket"
 )
 
 var con_idc uint64 = 0
@@ -327,7 +328,7 @@ func NewOutCon_(cp ConPool, p *pool.BytePool, out ByteWriter) *Con_ {
 
 func (c *Con_) log_d(f string, args ...interface{}) {
 	if c.ShowLog {
-		log.D(f, args...)
+		log.D_(1, f, args...)
 	}
 }
 func (c *Con_) Closed() bool {
@@ -424,7 +425,7 @@ func (c *Con_) Writem(mode string, bys ...[]byte) (int, error) {
 	default:
 		total, err = Writen(c.Conn, bys...)
 	}
-	c.log_d("write data(%v) to %v, res:%v", total, c.RemoteAddr().String(), err)
+	c.log_d("%v:write data(%v) to %v, res:%v", mode, total, c.RemoteAddr().String(), err)
 	if err != nil {
 		c.Conn.Close()
 	}
@@ -810,6 +811,8 @@ func (l *LConPool) Delay() time.Duration {
 	return l.Delay_
 }
 
+var MOD_MAX_SIZE = 2
+
 type ModRunner struct {
 }
 
@@ -817,9 +820,9 @@ func NewModRunner() *ModRunner {
 	return &ModRunner{}
 }
 func (m *ModRunner) Run(cp ConPool, p *pool.BytePool, con Con) error {
-	buf := make([]byte, 5)
 	mod := []byte(H_MOD)
 	mod_l := len(mod)
+	buf := make([]byte, mod_l+MOD_MAX_SIZE)
 	h := cp.Handler()
 	//
 	for {
@@ -832,12 +835,22 @@ func (m *ModRunner) Run(cp ConPool, p *pool.BytePool, con Con) error {
 			log.W("reading invalid mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
 			continue
 		}
-		dlen := binary.BigEndian.Uint16(buf[mod_l:])
-		if dlen < 2 {
-			log.W("reading invalid data len for mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
-			continue
+		var dbuf []byte
+		if MOD_MAX_SIZE == 4 {
+			dlen := binary.BigEndian.Uint32(buf[mod_l:])
+			if dlen < 2 {
+				log.W("reading invalid data len for mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
+				continue
+			}
+			dbuf = p.Alloc(int(dlen))
+		} else {
+			dlen := binary.BigEndian.Uint16(buf[mod_l:])
+			if dlen < 2 {
+				log.W("reading invalid data len for mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
+				continue
+			}
+			dbuf = p.Alloc(int(dlen))
 		}
-		dbuf := p.Alloc(int(dlen))
 		err = con.ReadW(dbuf)
 		if err != nil {
 			log_d("read data from(%v) error:%v", con.RemoteAddr().String(), err.Error())

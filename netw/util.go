@@ -26,19 +26,34 @@ func Writeh(w io.Writer, bys ...[]byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	var tlen uint16 = 0
-	for _, b := range bys {
-		tlen += uint16(len(b))
+	if MOD_MAX_SIZE == 4 {
+		var tlen uint32 = 0
+		for _, b := range bys {
+			tlen += uint32(len(b))
+		}
+		buf := make([]byte, 4)
+		binary.BigEndian.PutUint32(buf, tlen)
+		tv, err := w.Write(buf)
+		if err != nil {
+			return 0, err
+		}
+		total += tv
+	} else {
+		var tlen uint16 = 0
+		for _, b := range bys {
+			tlen += uint16(len(b))
+		}
+		buf := make([]byte, 2)
+		binary.BigEndian.PutUint16(buf, tlen)
+		tv, err := w.Write(buf)
+		if err != nil {
+			return 0, err
+		}
+		total += tv
 	}
-	buf := make([]byte, 2)
-	binary.BigEndian.PutUint16(buf, tlen)
-	tv, err := w.Write(buf)
-	if err != nil {
-		return 0, err
-	}
-	total += tv
+
 	for _, b := range bys {
-		tv, err = w.Write(b)
+		tv, err := w.Write(b)
 		if err != nil {
 			return 0, err
 		}
