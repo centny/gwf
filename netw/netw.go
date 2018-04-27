@@ -833,7 +833,7 @@ func (m *ModRunner) Run(cp ConPool, p *pool.BytePool, con Con) error {
 		}
 		if !bytes.HasPrefix(buf, mod) {
 			log.W("reading invalid mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
-			continue
+			break
 		}
 		var dbuf []byte
 		if MOD_MAX_SIZE == 4 {
