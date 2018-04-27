@@ -832,7 +832,7 @@ func (m *ModRunner) Run(cp ConPool, p *pool.BytePool, con Con) error {
 			break
 		}
 		if !bytes.HasPrefix(buf, mod) {
-			log.W("reading invalid mod(%v) from(%v)", string(buf), con.RemoteAddr().String())
+			log.W("reading invalid mod(%v) from(%v)", buf, con.RemoteAddr().String())
 			break
 		}
 		var dbuf []byte
