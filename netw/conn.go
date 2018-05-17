@@ -155,6 +155,7 @@ type NConRunner struct {
 	wg      sync.WaitGroup
 	//
 	lastConnTime int64
+	DailAddr     func(addr string) (net.Conn, error)
 }
 
 func (n *NConRunner) OnConn(c Con) bool {
@@ -246,7 +247,11 @@ func (n *NConRunner) Try() {
 }
 func (n *NConRunner) Dail() error {
 	n.Connected = false
-	nc, cc, err := DailN(n.BP, n.Addr, NewCCH(n, n.CmdH), n.NCF)
+	//
+	nc := NewNConPool2(n.BP, NewCCH(n, n.CmdH))
+	nc.NewCon = n.NCF
+	nc.DailAddr = n.DailAddr
+	cc, err := nc.Dail(n.Addr)
 	if err != nil {
 		return err
 	}
@@ -267,6 +272,9 @@ func NewNConRunnerN(bp *pool.BytePool, addr string, h CmdHandler, ncf NewConF) *
 		Tick:     30000,
 		TickData: []byte("Tick\n"),
 		wg:       sync.WaitGroup{},
+		DailAddr: func(addr string) (net.Conn, error) {
+			return net.Dial("tcp", addr)
+		},
 	}
 }
 func NewNConRunner(bp *pool.BytePool, addr string, h CmdHandler) *NConRunner {
