@@ -2,20 +2,22 @@ package netw
 
 import (
 	"errors"
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/pool"
 	"net"
 	"time"
+
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/pool"
 )
 
 //the TCP server listener.
 type Listener struct {
-	*LConPool              //the connection pool.
-	Port      string       //the listen port.
-	L         net.Listener //the base listener.
-	Running   bool         //whether running accept.
-	Wc        chan int     //the wait chan.
-	Limit     int64
+	*LConPool                 //the connection pool.
+	Port         string       //the listen port.
+	L            net.Listener //the base listener.
+	Running      bool         //whether running accept.
+	Wc           chan int     //the wait chan.
+	Limit        int64
+	NewListenerF func(l *Listener) (raw net.Listener, err error)
 }
 
 //new one listener.
@@ -31,6 +33,10 @@ func NewListenerN(p *pool.BytePool, port string, n string, h CCHandler, ncf NewC
 		LConPool: NewLConPoolV(p, h, n, ncf),
 		Wc:       make(chan int),
 		Limit:    512,
+		NewListenerF: func(l *Listener) (raw net.Listener, err error) {
+			raw, err = net.Listen("tcp", l.Port)
+			return
+		},
 	}
 	return ls
 }
@@ -43,7 +49,7 @@ func (l *Listener) Listen() error {
 	if len(l.Port) < 1 {
 		return errors.New("port is empty")
 	}
-	ln, err := net.Listen("tcp", l.Port)
+	ln, err := l.NewListenerF(l)
 	if err != nil {
 		return err
 	}
@@ -94,7 +100,10 @@ func (l *Listener) LoopAccept() {
 		}
 		tempDelay = 0
 		l.Increase()
-		con.(*net.TCPConn).SetNoDelay(true)
+		if tcpConn, ok := con.(*net.TCPConn); ok {
+			tcpConn.SetNoDelay(true)
+		}
+		// con.(*net.TCPConn).SetNoDelay(true)
 		// con.(*net.TCPConn).SetWriteBuffer(5)
 		// con.(*net.TCPConn).SetWriteDeadline(t)
 		log_d("accepting tcp connect(%v) in pool(%v)", con.RemoteAddr().String(), l.Id())
