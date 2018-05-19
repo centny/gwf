@@ -63,7 +63,10 @@ func (h *HClient) DoGet2(header map[string]string, ufmt string, args ...interfac
 }
 
 func (h *HClient) HGet(ufmt string, args ...interface{}) (string, error) {
-	_, str, err := h.HGet_H(map[string]string{}, ufmt, args...)
+	code, str, err := h.HGet_H(map[string]string{}, ufmt, args...)
+	if code != 200 {
+		err = fmt.Errorf("response code(%v)", code)
+	}
 	return str, err
 }
 func (h *HClient) HGet_H(header map[string]string, ufmt string, args ...interface{}) (int, string, error) {
