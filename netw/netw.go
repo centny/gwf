@@ -336,7 +336,9 @@ func (c *Con_) Closed() bool {
 }
 func (c *Con_) Close() error {
 	c.closed_ = true
-	c.CP_.(Counter).Descrease()
+	if c.CP_ != nil {
+		c.CP_.(Counter).Descrease()
+	}
 	return c.Conn.Close()
 }
 func (c *Con_) Mod() string {
@@ -425,7 +427,7 @@ func (c *Con_) Writem(mode string, bys ...[]byte) (int, error) {
 	default:
 		total, err = Writen(c.Conn, bys...)
 	}
-	c.log_d("%v:write data(%v) to %v, res:%v", mode, total, c.RemoteAddr().String(), err)
+	c.log_d("%v:write data(%v) to %v, res:%v", mode, total, c.RemoteAddr(), err)
 	if err != nil {
 		c.Conn.Close()
 	}
@@ -495,6 +497,16 @@ type Cmd_ struct {
 	Data_ []byte //received data
 	data_ []byte //really address to free.
 	d     int    //the error log stack depth.
+}
+
+func NewCmd_(conn Con, data []byte) (cmd *Cmd_) {
+	cmd = &Cmd_{
+		Con:   conn,
+		data_: data,
+		Data_: data,
+		d:     0,
+	}
+	return
 }
 
 func (c *Cmd_) BaseCon() Con {
