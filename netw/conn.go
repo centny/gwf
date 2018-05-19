@@ -173,18 +173,17 @@ func (n *NConRunner) OnClose(c Con) {
 	if n.Running {
 		n.wg.Add(1)
 		go n.Try()
-	} else {
-		n.wg.Done()
 	}
 }
 func (n *NConRunner) StartRunner() {
 	n.wg.Add(1)
 	go n.Try()
+	//
 	go n.StartTick()
 	log.D("starting runner...")
 }
 func (n *NConRunner) StopRunner() {
-	n.wg.Add(1)
+	//n.wg.Add(1)
 	n.Running = false
 	if n.NConPool != nil {
 		n.NConPool.Close()
