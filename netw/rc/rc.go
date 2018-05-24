@@ -255,6 +255,14 @@ func (r *RC_Listener_m) CmdCs() map[string]*impl.RCM_Con {
 	return r.RCH.CCS
 }
 
+func (r *RC_Listener_m) CloseC(cid string) error {
+	con := r.RCH.MsgC(cid)
+	if con == nil {
+		return fmt.Errorf("con(%v) is not exists", cid)
+	}
+	return con.Close()
+}
+
 //find user id by connection id
 func (r *RC_Listener_m) ConCid(c netw.Con) string {
 	return r.RCH.MID[c.Id()]
