@@ -4,14 +4,16 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	// "github.com/Centny/gwf/pool"
-	"github.com/Centny/gwf/util"
 	"math"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/Centny/gwf/util"
 )
 
 type Runner interface {
@@ -167,10 +169,10 @@ func NewRC_Con(con netw.Con, bc *RC_C) *RC_Con {
 }
 
 func (r *RC_Con) Exec(args interface{}, dest interface{}) (interface{}, error) {
-	return r.Exec_(0, false, args, dest)
+	return r.Exec_(0, true, args, dest)
 }
 func (r *RC_Con) Exec2(args interface{}) ([]byte, error) {
-	return r.ExecV(0, false, args)
+	return r.ExecV(0, true, args)
 }
 
 func (r *RC_Con) Execm(m byte, args interface{}, dest interface{}) (interface{}, error) {
