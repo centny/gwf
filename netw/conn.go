@@ -112,8 +112,8 @@ func (a *AutoDailer) Try(addr string) error {
 	var tempDelay time.Duration
 	for a.Running {
 		con, err = a.Dail(addr)
-		log.D("NConRunner dail to server(%v) success", addr)
 		if err == nil {
+			log.D("NConRunner dail to server(%v) success", addr)
 			a.a_lck.Lock()
 			a.Addrs[con] = addr
 			a.a_lck.Unlock()
