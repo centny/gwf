@@ -1,15 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/Centny/gwf/routing"
-	"github.com/Centny/gwf/routing/filter"
-	"github.com/Centny/gwf/util"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/Centny/gwf/routing"
+	"github.com/Centny/gwf/routing/filter"
+	"github.com/Centny/gwf/util"
 )
 
 func main() {
@@ -17,6 +19,7 @@ func main() {
 	_, args, _ := util.Args()
 	var paddr string
 	var tpl, preg []string
+	var echo int
 	if args.Exist("h") {
 		fmt.Printf(`Usage: rweb <options>
 	-h		show help
@@ -33,7 +36,8 @@ func main() {
 		paddr,O|S,L:0;
 		preg,O|S,L:0;
 		tpl,O|S,L:0;
-		`, &addr, &paddr, &preg, &tpl)
+		echo,O|I,O:0~1;
+		`, &addr, &paddr, &preg, &tpl, &echo)
 	if err != nil {
 		fmt.Println("check value fail->", err)
 		os.Exit(1)
@@ -79,30 +83,47 @@ func main() {
 			mux.H(t, rd)
 		}
 	}
-	mux.HFilter("^.*$", filter.NewP3P2())
-	mux.HFunc("^/_echo_.*$", func(hs *routing.HTTPSession) routing.HResult {
-		hs.R.ParseForm()
-		fmt.Println("---Header---")
-		for k, v := range hs.R.Header {
-			fmt.Println(k, "\t", v)
-		}
-		fmt.Println("---Form---")
-		for k, v := range hs.R.Form {
-			fmt.Println(k, "\t", v)
-		}
-		fmt.Println("---PostForm---")
-		for k, v := range hs.R.PostForm {
-			fmt.Println(k, "\t", v)
-		}
-		hs.W.Write([]byte("OK"))
-		return routing.HRES_RETURN
-	})
-	mux.HFilterFunc("^.*$", MicroMessengerFilter)
-	mux.HFilterFunc("^.*\\.apk$", func(hs *routing.HTTPSession) routing.HResult {
-		hs.W.Header().Set("Content-Type", "application/vnd.android.package-archive")
-		return routing.HRES_CONTINUE
-	})
-	mux.Handler("^/.*$", http.FileServer(http.Dir(".")))
+	if echo == 1 {
+		mux.HFunc("^.*$", func(hs *routing.HTTPSession) routing.HResult {
+			hs.R.ParseForm()
+			hs.R.Header.Set("Content-Type", "text/plain;charset=utf-8")
+			buf := bytes.NewBuffer(nil)
+			//
+			fmt.Fprintln(buf, "---URL---")
+			fmt.Fprintln(buf, "Host\t", hs.R.Host)
+			fmt.Fprintln(buf, "Path\t", hs.R.URL.RawPath)
+			fmt.Fprintln(buf, "Query\t", hs.R.URL.RawQuery)
+			fmt.Fprintln(buf, "User\t", hs.R.URL.User)
+			//
+			fmt.Fprintln(buf, "\n---Header---")
+			for k, v := range hs.R.Header {
+				fmt.Fprintln(buf, k, "\t", v)
+			}
+			//
+			fmt.Fprintln(buf, "\n---Form---")
+			for k, v := range hs.R.Form {
+				fmt.Fprintln(buf, k, "\t", v)
+			}
+			//
+			fmt.Fprintln(buf, "---PostForm---")
+			for k, v := range hs.R.PostForm {
+				fmt.Fprintln(buf, k, "\t", v)
+			}
+			fmt.Fprintf(buf, "\n\n\n")
+			//
+			buf.WriteTo(hs.W)
+			buf.WriteTo(os.Stdout)
+			return routing.HRES_RETURN
+		})
+	} else {
+		mux.HFilter("^.*$", filter.NewP3P2())
+		mux.HFilterFunc("^.*$", MicroMessengerFilter)
+		mux.HFilterFunc("^.*\\.apk$", func(hs *routing.HTTPSession) routing.HResult {
+			hs.W.Header().Set("Content-Type", "application/vnd.android.package-archive")
+			return routing.HRES_CONTINUE
+		})
+		mux.Handler("^/.*$", http.FileServer(http.Dir(".")))
+	}
 	fmt.Println(http.ListenAndServe(addr, mux))
 }
 
