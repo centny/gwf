@@ -91,8 +91,9 @@ func main() {
 			//
 			fmt.Fprintln(buf, "---URL---")
 			fmt.Fprintln(buf, "Host\t", hs.R.Host)
-			fmt.Fprintln(buf, "Path\t", hs.R.URL.RawPath)
-			fmt.Fprintln(buf, "Query\t", hs.R.URL.RawQuery)
+			fmt.Fprintln(buf, "Path\t", hs.R.URL.Path)
+			fmt.Fprintln(buf, "RawPath\t", hs.R.URL.RawPath)
+			fmt.Fprintln(buf, "RawQuery\t", hs.R.URL.RawQuery)
 			fmt.Fprintln(buf, "User\t", hs.R.URL.User)
 			//
 			fmt.Fprintln(buf, "\n---Header---")
