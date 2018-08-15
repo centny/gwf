@@ -309,6 +309,19 @@ func (m Map) MapVal(key string) Map {
 		return nil
 	}
 }
+func (m Map) MapValV(key string, d Map) Map {
+	if v, ok := m[key]; ok {
+		if mv, ok := v.(Map); ok {
+			return mv
+		} else if mv, ok := v.(map[string]interface{}); ok {
+			return Map(mv)
+		} else {
+			return d
+		}
+	} else {
+		return d
+	}
+}
 func (m Map) AryVal(key string) []interface{} {
 	if v, ok := m[key]; ok {
 		return AryVal(v)

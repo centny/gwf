@@ -64,7 +64,7 @@ func (h *HClient) DoGet2(header map[string]string, ufmt string, args ...interfac
 
 func (h *HClient) HGet(ufmt string, args ...interface{}) (string, error) {
 	code, str, err := h.HGet_H(map[string]string{}, ufmt, args...)
-	if code != 200 {
+	if err == nil && code != 200 {
 		err = fmt.Errorf("response code(%v)", code)
 	}
 	return str, err
@@ -146,6 +146,27 @@ func (h *HClient) HPostF_Hv(url string, fields map[string]string, header map[str
 
 func (h *HClient) HPostNv(url string, headers map[string]string, buf io.Reader) (int, string, map[string]string, error) {
 	req, err := http.NewRequest("POST", url, buf)
+	if err != nil {
+		return 0, "", nil, err
+	}
+	for key, val := range headers {
+		req.Header.Set(key, val)
+	}
+	res, err := h.Do(req)
+	if err != nil {
+		return 0, "", nil, err
+	}
+	var rh = map[string]string{}
+	for key, _ := range res.Header {
+		rh[key] = res.Header.Get(key)
+	}
+	defer res.Body.Close()
+	str, err := readAllStr(res.Body)
+	return res.StatusCode, str, rh, err
+}
+
+func (h *HClient) HRequestNv(url, method string, headers map[string]string, buf io.Reader) (int, string, map[string]string, error) {
+	req, err := http.NewRequest(method, url, buf)
 	if err != nil {
 		return 0, "", nil, err
 	}
@@ -305,6 +326,16 @@ func HPostN(url string, ctype string, buf io.Reader) (int, string, error) {
 }
 func HPostN2(url string, ctype string, buf io.Reader) (int, Map, error) {
 	return HTTPClient.HPostN2(url, ctype, buf)
+}
+func HPostN3(url string, ctype string, buf io.Reader) (Map, error) {
+	code, res, err := HTTPClient.HPostN2(url, ctype, buf)
+	if err == nil && code != 200 {
+		err = fmt.Errorf("response code:%v", code)
+	}
+	return res, err
+}
+func HRequestNv(url, method string, headers map[string]string, buf io.Reader) (int, string, map[string]string, error) {
+	return HTTPClient.HRequestNv(url, method, headers, buf)
 }
 func HPost2(url string, fields map[string]string) (Map, error) {
 	return HTTPClient.HPost2(url, fields)
