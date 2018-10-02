@@ -242,6 +242,22 @@ func AryIntVal(v interface{}) []int {
 	return is
 }
 
+func AryInt64Val(v interface{}) []int64 {
+	as := AryVal(v)
+	if as == nil {
+		return nil
+	}
+	is := []int64{}
+	for _, v := range as {
+		iv, err := IntValV(v)
+		if err != nil {
+			return nil
+		}
+		is = append(is, iv)
+	}
+	return is
+}
+
 func (m Map) UintVal(key string) uint64 {
 	if v, ok := m[key]; ok {
 		return UintVal(v)
@@ -350,6 +366,15 @@ func (m Map) AryIntVal(key string) []int {
 		return nil
 	}
 }
+
+func (m Map) AryInt64Val(key string) []int64 {
+	if v, ok := m[key]; ok {
+		return AryInt64Val(v)
+	} else {
+		return nil
+	}
+}
+
 func (m Map) Val(key string) interface{} {
 	if v, ok := m[key]; ok {
 		return v
