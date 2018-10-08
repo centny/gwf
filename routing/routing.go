@@ -4,10 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Centny/gwf/hooks"
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/tutil"
-	"github.com/Centny/gwf/util"
 	"io"
 	"net/http"
 	"net/url"
@@ -18,6 +14,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
+
+	"github.com/Centny/gwf/hooks"
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/tutil"
+	"github.com/Centny/gwf/util"
 )
 
 type HResult int
@@ -575,6 +577,8 @@ type SessionMux struct {
 	INT          International
 	ShowSlow     int64
 	M            *tutil.Monitor
+	//
+	CompressContent bool
 	//provide the convert function to convert HTTPSesion.V as the hook HK_R_END value argument.
 	FIND_V func(hs *HTTPSession) func(v interface{}) interface{}
 }
@@ -847,8 +851,12 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	beg := util.Now()
 	r.URL.Path = strings.TrimPrefix(r.URL.Path, s.Pre)
 	session := s.Sb.FindSession(w, r)
+	writer := w
+	if s.CompressContent {
+		writer = &GzipResponseWriter{ResponseWriter: w}
+	}
 	hs := &HTTPSession{
-		W:   w,
+		W:   writer,
 		R:   r,
 		S:   session,
 		Mux: s,
@@ -958,4 +966,17 @@ func (s *SessionMux) State() (interface{}, error) {
 	} else {
 		return s.M.State()
 	}
+}
+
+type GzipResponseWriter struct {
+	http.ResponseWriter
+	headerSetted uint32
+}
+
+func (g *GzipResponseWriter) Write(p []byte) (n int, err error) {
+	if atomic.CompareAndSwapUint32(&g.headerSetted, 0, 1) {
+		g.Header().Set("Content-Encoding", "gzip")
+	}
+	n, err = g.ResponseWriter.Write(p)
+	return
 }
