@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/Centny/gwf/hooks"
 	"github.com/Centny/gwf/log"
@@ -579,6 +579,8 @@ type SessionMux struct {
 	M            *tutil.Monitor
 	//
 	CompressContent bool
+	CompressLevel   int
+	compressRouter  map[*regexp.Regexp]int
 	//provide the convert function to convert HTTPSesion.V as the hook HK_R_END value argument.
 	FIND_V func(hs *HTTPSession) func(v interface{}) interface{}
 }
@@ -615,8 +617,15 @@ func NewSessionMux(pre string, sb SessionBuilder) *SessionMux {
 	mux.ShowLog = false
 	mux.INT = nil
 	mux.M = nil
+	mux.CompressLevel = gzip.BestSpeed
+	mux.compressRouter = map[*regexp.Regexp]int{}
 	mux.ShowSlow = 10000
 	return &mux
+}
+
+func (s *SessionMux) SetCompress(pattern string, mask int) {
+	reg := regexp.MustCompile(pattern)
+	s.compressRouter[reg] = mask
 }
 
 func (s *SessionMux) RSession(r *http.Request) *HTTPSession {
@@ -846,17 +855,24 @@ func (s *SessionMux) exec_h(hs *HTTPSession) (bool, HResult) {
 	return matched, HRES_CONTINUE
 }
 
+func (s *SessionMux) isCompress(w http.ResponseWriter, r *http.Request) bool {
+	if s.CompressContent {
+		for reg := range s.compressRouter {
+			if reg.MatchString(r.URL.Path) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 //
 func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	beg := util.Now()
 	r.URL.Path = strings.TrimPrefix(r.URL.Path, s.Pre)
 	session := s.Sb.FindSession(w, r)
-	writer := w
-	if s.CompressContent {
-		writer = &GzipResponseWriter{ResponseWriter: w}
-	}
 	hs := &HTTPSession{
-		W:   writer,
+		W:   w,
 		R:   r,
 		S:   session,
 		Mux: s,
@@ -876,6 +892,15 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	//
+	if s.isCompress(w, r) {
+		writer, err := NewGzipResponseWriter(hs.W, s.CompressLevel)
+		if err != nil {
+			panic(err)
+		}
+		writer.Header().Set("Content-Encoding", "gzip")
+		hs.W = writer
+	}
+	//
 	var matched bool = false
 	//
 	defer func() {
@@ -890,6 +915,9 @@ func (s *SessionMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		hooks.Call(HK_ROUTING, HK_R_END, tv, hs, matched)
+		if gz, ok := hs.W.(*GzipResponseWriter); ok {
+			gz.Writer.Close()
+		}
 	}()
 	hooks.Call(HK_ROUTING, HK_R_BEG, nil, hs)
 	//match filter.
@@ -970,13 +998,18 @@ func (s *SessionMux) State() (interface{}, error) {
 
 type GzipResponseWriter struct {
 	http.ResponseWriter
+	Writer       *gzip.Writer
 	headerSetted uint32
 }
 
+func NewGzipResponseWriter(w http.ResponseWriter, level int) (writer *GzipResponseWriter, err error) {
+	writer = &GzipResponseWriter{}
+	writer.ResponseWriter = w
+	writer.Writer, err = gzip.NewWriterLevel(w, level)
+	return
+}
+
 func (g *GzipResponseWriter) Write(p []byte) (n int, err error) {
-	if atomic.CompareAndSwapUint32(&g.headerSetted, 0, 1) {
-		g.Header().Set("Content-Encoding", "gzip")
-	}
-	n, err = g.ResponseWriter.Write(p)
+	n, err = g.Writer.Write(p)
 	return
 }
