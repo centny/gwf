@@ -425,6 +425,83 @@ func TestValidAttrF(t *testing.T) {
 	}
 	fmt.Println(err.Error())
 }
+
+func TestValidAttrFAddr(t *testing.T) {
+	mv := map[string]string{}
+	mv["a"] = "abc"
+	mv["i"] = "10"
+	mv["f"] = "10.3"
+	mv["ef"] = "20.3"
+	mv["len"] = "11111111"
+	mv["ary"] = "1,2,3,4,5"
+	mv["ary2"] = "1,2,3,,4,5"
+	var a *string
+	var i *int64
+	var k *string
+	var ks []*string
+	var f *float64
+	var iv1 *int
+	var iv1_a []*int
+	var iv2 *int16
+	var iv3 *int32
+	var iv4 *int64
+	var iv5 *uint
+	var iv6 *uint16
+	var iv7 *uint32
+	var iv8 *uint64
+	var iv9 *float32
+	var iv10 *float64
+	var iv10_a []*float64
+	var iv11 *string
+	var iv12 *int64
+	var a_i []*int
+	var a_s []*string
+	var a_f []*float64
+	err := ValidAttrF(`//abc
+		a,R|S,L:~5;//abc
+		i,R|I,R:1~20;
+		i,O|I,R:1~20;//sfdsj
+		i,O|I,R:1~20;//sfdsj
+		f,R|F,R:1.5~20;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|I,R:0;
+		i,R|S,L:0;
+		ary,R|S,L:0;
+		ary,R|I,R:0;
+		ary,R|F,R:0;
+		`, func(key string) string {
+		return mv[key]
+	}, true, &a, &i, &k, &ks, &f,
+		&iv1, &iv1_a, &iv2, &iv3, &iv4, &iv5,
+		&iv6, &iv7, &iv8, &iv9, &iv10, &iv10_a,
+		&iv11, &iv12, &a_s, &a_i, &a_f)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	fmt.Println(k, ks, len(iv1_a), len(iv10_a))
+	if *k != "10" || *ks[0] != "10" || *iv1 != 10 || *iv1_a[0] != 10 || *iv10 != 10 || *iv10_a[0] != 10 {
+		t.Error("error")
+		return
+	}
+	fmt.Println(len(a_s), len(a_i), len(a_f))
+	if len(a_s) != 5 || len(a_i) != 5 || len(a_f) != 5 {
+		t.Error("error")
+		return
+	}
+	fmt.Println(a, i, k, f)
+}
 func TestEscape(t *testing.T) {
 	//
 	var a string

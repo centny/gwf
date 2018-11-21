@@ -266,7 +266,7 @@ func ValidAttrF(f string, cf AttrFunc, limit_r bool, args ...interface{}) error 
 			if rval == nil {
 				continue
 			}
-			tval, err := ValidVal(pval.Type().Elem().Kind(), rval)
+			tval, err := ValidVal(pval.Type().Elem(), rval)
 			if err != nil {
 				return err
 			}
@@ -278,74 +278,134 @@ func ValidAttrF(f string, cf AttrFunc, limit_r bool, args ...interface{}) error 
 }
 
 func ValidSetVal(dst reflect.Value, src interface{}) error {
-	tval, err := ValidVal(dst.Kind(), src)
+	tval, err := ValidVal(dst.Type(), src)
 	if err == nil {
 		dst.Set(reflect.ValueOf(tval))
 	}
 	return err
 }
 
-func ValidVal(dst reflect.Kind, src interface{}) (val interface{}, err error) {
+func ValidVal(dst reflect.Type, src interface{}) (val interface{}, err error) {
 	sk := reflect.TypeOf(src)
-	if sk.Kind() == dst {
+	if sk.Kind() == dst.Kind() {
 		return src, nil
+	}
+	var isptr = false
+	var kind = dst.Kind()
+	if kind == reflect.Ptr {
+		kind = dst.Elem().Kind()
+		isptr = true
 	}
 	var tiv int64
 	var tfv float64
-	switch dst {
+	switch kind {
 	case reflect.Int:
 		tiv, err = IntValV(src)
 		if err == nil {
-			val = int(tiv)
+			target := int(tiv)
+			if isptr {
+				val = &target
+			} else {
+				val = target
+			}
 		}
 	case reflect.Int16:
 		tiv, err = IntValV(src)
 		if err == nil {
-			val = int16(tiv)
+			target := int16(tiv)
+			if isptr {
+				val = &target
+			} else {
+				val = target
+			}
 		}
 	case reflect.Int32:
 		tiv, err = IntValV(src)
 		if err == nil {
-			val = int32(tiv)
+			target := int32(tiv)
+			if isptr {
+				val = &target
+			} else {
+				val = target
+			}
 		}
 	case reflect.Int64:
 		tiv, err = IntValV(src)
 		if err == nil {
-			val = int64(tiv)
+			target := int64(tiv)
+			if isptr {
+				val = &target
+			} else {
+				val = target
+			}
 		}
 	case reflect.Uint:
 		tiv, err = IntValV(src)
 		if err == nil {
-			val = uint(tiv)
+			target := uint(tiv)
+			if isptr {
+				val = &target
+			} else {
+				val = target
+			}
 		}
 	case reflect.Uint16:
 		tiv, err = IntValV(src)
 		if err == nil {
-			val = uint16(tiv)
+			target := uint16(tiv)
+			if isptr {
+				val = &target
+			} else {
+				val = target
+			}
 		}
 	case reflect.Uint32:
 		tiv, err = IntValV(src)
 		if err == nil {
-			val = uint32(tiv)
+			target := uint32(tiv)
+			if isptr {
+				val = &target
+			} else {
+				val = target
+			}
 		}
 	case reflect.Uint64:
 		tiv, err = IntValV(src)
 		if err == nil {
-			val = uint64(tiv)
+			target := uint64(tiv)
+			if isptr {
+				val = &target
+			} else {
+				val = target
+			}
 		}
 	case reflect.Float32:
 		tfv, err = FloatValV(src)
 		if err == nil {
-			val = float32(tfv)
+			target := float32(tfv)
+			if isptr {
+				val = &target
+			} else {
+				val = target
+			}
 		}
 	case reflect.Float64:
 		tfv, err = FloatValV(src)
 		if err == nil {
-			val = float64(tfv)
+			target := float64(tfv)
+			if isptr {
+				val = &target
+			} else {
+				val = target
+			}
 		}
 	case reflect.String:
-		tsv := StrVal(src)
-		val = tsv
+		target := StrVal(src)
+		if isptr {
+			val = &target
+		} else {
+			val = target
+		}
 	}
 	if err == nil {
 		return val, err
