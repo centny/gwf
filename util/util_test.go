@@ -528,3 +528,10 @@ func TestATime(t *testing.T) {
 	// fmt.Println(util.Time(1470840527000).Format("2006-01-02 15:04:05"))
 	// fmt.Println(util.Timestamp(xx), 1470869327000, 1470840527000)
 }
+
+func TestIndirectString(t *testing.T) {
+	var x *int
+	fmt.Println(IndirectString(x))
+	fmt.Println(IndirectString(nil))
+	fmt.Println(IndirectString(1))
+}

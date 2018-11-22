@@ -561,8 +561,11 @@ func ReflectName(v interface{}) string {
 }
 
 func IndirectString(val interface{}) string {
+	if val == nil {
+		return "nil"
+	}
 	rval := reflect.ValueOf(val)
-	if rval.IsNil() {
+	if rval.Kind() == reflect.Ptr && rval.IsNil() {
 		return "nil"
 	}
 	return fmt.Sprintf("%v", reflect.Indirect(rval).Interface())
