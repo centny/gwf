@@ -516,9 +516,9 @@ func Join(v interface{}, seq string) string {
 	if vval.Len() < 1 {
 		return ""
 	}
-	val := fmt.Sprintf("%v", vval.Index(0).Interface())
+	val := fmt.Sprintf("%v", reflect.Indirect(vval.Index(0)).Interface())
 	for i := 1; i < vval.Len(); i++ {
-		val += fmt.Sprintf("%v%v", seq, vval.Index(i).Interface())
+		val += fmt.Sprintf("%v%v", seq, reflect.Indirect(vval.Index(i)).Interface())
 	}
 	return val
 }
