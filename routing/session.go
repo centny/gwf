@@ -1,17 +1,23 @@
 package routing
 
 import (
-	"github.com/Centny/gwf/log"
-	"github.com/Centny/gwf/util"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/Centny/gwf/log"
+	"github.com/Centny/gwf/util"
 )
 
 type SrvSession struct {
 	token string
 	begin int64
 	kvs   map[string]interface{}
+}
+
+func (s *SrvSession) Clear() error {
+	s.kvs = map[string]interface{}{}
+	return nil
 }
 
 func (s *SrvSession) Val(key string) interface{} {

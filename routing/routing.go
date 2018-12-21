@@ -113,6 +113,7 @@ type SessionBuilder interface {
 	SetEvH(h SessionEvHandler)
 }
 type Session interface {
+	Clear() error
 	Val(key string) interface{}
 	Set(key string, val interface{})
 	Flush() error

@@ -10,7 +10,14 @@ type DefaultSession struct {
 	kvs_lck sync.RWMutex
 }
 
-func (s DefaultSession) Val(key string) interface{} {
+func (s *DefaultSession) Clear() error {
+	s.kvs_lck.Lock()
+	defer s.kvs_lck.Unlock()
+	s.kvs = map[string]interface{}{}
+	return nil
+}
+
+func (s *DefaultSession) Val(key string) interface{} {
 	s.kvs_lck.RLock()
 	defer s.kvs_lck.RUnlock()
 	if v, ok := s.kvs[key]; ok {
@@ -19,7 +26,7 @@ func (s DefaultSession) Val(key string) interface{} {
 		return nil
 	}
 }
-func (s DefaultSession) Set(key string, val interface{}) {
+func (s *DefaultSession) Set(key string, val interface{}) {
 	s.kvs_lck.Lock()
 	defer s.kvs_lck.Unlock()
 	if val == nil {
@@ -28,7 +35,7 @@ func (s DefaultSession) Set(key string, val interface{}) {
 		s.kvs[key] = val
 	}
 }
-func (s DefaultSession) Flush() error {
+func (s *DefaultSession) Flush() error {
 	return nil
 }
 
