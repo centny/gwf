@@ -3,17 +3,19 @@ package httptest
 import (
 	"bytes"
 	"fmt"
-	"github.com/Centny/gwf/routing"
-	"github.com/Centny/gwf/util"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+
+	"github.com/Centny/gwf/routing"
+	"github.com/Centny/gwf/util"
 )
 
 type Server struct {
 	URL string
 	S   *httptest.Server
+	SS  *httptest.Server
 	Mux *routing.SessionMux
 }
 
@@ -58,6 +60,10 @@ func (s *Server) PostFormV(url string, headers map[string]string, buf url.Values
 }
 func (s *Server) PostFormV2(url string, headers map[string]string, buf url.Values, args ...interface{}) (int, util.Map, map[string]string, error) {
 	return util.HPostFormV2(fmt.Sprintf("%v%v", s.URL, fmt.Sprintf(url, args...)), nil, bytes.NewBufferString(buf.Encode()))
+}
+
+func (s *Server) StartTLS() {
+	s.SS = httptest.NewTLSServer(s.Mux)
 }
 
 func NewServer(f routing.HandleFunc) *Server {
