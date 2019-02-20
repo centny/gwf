@@ -280,6 +280,24 @@ func Str2Int(s string) ([]int64, error) {
 	return vals, nil
 }
 
+func Str2IntPtr(s string) ([]*int64, error) {
+	vals := []*int64{}
+	ss := strings.Split(s, ",")
+	for _, str := range ss {
+		str = strings.Trim(str, "\t ")
+		if len(str) < 1 {
+			continue
+		}
+		v, err := strconv.ParseInt(str, 10, 64)
+		if err == nil {
+			vals = append(vals, &v)
+		} else {
+			return nil, err
+		}
+	}
+	return vals, nil
+}
+
 func Str2IntV(s, seq string) ([]int, error) {
 	vals := []int{}
 	ss := strings.Split(s, seq)
