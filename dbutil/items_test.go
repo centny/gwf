@@ -19,6 +19,9 @@ func TestInt64ArrayType(t *testing.T) {
 	ary = append(ary, &v1)
 	ary = append(ary, &v2)
 	sort.Sort(ary)
+	var ary2 Int64Array
+	ary2.Scan("[null]")
+	ary2.DbJoin()
 }
 
 func TestMap(t *testing.T) {

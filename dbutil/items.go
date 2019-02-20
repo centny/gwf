@@ -80,7 +80,11 @@ func (i *Int64Array) Value() string {
 func (i Int64Array) DbJoin() string {
 	vals := []string{}
 	for _, v := range i {
-		vals = append(vals, fmt.Sprintf("%v", *v))
+		if v == nil {
+			vals = append(vals, "nil")
+		} else {
+			vals = append(vals, fmt.Sprintf("%v", *v))
+		}
 	}
 	return strings.Join(vals, ",")
 }
