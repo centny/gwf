@@ -3,7 +3,6 @@ package routing
 import (
 	"net"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -24,7 +23,7 @@ func HFunc(pattern string, h HandleFunc) {
 
 func ListenAndServe(addr string) error {
 	if strings.HasPrefix(addr, "/") {
-		unixListener, err := net.Listen("unix", os.Args[1])
+		unixListener, err := net.Listen("unix", addr)
 		if err != nil {
 			return err
 		}
