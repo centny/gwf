@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -33,11 +34,22 @@ func ListenAndServe(addr string) (err error) {
 	if strings.HasPrefix(addr, "/") {
 		Listner, err = net.Listen("unix", addr)
 	} else {
+		addrs := strings.SplitN(addr, ",", 2)
 		Server.Addr = addr
-		Listner, err = net.Listen("tcp", addr)
-		if err == nil {
-			Listner = &tcpKeepAliveListener{TCPListener: Listner.(*net.TCPListener)}
+		Listner, err = net.Listen("tcp", addrs[0])
+		if err != nil {
+			return
 		}
+		var mod uint64
+		mod, err = strconv.ParseUint(addrs[1], 8, 32)
+		if err != nil {
+			return
+		}
+		err = os.Chmod(addrs[0], os.FileMode(mod))
+		if err != nil {
+			return
+		}
+		Listner = &tcpKeepAliveListener{TCPListener: Listner.(*net.TCPListener)}
 	}
 	if err != nil {
 		return
