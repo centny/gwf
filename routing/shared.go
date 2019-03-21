@@ -32,11 +32,9 @@ var Listner net.Listener
 func ListenAndServe(addr string) (err error) {
 	Server = &http.Server{Handler: Shared}
 	if strings.HasPrefix(addr, "/") {
-		Listner, err = net.Listen("unix", addr)
-	} else {
 		addrs := strings.SplitN(addr, ",", 2)
 		Server.Addr = addr
-		Listner, err = net.Listen("tcp", addrs[0])
+		Listner, err = net.Listen("unix", addrs[0])
 		if err != nil {
 			return
 		}
@@ -50,6 +48,12 @@ func ListenAndServe(addr string) (err error) {
 			return
 		}
 		Listner = &tcpKeepAliveListener{TCPListener: Listner.(*net.TCPListener)}
+	} else {
+		Server.Addr = addr
+		Listner, err = net.Listen("tcp", addr)
+		if err != nil {
+			return
+		}
 	}
 	if err != nil {
 		return
