@@ -38,6 +38,7 @@ func ListenAndServe(addr string) (err error) {
 		if err != nil {
 			return
 		}
+		defer Listner.Close()
 		var mod uint64
 		mod, err = strconv.ParseUint(addrs[1], 8, 32)
 		if err != nil {
@@ -47,16 +48,14 @@ func ListenAndServe(addr string) (err error) {
 		if err != nil {
 			return
 		}
-		Listner = &tcpKeepAliveListener{TCPListener: Listner.(*net.TCPListener)}
 	} else {
 		Server.Addr = addr
 		Listner, err = net.Listen("tcp", addr)
 		if err != nil {
 			return
 		}
-	}
-	if err != nil {
-		return
+		Listner = &tcpKeepAliveListener{TCPListener: Listner.(*net.TCPListener)}
+		defer Listner.Close()
 	}
 	return Server.Serve(Listner)
 }
