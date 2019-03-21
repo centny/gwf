@@ -1,7 +1,10 @@
 package routing
 
 import (
+	"net"
 	"net/http"
+	"os"
+	"strings"
 )
 
 var Shared = NewSessionMux2("")
@@ -20,5 +23,13 @@ func HFunc(pattern string, h HandleFunc) {
 }
 
 func ListenAndServe(addr string) error {
+	if strings.HasPrefix(addr, "/") {
+		unixListener, err := net.Listen("unix", os.Args[1])
+		if err != nil {
+			return err
+		}
+		server := &http.Server{Handler: Shared}
+		return server.Serve(unixListener)
+	}
 	return http.ListenAndServe(addr, Shared)
 }
