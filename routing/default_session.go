@@ -3,11 +3,18 @@ package routing
 import (
 	"net/http"
 	"sync"
+
+	"github.com/Centny/gwf/util"
 )
 
 type DefaultSession struct {
+	id      string
 	kvs     map[string]interface{}
 	kvs_lck sync.RWMutex
+}
+
+func (d *DefaultSession) ID() string {
+	return d.id
 }
 
 func (s *DefaultSession) Clear() error {
@@ -47,7 +54,7 @@ func NewDefaultSessionBuilder() *DefaultSessionBuilder {
 	return &DefaultSessionBuilder{}
 }
 func (s *DefaultSessionBuilder) FindSession(w http.ResponseWriter, r *http.Request) Session {
-	return &DefaultSession{kvs: map[string]interface{}{}}
+	return &DefaultSession{id: util.UUID(), kvs: map[string]interface{}{}}
 }
 func (s *DefaultSessionBuilder) SetEvH(h SessionEvHandler) {
 }

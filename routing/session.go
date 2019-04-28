@@ -15,6 +15,10 @@ type SrvSession struct {
 	kvs   map[string]interface{}
 }
 
+func (s *SrvSession) ID() string {
+	return s.token
+}
+
 func (s *SrvSession) Clear() error {
 	s.kvs = map[string]interface{}{}
 	return nil

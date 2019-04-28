@@ -45,7 +45,7 @@ func TestInit(t *testing.T) {
 	fmt.Println(f.FloatVal("nfound"))
 	fmt.Println(f.FloatVal("a"))
 	fmt.Println(f.Val("abc_conf"))
-	fmt.Println("\n\n\n\n")
+	fmt.Printf("\n\n\n\n")
 	f.Del("nfound")
 	f.Del("a")
 	fmt.Println(f.Show())
@@ -176,7 +176,7 @@ func TestSection(t *testing.T) {
 		t.Error("not right")
 		return
 	}
-	fmt.Println("%v", f)
+	fmt.Printf("%v", f)
 	f.Exist("kjuu")
 	f.Val("kjuu")
 	fmt.Println(f.Seces)
