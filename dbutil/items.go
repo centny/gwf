@@ -138,7 +138,11 @@ func (i *IntArray) Value() string {
 func (i IntArray) DbJoin() string {
 	vals := []string{}
 	for _, v := range i {
-		vals = append(vals, fmt.Sprintf("%v", *v))
+		if v == nil {
+			vals = append(vals, "nil")
+		} else {
+			vals = append(vals, fmt.Sprintf("%v", *v))
+		}
 	}
 	return strings.Join(vals, ",")
 }
