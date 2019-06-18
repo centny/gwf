@@ -159,7 +159,7 @@ func (p *Perf2) AutoExec(total, tc, peradd uint64, logf string, precall func(sta
 		func(state Perf2, ridx uint64, used int64, rerr error) (uint64, error) {
 			// time.Sleep(time.Second)
 			_, terr := precall(state, ridx, used, rerr)
-			if terr == FullError {
+			if IsFullError(terr) {
 				atomic.AddUint64(&p.fulled, 1)
 				if uint64(p.Running) < tc {
 					return 1, nil
@@ -361,7 +361,7 @@ func TimeoutSec(state Perf2, ridx uint64, used int64, rerr error) (uint64, error
 		return 0, rerr
 	}
 	if used > 1000 {
-		return 0, FullError
+		return 0, NewFullError(fmt.Errorf("time out"))
 	}
 	return 1, nil
 }

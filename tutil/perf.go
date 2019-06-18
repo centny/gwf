@@ -11,7 +11,25 @@ import (
 	"github.com/Centny/gwf/util"
 )
 
-var FullError = fmt.Errorf("runner is almost full")
+// var FullError = fmt.Errorf("runner is almost full")
+
+type FullError struct {
+	Inner error
+}
+
+func NewFullError(e error) (err *FullError) {
+	err = &FullError{Inner: e}
+	return
+}
+
+func (f *FullError) Error() string {
+	return fmt.Sprintf("FullError(%v)", f.Inner)
+}
+
+func IsFullError(e error) (ok bool) {
+	_, ok = e.(*FullError)
+	return
+}
 
 func DoPerf(tc int, logf string, call func(int)) (int64, error) {
 	return DoPerfV(tc, tc, logf, call)
@@ -24,19 +42,19 @@ func DoPerfV(total, tc int, logf string, call func(int)) (int64, error) {
 		})
 }
 
-func DoAutoPerfV(total, tc, peradd int, logf string, pretimeout int64, precall func(idx int, state Perf) error, call func(int) error) (used int64, max, avg int, err error) {
+func DoAutoPerfV(total, tc, peradd int, logf string, pretimeout int64, call func(int) error) (used int64, max, avg int, err error) {
 	perf := NewPerf()
-	return perf.AutoExec(total, tc, peradd, logf, pretimeout, precall, call)
+	return perf.AutoExec(total, tc, peradd, logf, pretimeout, call)
 }
 
 func DoPerfV_(total, tc int, logf string, call func(int) error) (int64, error) {
 	return DoAutoPerfV_(total, tc, logf,
-		func(idx int, state Perf) (int, error) {
+		func(idx int, state Perf, callErr error) (int, error) {
 			return 1, nil
 		}, call)
 }
 
-func DoAutoPerfV_(total, tc int, logf string, increase func(idx int, state Perf) (int, error), call func(int) error) (int64, error) {
+func DoAutoPerfV_(total, tc int, logf string, increase func(idx int, state Perf, callErr error) (int, error), call func(int) error) (int64, error) {
 	perf := NewPerf()
 	return perf.Exec(total, tc, logf, increase, call)
 }
@@ -51,6 +69,7 @@ type Perf struct {
 	PerUsedAll     int64
 	Done           int64
 	Used           int64
+	ErrCount       int64
 	lck            *sync.RWMutex
 	mrunning       bool
 	mwait          *sync.WaitGroup
@@ -66,16 +85,15 @@ func NewPerf() *Perf {
 }
 
 func (p *Perf) String() string {
-	return fmt.Sprintf("Used:%v,Done:%v,Running:%v,Max:%v,Avg:%v,PerMax:%v,PerMin:%v,PerAvg:%v",
-		p.Used, p.Done, p.Running, p.Max, p.Avg, p.PerUsedMax, p.PerUsedMin, p.PerUsedAvg)
+	return fmt.Sprintf("Used:%v,Done:%v,Error:%v,Running:%v,Max:%v,Avg:%v,PerMax:%v,PerMin:%v,PerAvg:%v",
+		p.Used, p.Done, p.ErrCount, p.Running, p.Max, p.Avg, p.PerUsedMax, p.PerUsedMin, p.PerUsedAvg)
 }
 
-func (p *Perf) AutoExec(total, tc, peradd int, logf string, pretimeout int64, precall func(idx int, state Perf) error, call func(int) error) (used int64, max, avg int, err error) {
+func (p *Perf) AutoExec(total, tc, peradd int, logf string, pretimeout int64, call func(int) error) (used int64, max, avg int, err error) {
 	used, err = p.Exec(total, tc, logf,
-		func(idx int, state Perf) (int, error) {
+		func(idx int, state Perf, callErr error) (int, error) {
 			beg := util.Now()
-			terr := precall(idx, state)
-			if terr == nil {
+			if callErr == nil {
 				if util.Now()-beg < pretimeout {
 					return peradd, nil
 				}
@@ -83,13 +101,14 @@ func (p *Perf) AutoExec(total, tc, peradd int, logf string, pretimeout int64, pr
 					return 1, nil
 				}
 				return 0, nil
-			} else if terr == FullError {
+			} else if IsFullError(callErr) {
+				atomic.AddInt64(&p.ErrCount, 1)
 				if int(state.Running) < tc {
 					return 1, nil
 				}
 				return 0, nil
 			} else {
-				return 0, terr
+				return 0, callErr
 			}
 		}, call)
 	max, avg = int(p.Max), int(p.Avg)
@@ -131,7 +150,7 @@ func (p *Perf) monitor() {
 	p.mwait.Done()
 }
 
-func (p *Perf) Exec(total, tc int, logf string, increase func(idx int, state Perf) (int, error), call func(int) error) (int64, error) {
+func (p *Perf) Exec(total, tc int, logf string, increase func(idx int, state Perf, err error) (int, error), call func(int) error) (int64, error) {
 	p.stdout, p.stderr = os.Stdout, os.Stderr
 	if len(logf) > 0 {
 		f, err := os.OpenFile(logf, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
@@ -150,7 +169,8 @@ func (p *Perf) Exec(total, tc int, logf string, increase func(idx int, state Per
 	// ws.Add(total)
 	beg := util.Now()
 	var tidx_ int32 = 0
-	var run_call, run_next func(int)
+	var run_call func(int)
+	var run_next func(int, error)
 	var err error = nil
 	run_call = func(v int) {
 		perbeg := util.Now()
@@ -159,19 +179,15 @@ func (p *Perf) Exec(total, tc int, logf string, increase func(idx int, state Per
 		perused := util.Now() - perbeg
 		if terr == nil {
 			p.perdone(perused)
-		} else {
-			err = terr
 		}
-		if err == nil {
-			run_next(v)
-		}
+		run_next(v, terr)
 		ws.Done()
 	}
 	var increaselck = sync.RWMutex{}
-	run_next = func(v int) {
+	run_next = func(v int, callErr error) {
 		increaselck.Lock()
 		defer increaselck.Unlock()
-		nc, terr := increase(v, *p)
+		nc, terr := increase(v, *p, callErr)
 		if terr != nil {
 			err = terr
 			return
