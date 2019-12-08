@@ -110,6 +110,24 @@ func (i Int64Array) HavingOne(vals ...int64) bool {
 	return false
 }
 
+func (i *Int64Array) Remove(vals ...int64) {
+	var n Int64Array
+	for _, v0 := range *i {
+		having := 0
+		for _, v1 := range vals {
+			if *v0 == v1 {
+				having = 1
+				break
+			}
+		}
+		if having > 0 {
+			continue
+		}
+		n = append(n, v0)
+	}
+	*i = n
+}
+
 //IntArray is database value to parse data to []int value
 type IntArray []*int
 
