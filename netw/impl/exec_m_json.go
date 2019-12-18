@@ -28,7 +28,7 @@ func Json_V2B(v interface{}) (data []byte, err error) {
 	default:
 		data, err = json.Marshal(v)
 	}
-	if err == nil && ((netw.MOD_MAX_SIZE == 4 && len(data) > 10*1024*1024) || (netw.MOD_MAX_SIZE == 2 && len(data) > 6000)) {
+	if err == nil && ((netw.MOD_MAX_SIZE == 4 && len(data) > 10*1024*1024) || (netw.MOD_MAX_SIZE == 2 && len(data) > 60000)) {
 		err = ErrTooLarge
 		log.E("Json_V2B write data(%v) too large by limit(60000)", len(data))
 		err = ErrTooLarge
