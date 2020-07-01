@@ -448,10 +448,6 @@ func (m Map) AryIntValP(path string) []int {
 	v, _ := m.ValP(path)
 	return AryIntVal(v)
 }
-func (m Map) AryInt64ValP(path string) []int64 {
-	v, _ := m.ValP(path)
-	return AryInt64Val(v)
-}
 func (m Map) ValP(path string) (interface{}, error) {
 	path = strings.TrimPrefix(path, "/")
 	keys := strings.Split(path, "/")
