@@ -1,12 +1,11 @@
 package impl
 
 import (
-	"regexp"
-
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
+	"regexp"
 )
 
 type NAV_F func(rc *RCM_Con, name string, args interface{}) (interface{}, error)

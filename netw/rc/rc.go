@@ -168,8 +168,6 @@ func AuthF(r *impl.RCM_Cmd) (bool, interface{}, error) {
 type RC_Listener_m struct {
 	*impl.RC_Listener_m //listener
 	//
-	RCBH *impl.OBDH //
-	//
 	OH  *impl.OBDH //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
 	RCH *RC_Cmd_h  //remote client command call back handler.
 	LCH RC_Login_h
@@ -185,9 +183,7 @@ func NewRC_Listener_m(p *pool.BytePool, port string, h netw.CCHandler, nd impl.N
 	rcl.ND, rcl.VNA, rcl.V2B, rcl.B2V, rcl.NAV = nd, vna, v2b, b2v, nav
 	rcl.RCM_S = impl.NewRCM_S(nd, vna)
 	rcl.OH = impl.NewOBDH()
-	rcl.RCBH = impl.NewOBDH()
-	rcl.RCBH.AddH(0, rcl.RCM_S)
-	rcl.OH.AddH(CMD_S, impl.NewRC_S(rcl.RCBH))
+	rcl.OH.AddH(CMD_S, impl.NewRC_S(rcl.RCM_S))
 	rcl.OH.AddH(MSG_S, h)
 	//
 	rcl.RCH = NewRC_Cmd_h()
@@ -351,9 +347,6 @@ func (r *RC_Listener_m) State() (interface{}, error) {
 type RC_Runner_m struct {
 	*impl.RC_Runner_m
 	*impl.RCM_S
-	//
-	RCBH *impl.OBDH //
-	//
 	OH *impl.OBDH //OBDH by CMD_S/CMD_C/MSG_S/MSG_C
 	MC netw.Con   //message connection.
 	// BC *netw.Con_
@@ -379,9 +372,7 @@ func NewRC_Runner_m(p *pool.BytePool, addr string, h netw.CCHandler, rc *impl.RC
 	runner.OH = impl.NewOBDH()
 	runner.OH.AddH(CMD_S, runner.TC)
 	runner.OH.AddH(MSG_C, h)
-	runner.RCBH = impl.NewOBDH()
-	runner.RCBH.AddH(0, rc)
-	runner.OH.AddH(CMD_C, impl.NewRC_S(runner.RCBH))
+	runner.OH.AddH(CMD_C, impl.NewRC_S(rc))
 	runner.CH = impl.NewChanH(runner.OH)
 	runner.L = netw.NewNConPool(p, netw.NewCCH(netw.NewQueueConH(runner, h), runner.CH), "RCC-")
 	runner.L.NewCon = runner.NewCon

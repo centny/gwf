@@ -2,14 +2,6 @@ package rc
 
 import (
 	"fmt"
-	"net/http"
-	"os"
-	"runtime"
-	"strings"
-	"sync/atomic"
-	"testing"
-	"time"
-
 	"github.com/Centny/gwf/log"
 	"github.com/Centny/gwf/netw"
 	"github.com/Centny/gwf/netw/impl"
@@ -17,6 +9,13 @@ import (
 	"github.com/Centny/gwf/routing"
 	"github.com/Centny/gwf/tutil"
 	"github.com/Centny/gwf/util"
+	"net/http"
+	"os"
+	"runtime"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
 )
 
 ////////////////////////////////////
@@ -241,7 +240,7 @@ func test_rc(t *testing.T, multi bool) {
 		t.Error(err.Error())
 		return
 	}
-	fmt.Printf("=== xxxx->001\n\n\n")
+	fmt.Println("=== xxxx->001\n\n\n")
 	//
 	//
 	//initial client
@@ -279,7 +278,7 @@ func test_rc(t *testing.T, multi bool) {
 		}
 		crs = append(crs, cr)
 	}
-	fmt.Printf("=== xxxx->002\n\n\n")
+	fmt.Println("=== xxxx->002\n\n\n")
 	//login by remote command.
 	for i := 5; i < 10; i++ {
 		addrs := []string{}
@@ -315,7 +314,7 @@ func test_rc(t *testing.T, multi bool) {
 			return
 		}
 	}
-	fmt.Printf("=== xxxx->003\n\n\n")
+	fmt.Println("=== xxxx->003\n\n\n")
 	// time.Sleep(1000 * time.Second)
 	// return
 	//
@@ -334,9 +333,9 @@ func test_rc(t *testing.T, multi bool) {
 			t.Error(err.Error())
 			return
 		}
-		fmt.Printf("xxxx->004-2\n")
+		fmt.Println("xxxx->004-2\n")
 	}
-	fmt.Printf("=== xxxx->004\n\n\n")
+	fmt.Println("=== xxxx->004\n\n\n")
 	//calling all
 	err = sh.CallM("")
 	if err != nil {
