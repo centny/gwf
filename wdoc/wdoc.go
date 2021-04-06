@@ -172,7 +172,7 @@ func (p *Parser) Parse(root string, dirs ...string) error {
 			p.parse_pkgs(dir, pkgs)
 		} else {
 			log.E("parse error with dirs(%v)->%v", len(dirs), err)
-			return err
+			// return err
 		}
 	}
 	log.D("parse success with dirs(%v) on root(%v)", len(dirs), root)
