@@ -609,6 +609,7 @@ func (l *LConPool) LoopTimeout() {
 		cons := []Con{}
 		ping := []Con{}
 		tn := util.Now()
+		l.cons_l.RLock()
 		for _, c := range l.cons {
 			if c.Waiting() {
 				if (tn - c.Last()) > l.PingDelay {
@@ -620,6 +621,7 @@ func (l *LConPool) LoopTimeout() {
 				}
 			}
 		}
+		l.cons_l.RUnlock()
 		if len(cons) > 0 {
 			log.D("closing %v connection for timeout on %v", len(cons), l.Name)
 		}
