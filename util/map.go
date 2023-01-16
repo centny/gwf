@@ -463,13 +463,15 @@ func (m Map) valP(keys []string) (interface{}, error) {
 		switch reflect.TypeOf(tv).Kind() {
 		case reflect.Slice: //if array
 
-			if !reflect.ValueOf(tv).CanConvert(reflect.TypeOf([]interface{}{})) {
+			rv := reflect.ValueOf(tv)
+			rt := reflect.TypeOf([]interface{}{})
+			if !rv.CanConvert(rt) {
 				return nil, errors.New(fmt.Sprintf(
 					"invalid array(%v) in path(/%v),expected []interface{}",
 					reflect.TypeOf(tv).String(), strings.Join(keys[:i+1], "/"),
 				))
 			}
-			ary := reflect.ValueOf(tv).Convert(reflect.TypeOf([]interface{}{})).Interface().([]interface{})
+			ary := rv.Convert(rt).Interface().([]interface{})
 			if keys[i] == "@len" { //check if have @len
 				return len(ary), nil //return the array length
 			}
