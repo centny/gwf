@@ -15,7 +15,7 @@ type Validable interface {
 	ValidF(f string, args ...interface{}) error
 }
 
-//type define to map[string]interface{}
+// type define to map[string]interface{}
 type Map map[string]interface{}
 
 func IntVal(v interface{}) int64 {
@@ -462,13 +462,14 @@ func (m Map) valP(keys []string) (interface{}, error) {
 		}
 		switch reflect.TypeOf(tv).Kind() {
 		case reflect.Slice: //if array
-			ary, ok := tv.([]interface{}) //check if valid array
-			if !ok {
+
+			if !reflect.ValueOf(tv).CanConvert(reflect.TypeOf([]interface{}{})) {
 				return nil, errors.New(fmt.Sprintf(
 					"invalid array(%v) in path(/%v),expected []interface{}",
 					reflect.TypeOf(tv).String(), strings.Join(keys[:i+1], "/"),
 				))
 			}
+			ary := reflect.ValueOf(tv).Convert(reflect.TypeOf([]interface{}{})).Interface().([]interface{})
 			if keys[i] == "@len" { //check if have @len
 				return len(ary), nil //return the array length
 			}
