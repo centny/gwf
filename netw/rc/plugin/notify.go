@@ -12,10 +12,10 @@ import (
 	"github.com/Centny/gwf/util"
 )
 
-//SharedNotify is the shared notify server instance
+// SharedNotify is the shared notify server instance
 var SharedNotify = NewNotifySrv(nil)
 
-//NotifyPostMessage is using SharedNotify and ignore notify when SharedNotify is not running
+// NotifyPostMessage is using SharedNotify and ignore notify when SharedNotify is not running
 func NotifyPostMessage(m *Message) error {
 	if SharedNotify.running {
 		return SharedNotify.PostMessage(m)
@@ -23,22 +23,22 @@ func NotifyPostMessage(m *Message) error {
 	return nil
 }
 
-//NotifyMessageMark is the message mark to transfter on RC socket channel
+// NotifyMessageMark is the message mark to transfter on RC socket channel
 var NotifyMessageMark byte = 165
 
-//Message is the notify message
+// Message is the notify message
 type Message struct {
-	ID     string   `bson:"_id" json:"id"`        //the message id
-	Oid    string   `bson:"oid" json:"oid"`       //the owner id
-	Owner  string   `bson:"owner" json:"owner"`   //the owner type
-	Type   string   `bson:"type" json:"type"`     //the message type
-	Attrs  util.Map `bson:"attrs" json:"attrs"`   //external attributes
-	Marked []string `bson:"marked" json:"marked"` //the key of already mark done
-	Count  int      `bson:"count" json:"count"`   //the done count
-	Time   int64    `bson:"time" json:"time"`     //the create time
+	ID     string   `bson:"_id" json:"id"`                            //the message id
+	Oid    string   `bson:"oid" json:"oid"`                           //the owner id
+	Owner  string   `bson:"owner" json:"owner"`                       //the owner type
+	Type   string   `bson:"type" json:"type"`                         //the message type
+	Attrs  util.Map `bson:"attrs" json:"attrs"`                       //external attributes
+	Marked []string `bson:"marked,omitempty" json:"marked,omitempty"` //the key of already mark done
+	Count  int      `bson:"count" json:"count"`                       //the done count
+	Time   int64    `bson:"time" json:"time"`                         //the create time
 }
 
-//NotifyDb is the notify server database interface.
+// NotifyDb is the notify server database interface.
 type NotifyDb interface {
 	//adding message
 	AddMessage(m *Message) error
@@ -52,7 +52,7 @@ type NotifyDb interface {
 	ListMessage(m *Message) ([]*Message, error)
 }
 
-//NotifySrv is the RC handler for notify server.
+// NotifySrv is the RC handler for notify server.
 type NotifySrv struct {
 	L       *rc.RC_Listener_m
 	Db      NotifyDb
@@ -63,7 +63,7 @@ type NotifySrv struct {
 	running bool
 }
 
-//NewNotifySrv the createor.
+// NewNotifySrv the createor.
 func NewNotifySrv(db NotifyDb) *NotifySrv {
 	return &NotifySrv{
 		Db:      db,
@@ -72,7 +72,7 @@ func NewNotifySrv(db NotifyDb) *NotifySrv {
 	}
 }
 
-//MonitorH is marking the type of message for monitoring.
+// MonitorH is marking the type of message for monitoring.
 func (n *NotifySrv) MonitorH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	var mtype string
 	var mask = 0
@@ -103,7 +103,7 @@ func (n *NotifySrv) MonitorH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	return "OK", nil
 }
 
-//MarkH is marking message done
+// MarkH is marking message done
 func (n *NotifySrv) MarkH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	var mid, key string
 	err = rc.ValidF(`
@@ -136,14 +136,14 @@ func (n *NotifySrv) MarkH(rc *impl.RCM_Cmd) (res interface{}, err error) {
 	return "OK", nil
 }
 
-//Hand is register the handler to listener.
+// Hand is register the handler to listener.
 func (n *NotifySrv) Hand(l *rc.RC_Listener_m) {
 	n.L = l
 	l.AddHFunc("notify/monitor", n.MonitorH)
 	l.AddHFunc("notify/mark", n.MarkH)
 }
 
-//PostMessage send notify message
+// PostMessage send notify message
 func (n *NotifySrv) PostMessage(m *Message) error {
 	var err = n.Db.AddMessage(m)
 	if err != nil {
@@ -155,7 +155,7 @@ func (n *NotifySrv) PostMessage(m *Message) error {
 	return nil
 }
 
-//Start is starting the async post task
+// Start is starting the async post task
 func (n *NotifySrv) Start() {
 	if n.running {
 		return
@@ -165,7 +165,7 @@ func (n *NotifySrv) Start() {
 	go n.loopChan()
 }
 
-//Stop is stopping the async post task
+// Stop is stopping the async post task
 func (n *NotifySrv) Stop() {
 	close(n.msgChan)
 	close(n.cidChan)
@@ -227,40 +227,40 @@ func (n *NotifySrv) notifyClient(cid, mtype string) {
 	}
 }
 
-//NotifyHandler is the notify handler for notify client.
+// NotifyHandler is the notify handler for notify client.
 type NotifyHandler interface {
 	//on message received
 	OnMessage(n *NotifyClient, m *Message) error
 }
 
-//NotifyHandlerF is handler func
+// NotifyHandlerF is handler func
 type NotifyHandlerF func(n *NotifyClient, m *Message) error
 
-//OnMessage see NotifyHandler
+// OnMessage see NotifyHandler
 func (f NotifyHandlerF) OnMessage(n *NotifyClient, m *Message) error {
 	return f(n, m)
 }
 
-//NotifyClient is the RC handler for notify client
+// NotifyClient is the RC handler for notify client
 type NotifyClient struct {
 	R *rc.RC_Runner_m
 	H NotifyHandler
 }
 
-//NewNotifyClient is creator.
+// NewNotifyClient is creator.
 func NewNotifyClient(h NotifyHandler) *NotifyClient {
 	return &NotifyClient{
 		H: h,
 	}
 }
 
-//SetRunner initial runner.
+// SetRunner initial runner.
 func (n *NotifyClient) SetRunner(r *rc.RC_Runner_m, obdh *impl.OBDH) {
 	n.R = r
 	obdh.AddH(NotifyMessageMark, n)
 }
 
-//Monitor start monitor by message type and mark
+// Monitor start monitor by message type and mark
 func (n *NotifyClient) Monitor(mtype string, mask int) error {
 	var _, err = n.R.VExec_s("notify/monitor", util.Map{
 		"type": mtype,
@@ -269,7 +269,7 @@ func (n *NotifyClient) Monitor(mtype string, mask int) error {
 	return err
 }
 
-//Mark is marking message is done with key
+// Mark is marking message is done with key
 func (n *NotifyClient) Mark(mid, key string) error {
 	var _, err = n.R.VExec_s("notify/mark", util.Map{
 		"mid": mid,
@@ -278,7 +278,7 @@ func (n *NotifyClient) Mark(mid, key string) error {
 	return err
 }
 
-//OnCmd handler message.
+// OnCmd handler message.
 func (n *NotifyClient) OnCmd(c netw.Cmd) int {
 	var msg = &Message{}
 	var _, err = c.V(msg)
@@ -295,14 +295,14 @@ func (n *NotifyClient) OnCmd(c netw.Cmd) int {
 	return 0
 }
 
-//NotifyMemDb is impl to NotifyDb on memory
+// NotifyMemDb is impl to NotifyDb on memory
 type NotifyMemDb struct {
 	MS    map[string]*Message
 	Count map[string]int
 	Lck   sync.RWMutex
 }
 
-//NewNotifyMemDb is NotifyMemDb creator
+// NewNotifyMemDb is NotifyMemDb creator
 func NewNotifyMemDb() *NotifyMemDb {
 	return &NotifyMemDb{
 		MS:    map[string]*Message{},
@@ -311,7 +311,7 @@ func NewNotifyMemDb() *NotifyMemDb {
 	}
 }
 
-//AddMessage @see NotifyDb
+// AddMessage @see NotifyDb
 func (n *NotifyMemDb) AddMessage(m *Message) error {
 	n.Lck.Lock()
 	defer n.Lck.Unlock()
@@ -320,7 +320,7 @@ func (n *NotifyMemDb) AddMessage(m *Message) error {
 	return nil
 }
 
-//RemoveMessage @see NotifyDb
+// RemoveMessage @see NotifyDb
 func (n *NotifyMemDb) RemoveMessage(id string) error {
 	n.Lck.Lock()
 	defer n.Lck.Unlock()
@@ -328,7 +328,7 @@ func (n *NotifyMemDb) RemoveMessage(id string) error {
 	return nil
 }
 
-//DoneMessage @see NotifyDb
+// DoneMessage @see NotifyDb
 func (n *NotifyMemDb) DoneMessage(mid, key string) (msg *Message, err error) {
 	n.Lck.Lock()
 	defer n.Lck.Unlock()
@@ -346,7 +346,7 @@ func (n *NotifyMemDb) DoneMessage(mid, key string) (msg *Message, err error) {
 	return msg, nil
 }
 
-//RemoveCount @see NotifyDb
+// RemoveCount @see NotifyDb
 func (n *NotifyMemDb) RemoveCount(mtype string) (count int, err error) {
 	if val, ok := n.Count[mtype]; ok {
 		return val, nil
@@ -354,7 +354,7 @@ func (n *NotifyMemDb) RemoveCount(mtype string) (count int, err error) {
 	return 1, nil
 }
 
-//ListMessage @see NotifyDb
+// ListMessage @see NotifyDb
 func (n *NotifyMemDb) ListMessage(m *Message) (ms []*Message, err error) {
 	n.Lck.Lock()
 	defer n.Lck.Unlock()
