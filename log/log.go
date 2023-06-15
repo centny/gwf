@@ -19,7 +19,7 @@ const (
 	NONE             = 5
 )
 
-//default log flags.
+// default log flags.
 const D_LOG_FLAGS int = log.Ldate | log.Lmicroseconds | log.Lshortfile
 
 type Log struct {

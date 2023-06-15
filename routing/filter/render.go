@@ -144,7 +144,7 @@ func (r *Render) NewTmplFv(path string) (tmpl *TmplF, err error) {
 		ext = strings.TrimPrefix(ext, "R:")
 		tmpl.U, err = url.Parse(ext)
 		if err != nil {
-			err = util.Err("parsing extern line(%v) on file(%v) fail with error->%v", fpath, err)
+			err = util.Err("parsing extern line(%v) on file(%v) fail with error->%v", ext, fpath, err)
 			return nil, err
 		}
 		tmpl.Key = tmpl.U.Path
