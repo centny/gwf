@@ -101,12 +101,12 @@ func (f *WhitelistFilter) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 		addr = strings.Split(hs.R.RemoteAddr, ":")[0]
 	}
 	if f.IsAllowed(addr) {
-		log.D("WhiteListFilter found ip(%v) in white lists want to request path(%v), xip(%v), remote(%v)",
+		log.D("WhiteListFilter found ip(%v) in white lists, from request path(%v), xip(%v), remote(%v)",
 			addr, hs.R.URL.Path, hs.R.Header.Get("X-Real-IP"), hs.R.RemoteAddr)
 		return routing.HRES_CONTINUE
 	}
 
-	log.W("WhiteListFilter found ip(%v) which not in white lists want to request path(%v), xip(%v), remote(%v)",
+	log.W("WhiteListFilter found ip(%v) which not in white lists, from request path(%v), xip(%v), remote(%v)",
 		addr, hs.R.URL.Path, hs.R.Header.Get("X-Real-IP"), hs.R.RemoteAddr)
 	return hs.MsgResErr(401, "access err", util.Err("access error"))
 }
