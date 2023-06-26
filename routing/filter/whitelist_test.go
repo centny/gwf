@@ -10,11 +10,52 @@ import (
 
 func TestWhiteList(t *testing.T) {
 
+	f, err := NewWhitelistFilter("172.10.0.0/16")
+	if err != nil {
+		t.Error("New whitelist filter failed", err)
+		return
+	}
+
+	cases := map[string]bool{
+		"":                false,
+		"172.10.1.12":     true,
+		"172.10.1.13":     true,
+		"172.10.2.13":     true,
+		"172.11.1.12":     false,
+		"192.0.1.1":       false,
+		"211.123.123.123": false,
+	}
+
+	for ip, expect := range cases {
+		if f.IsAllowed(ip) != expect {
+			t.Errorf("ip(%v) match expected %v but %v", ip, expect, f.IsAllowed(ip))
+		}
+	}
+
+	f, err = NewWhitelistFilter("192.168.0.0/16")
+	if err != nil {
+		t.Error("New whitelist filter failed", err)
+		return
+	}
+
+	cases = map[string]bool{
+		"":             false,
+		"172.10.1.12":  false,
+		"192.0.1.1":    false,
+		"192.168.3.13": true,
+	}
+
+	for ip, expect := range cases {
+		if f.IsAllowed(ip) != expect {
+			t.Errorf("ip(%v) match expected %v but %v", ip, expect, f.IsAllowed(ip))
+		}
+	}
+
 	if !IsIPAddress("192.168.0.1") {
 		t.Error("192.168.0.1 should be ip")
 	}
 
-	f, err := NewWhitelistFilter("192.168.0.1", "172.10.0.1/16")
+	f, err = NewWhitelistFilter("192.168.0.1", "172.10.0.1/16")
 	if err != nil {
 		t.Error("New whitelist filter failed", err)
 		return

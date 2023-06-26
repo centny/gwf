@@ -78,6 +78,9 @@ func (f *WhitelistFilter) AddIPRange(ipRangeStr string) error {
 }
 
 func (f *WhitelistFilter) IsAllowed(ipStr string) bool {
+	if ipStr == "" {
+		return false
+	}
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		return false
@@ -98,6 +101,8 @@ func (f *WhitelistFilter) SrvHTTP(hs *routing.HTTPSession) routing.HResult {
 		addr = strings.Split(hs.R.RemoteAddr, ":")[0]
 	}
 	if f.IsAllowed(addr) {
+		log.D("WhiteListFilter found ip(%v) in white lists want to request path(%v), xip(%v), remote(%v)",
+			addr, hs.R.URL.Path, hs.R.Header.Get("X-Real-IP"), hs.R.RemoteAddr)
 		return routing.HRES_CONTINUE
 	}
 
