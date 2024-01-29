@@ -82,13 +82,24 @@ func I(format string, v ...interface{}) {
 	dlog.log(INFO, "[I] %s", fmt.Sprintf(format, v...))
 }
 
+func I_(d int, format string, v ...interface{}) {
+	dlog.log_(INFO, d, "[I] %s", fmt.Sprintf(format, v...))
+}
+
 func W(format string, v ...interface{}) {
 	dlog.log(WARNING, "[W] %s", fmt.Sprintf(format, v...))
+}
+func W_(d int, format string, v ...interface{}) {
+	dlog.log_(WARNING, d, "[W] %s", fmt.Sprintf(format, v...))
 }
 
 func E(format string, v ...interface{}) {
 	dlog.log(ERROR, "[E] %s", fmt.Sprintf(format, v...))
 }
+func E_(d int, format string, v ...interface{}) {
+	dlog.log_(ERROR, d, "[E] %s", fmt.Sprintf(format, v...))
+}
+
 func NewDefaultLog(w io.Writer) Log {
 	l := Log{}
 	l.level = DEBUG
